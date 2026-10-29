@@ -14,6 +14,7 @@ const MILESTONE = 100;
 export default function ProgressHero({
   totalMinutes,
   approvedMinutes,
+  pendingMinutes,
   goalHours,
   dday,
   editable = true,
@@ -21,6 +22,8 @@ export default function ProgressHero({
   totalMinutes: number;
   /** 지도교수 인증 완료 시간(분). 없으면(예시 화면) 표시하지 않는다 */
   approvedMinutes?: number;
+  /** 교수 인증을 기다리는 시간(분) */
+  pendingMinutes?: number;
   goalHours: number;
   /** 히어로 아래쪽에 붙는 D-Day 칩 */
   dday?: ReactNode;
@@ -61,6 +64,12 @@ export default function ProgressHero({
           {approvedMinutes !== undefined && (
             <p className="mt-0.5 text-body-sm text-ink-soft">
               교수 인증 완료 <AnimatedNumber value={approvedMinutes / 60} suffix="시간" className="font-bold text-brand-deep" />
+              {pendingMinutes !== undefined && pendingMinutes > 0 && (
+                <>
+                  {" "}
+                  · 인증 대기 <AnimatedNumber value={pendingMinutes / 60} suffix="시간" className="font-bold text-warn-ink" />
+                </>
+              )}
             </p>
           )}
         </div>

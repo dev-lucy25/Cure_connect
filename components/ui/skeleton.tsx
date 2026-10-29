@@ -224,6 +224,45 @@ export function GradingSkeleton() {
   );
 }
 
+/** 교수 일지 인증 대기함 */
+export function ApprovalsSkeleton() {
+  return (
+    <SkeletonBox label="인증할 일지를 불러오는 중" className="space-y-4">
+      <HeaderBones />
+      <div aria-hidden className="skeleton h-14 rounded-card" />
+      {Array.from({ length: 4 }, (_, i) => (
+        <CardShell key={i} className="space-y-2 p-4">
+          <Bone className="h-4 w-1/4" />
+          <Bone className="h-5 w-2/3" />
+          <Bone className="h-4 w-1/2" />
+        </CardShell>
+      ))}
+    </SkeletonBox>
+  );
+}
+
+/** 교수 학생 상세: 시간 요약 + 과목별 + 일지 */
+export function StudentDetailSkeleton() {
+  return (
+    <SkeletonBox label="학생 기록을 불러오는 중" className="space-y-3">
+      <CardShell className="space-y-3">
+        <Bone className="h-8 w-1/3" />
+        <Bone className="h-4 w-1/2" />
+        <Bone className="h-10 w-2/3" />
+        <Bone className="h-3" />
+      </CardShell>
+      <CardShell>
+        <Bone className="h-5 w-2/5" />
+        <div className="mt-4 grid gap-3 sm:grid-cols-2">
+          {Array.from({ length: 6 }, (_, i) => (
+            <div key={i} aria-hidden className="skeleton h-14 rounded-control" />
+          ))}
+        </div>
+      </CardShell>
+    </SkeletonBox>
+  );
+}
+
 export function LogsMoreSkeleton() {
   return (
     <SkeletonBox label="일지를 더 불러오는 중" className="space-y-3">

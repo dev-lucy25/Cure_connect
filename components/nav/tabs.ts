@@ -22,6 +22,7 @@ export const TABS: Record<Role | "guest", Tab[]> = {
   student: STUDENT_TABS,
   professor: [
     { label: "학생 현황", icon: "chart", href: "/" },
+    { label: "일지 인증", icon: "clock", href: "/prof/approvals" },
     { label: "채점", icon: "check", href: "/prof/submissions" },
   ],
 };

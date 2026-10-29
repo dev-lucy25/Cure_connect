@@ -11,6 +11,7 @@ import ProgressBar from "@/components/motion/progress-bar";
 import { useTapEffect } from "@/components/motion/use-motion-prefs";
 import NurseTurtle from "@/components/mascot/nurse-turtle";
 import { buttonClass } from "@/components/ui/button-class";
+import Link from "next/link";
 import Chip from "@/components/ui/chip";
 import FormStatus from "@/components/ui/form-status";
 
@@ -183,7 +184,9 @@ export default function Roster({ rows, hasRoom, hasOrg }: { rows: RosterRow[]; h
                   <div className="flex items-start justify-between gap-2">
                     <div className="min-w-0">
                       <p className="font-bold text-ink">
-                        {r.name}
+                        <Link href={`/prof/students/${r.id}`} className="hover:text-brand-deep hover:underline">
+                          {r.name}
+                        </Link>
                         {r.sameRoom && <span className="ml-1.5 text-caption font-medium text-brand-deep">🔑 내 방</span>}
                       </p>
                       <p className="text-caption text-ink-soft">{subline(r)}</p>
@@ -233,7 +236,9 @@ export default function Roster({ rows, hasRoom, hasOrg }: { rows: RosterRow[]; h
                     >
                       <td className="px-5 py-3">
                         <p className="font-bold text-ink">
-                          {r.name}
+                          <Link href={`/prof/students/${r.id}`} className="hover:text-brand-deep hover:underline">
+                            {r.name}
+                          </Link>
                           {r.sameRoom && <span className="ml-1.5 text-caption font-medium text-brand-deep">🔑 내 방</span>}
                         </p>
                         <p className="text-caption text-ink-soft">{subline(r)}</p>

@@ -44,6 +44,7 @@ export default async function TrackerHome({ user }: { user: CurrentUser }) {
           <ProgressHero
             totalMinutes={progress.totalMinutes}
             approvedMinutes={progress.approvedMinutes}
+            pendingMinutes={progress.pendingMinutes}
             goalHours={progress.goalHours}
             dday={<DDayChip next={upcoming} current={current} today={today} />}
           />
