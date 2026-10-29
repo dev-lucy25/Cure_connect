@@ -5,6 +5,7 @@ import { listCases } from "@/server/case-repo";
 import LoginPrompt from "@/components/home/login-prompt";
 import RoleNotice from "@/components/home/role-notice";
 import CaseList from "@/components/cases/case-list";
+import PrivacyNotice from "@/components/home/privacy-notice";
 import { CasesSkeleton } from "@/components/ui/skeleton";
 
 export const metadata: Metadata = { title: "케이스 메모 · NursePass" };
@@ -26,6 +27,6 @@ async function CasesContent() {
     return <RoleNotice title="학생 계정 전용 화면이에요" body="케이스 기록은 학생이 써요. 학생들이 낸 과제는 채점 화면에서 볼 수 있어요" />;
   }
   const { items, nextCursor } = await listCases(user.id);
-  return <CaseList items={items} nextCursor={nextCursor} />;
+  return <CaseList items={items} nextCursor={nextCursor} notice={<PrivacyNotice />} />;
 }
 

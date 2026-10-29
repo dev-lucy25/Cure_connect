@@ -12,10 +12,19 @@ import SelectField from "@/components/ui/select-field";
 // 결과 숫자는 굴러가며 바뀌고, 점적 챔버의 방울은 계산된 간격으로 실제로 떨어진다.
 export default function IvCalculator() {
   const [volume, setVolume] = useState("1000");
-  const [hours, setHours] = useState("8");
+  const [time, setTime] = useState("8");
+  // 주입 시간 단위: 시간 또는 분 (예: 항생제 100 mL를 30분에)
+  const [unit, setUnit] = useState<"hr" | "min">("hr");
   const [factor, setFactor] = useState("20");
-  const result = ivRate(Number(volume), Number(hours), Number(factor));
-  const error = typeof result === "string" ? result : null;
+  const hours = unit === "min" ? Number(time) / 60 : Number(time);
+  const result = ivRate(Number(volume), hours, Number(factor));
+  // 분 단위로 쓰고 있으면 주입 시간 안내도 분으로
+  const error =
+    typeof result !== "string"
+      ? null
+      : unit === "min" && result.startsWith("주입 시간")
+        ? `주입 시간은 ${IV_LIMITS.hoursMin * 60}~${(IV_LIMITS.hoursMax * 60).toLocaleString()}분으로 입력해 주세요`
+        : result;
   const id = useId();
 
   return (
@@ -36,18 +45,39 @@ export default function IvCalculator() {
           value={volume}
           onChange={(e) => setVolume(e.target.value)}
         />
-        <Field
-          id={`${id}-hours`}
-          name="hours"
-          label="총 주입 시간 (hr)"
-          type="number"
-          inputMode="decimal"
-          min={IV_LIMITS.hoursMin}
-          max={IV_LIMITS.hoursMax}
-          step={0.5}
-          value={hours}
-          onChange={(e) => setHours(e.target.value)}
-        />
+        <div>
+          <Field
+            id={`${id}-hours`}
+            name="hours"
+            label={unit === "hr" ? "총 주입 시간 (시간)" : "총 주입 시간 (분)"}
+            type="number"
+            inputMode="decimal"
+            min={unit === "hr" ? IV_LIMITS.hoursMin : IV_LIMITS.hoursMin * 60}
+            max={unit === "hr" ? IV_LIMITS.hoursMax : IV_LIMITS.hoursMax * 60}
+            step={unit === "hr" ? 0.5 : 5}
+            value={time}
+            onChange={(e) => setTime(e.target.value)}
+          />
+          <div role="group" aria-label="시간 단위" className="mt-1.5 inline-flex rounded-full bg-subtle p-0.5" data-time-unit>
+            {(["hr", "min"] as const).map((u) => (
+              <button
+                key={u}
+                type="button"
+                aria-pressed={unit === u}
+                onClick={() => {
+                  if (u === unit) return;
+                  // 단위를 바꾸면 같은 시간이 되게 값을 바꿔 준다 (8시간 ↔ 480분)
+                  const n = Number(time);
+                  if (Number.isFinite(n) && n > 0) setTime(String(u === "min" ? Math.round(n * 60) : Math.round((n / 60) * 10) / 10));
+                  setUnit(u);
+                }}
+                className={`min-h-9 rounded-full px-3 text-caption font-bold transition-colors ${unit === u ? "bg-surface text-ink shadow-soft" : "text-ink-soft hover:text-ink"}`}
+              >
+                {u === "hr" ? "시간" : "분"}
+              </button>
+            ))}
+          </div>
+        </div>
         <SelectField id={`${id}-factor`} name="factor" label="수액 세트" value={factor} onChange={(e) => setFactor(e.target.value)}>
           {DROP_FACTORS.map((f) => (
             <option key={f.value} value={f.value}>

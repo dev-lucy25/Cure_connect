@@ -19,7 +19,7 @@ import { IconPlus } from "@/components/ui/icons";
 import PageHeader from "@/components/ui/page-header";
 import CaseForm from "@/components/cases/case-form";
 
-export default function CaseList({ items, nextCursor }: { items: CaseSummary[]; nextCursor: string | null }) {
+export default function CaseList({ items, nextCursor, notice }: { items: CaseSummary[]; nextCursor: string | null; notice?: React.ReactNode }) {
   const [state, action, pending] = useActionState<FormState<CaseField>, FormData>(createCaseAction, {});
   const [writing, setWriting] = useState(false);
 
@@ -34,6 +34,7 @@ export default function CaseList({ items, nextCursor }: { items: CaseSummary[]; 
           </Link>
         }
       />
+      {notice}
 
       {/* 히어로: 새 케이스 쓰기. 저장에 성공하면 서버가 새 케이스 화면으로 보내므로 폼은 실패할 때만 다시 그려진다 */}
       <div className="pt-2">

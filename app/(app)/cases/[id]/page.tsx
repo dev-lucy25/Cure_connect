@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import RoleNotice from "@/components/home/role-notice";
+import PrivacyNotice from "@/components/home/privacy-notice";
 import { Suspense } from "react";
 import { getCurrentUser } from "@/server/auth";
 import { AI_DAILY_LIMIT, getAiUsedToday, getCase, listChat } from "@/server/case-repo";
@@ -22,6 +23,7 @@ export default function CaseDetailPage({ params }: PageProps<"/cases/[id]">) {
       <Link href="/cases" className="inline-flex min-h-11 items-center text-body-sm font-bold text-ink-soft hover:text-ink">
         ← 케이스 목록
       </Link>
+      <PrivacyNotice />
       <Suspense fallback={<CaseDetailSkeleton />}>
         <CaseDetail params={params} />
       </Suspense>
