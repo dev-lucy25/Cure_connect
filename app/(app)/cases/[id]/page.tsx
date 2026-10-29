@@ -45,7 +45,7 @@ async function CaseDetail({ params }: { params: Promise<{ id: string }> }) {
         <CaseEditor initial={{ id: found.id, title: found.title, ward: found.ward, memo: found.memo }} />
       </StaggerItem>
       <StaggerItem>
-        <CaseAiPanel caseId={found.id} ai={found.ai} stale={found.stale} usedToday={usedToday} limit={AI_DAILY_LIMIT} />
+        <CaseAiPanel caseId={found.id} caseTitle={found.title} ai={found.ai} stale={found.stale} usedToday={usedToday} limit={AI_DAILY_LIMIT} />
       </StaggerItem>
       <StaggerItem>
         <CaseChat caseId={found.id} messages={messages} usedToday={usedToday} limit={AI_DAILY_LIMIT} />

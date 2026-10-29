@@ -1,6 +1,7 @@
 "use client";
 
-import { useActionState } from "react";
+import { useActionState, useState } from "react";
+import { formatCaseDraft } from "@/lib/case-copy";
 import { AnimatePresence, motion } from "motion/react";
 import { SPRING_SNAPPY, SPRING_SOFT } from "@/lib/motion";
 import Collapse from "@/components/motion/collapse";
@@ -30,12 +31,14 @@ const SECTION: Record<Section, { label: string; className: string }> = {
 // SOAPIE 정리 카드(빠른 버튼). 기다리는 동안 이 카드 안에서만 거북이가 걷는다 (화면의 다른 곳은 그대로 쓸 수 있다)
 export default function CaseAiPanel({
   caseId,
+  caseTitle,
   ai,
   stale,
   usedToday,
   limit,
 }: {
   caseId: string;
+  caseTitle: string;
   ai: CaseAiResult | null;
   stale: boolean;
   usedToday: number;
@@ -86,6 +89,8 @@ export default function CaseAiPanel({
         </motion.div>
       </AnimatePresence>
 
+      {ai && !pending && <CopyDraftButton text={formatCaseDraft(caseTitle, ai)} />}
+
       <form action={action} className="mt-4 space-y-2">
         <input type="hidden" name="id" value={caseId} />
         <FormStatus message={state.message} />
@@ -95,6 +100,43 @@ export default function CaseAiPanel({
         </Button>
       </form>
     </Card>
+  );
+}
+
+/** 초안 복사: 실습일지에 붙여 넣을 글로 복사. 클립보드 API가 막힌 환경은 예전 방식(execCommand)으로 */
+function CopyDraftButton({ text }: { text: string }) {
+  const [copiedAt, setCopiedAt] = useState<number | undefined>(undefined);
+  const [failed, setFailed] = useState(false);
+
+  async function copy() {
+    setFailed(false);
+    try {
+      await navigator.clipboard.writeText(text);
+    } catch {
+      const area = document.createElement("textarea");
+      area.value = text;
+      area.setAttribute("readonly", "");
+      area.style.position = "fixed";
+      area.style.opacity = "0";
+      document.body.appendChild(area);
+      area.select();
+      const ok = document.execCommand("copy");
+      area.remove();
+      if (!ok) {
+        setFailed(true);
+        return;
+      }
+    }
+    setCopiedAt(Date.now());
+  }
+
+  return (
+    <div className="mt-4 space-y-2">
+      <Button type="button" variant="secondary" block onClick={copy}>
+        📋 초안 복사
+      </Button>
+      <FormStatus message={failed ? "복사하지 못했어요. 글을 길게 눌러 직접 복사해 주세요" : undefined} savedAt={copiedAt} savedText="초안을 복사했어요 📋" />
+    </div>
   );
 }
 
