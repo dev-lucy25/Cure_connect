@@ -263,6 +263,28 @@ export function StudentDetailSkeleton() {
   );
 }
 
+/** AI 학습 도구 (프리셉터·실습일지) */
+export function LearningSkeleton() {
+  return (
+    <SkeletonBox label="불러오는 중" className="space-y-4">
+      <HeaderBones />
+      <CardShell className="space-y-3">
+        <Bone className="h-5 w-1/3" />
+        <div className="flex flex-wrap gap-2">
+          {Array.from({ length: 5 }, (_, i) => (
+            <Bone key={i} className="h-10 w-20" />
+          ))}
+        </div>
+      </CardShell>
+      <CardShell className="space-y-3">
+        <Bone className="h-6 w-4/5" />
+        <div aria-hidden className="skeleton h-28 rounded-control" />
+        <Bone className="h-12 w-full rounded-control" />
+      </CardShell>
+    </SkeletonBox>
+  );
+}
+
 export function LogsMoreSkeleton() {
   return (
     <SkeletonBox label="일지를 더 불러오는 중" className="space-y-3">
