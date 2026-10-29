@@ -163,6 +163,35 @@ body {
 
 /* ───────── 움직임 (CSS만, JS 없음). 움직임 줄이기 설정이면 맨 아래에서 모두 끈다 ───────── */
 
+/* 테마 바꾸기: 새 테마가 토글 버튼 자리에서 원형으로 퍼진다(JS가 clip-path를 움직임). 기본 교차 페이드는 끈다 */
+::view-transition-old(root),
+::view-transition-new(root) {
+  animation: none;
+  mix-blend-mode: normal;
+}
+::view-transition-new(root) {
+  z-index: 1;
+}
+/* View Transitions가 없는 브라우저: 바꾸는 순간에만 색 바뀜을 0.3초 동안 부드럽게 */
+.theme-switching,
+.theme-switching *,
+.theme-switching *::before,
+.theme-switching *::after {
+  transition:
+    background-color 0.3s ease,
+    color 0.3s ease,
+    border-color 0.3s ease,
+    fill 0.3s ease,
+    stroke 0.3s ease,
+    box-shadow 0.3s ease !important;
+}
+/* 해·달 아이콘이 회전하며 서로 바뀜 */
+.theme-icon {
+  transition:
+    transform 0.4s cubic-bezier(0.22, 1, 0.36, 1),
+    opacity 0.25s ease;
+}
+
 /* 버튼 누름 */
 .press {
   transition: transform 0.12s ease, filter 0.15s ease, background-color 0.15s ease;
