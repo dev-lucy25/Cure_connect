@@ -4,7 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { motion } from "motion/react";
 import type { Tab, TabIcon } from "@/components/nav/tabs";
-import { IconBook, IconChart, IconCheckSquare, IconClock, IconNote } from "@/components/ui/icons";
+import { IconBook, IconChart, IconCheckSquare, IconClock, IconNote, IconTool } from "@/components/ui/icons";
 import { SPRING_SNAPPY } from "@/lib/motion";
 import { useTapEffect } from "@/components/motion/use-motion-prefs";
 
@@ -12,6 +12,7 @@ const ICONS: Record<TabIcon, typeof IconClock> = {
   clock: IconClock,
   note: IconNote,
   book: IconBook,
+  tool: IconTool,
   chart: IconChart,
   check: IconCheckSquare,
 };

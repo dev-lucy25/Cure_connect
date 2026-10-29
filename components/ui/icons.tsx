@@ -62,6 +62,13 @@ export const IconChart = (p: IconProps) => (
   </Icon>
 );
 
+export const IconTool = (p: IconProps) => (
+  <Icon {...p}>
+    <rect x="5" y="3.5" width="14" height="17" rx="2.5" />
+    <path d="M8.5 7.5h7M8.5 12h1M12 12h1M15.5 12h0M8.5 15.5h1M12 15.5h1M15.5 15.5h0" />
+  </Icon>
+);
+
 export const IconCheckSquare = (p: IconProps) => (
   <Icon {...p}>
     <rect x="4.5" y="4.5" width="15" height="15" rx="3" />
