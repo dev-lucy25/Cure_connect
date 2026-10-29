@@ -1,6 +1,7 @@
 import "server-only";
 import { PrismaPg } from "@prisma/adapter-pg";
 import { PrismaClient } from "@/generated/prisma/client";
+import { databaseUrl } from "@/lib/env/server";
 
 // 개발 중 핫리로드마다 커넥션 풀이 새로 생기지 않도록 전역에 하나만 둔다.
 // 단, `prisma generate`로 클라이언트 코드가 바뀌면(새 테이블 추가 등) 옛 인스턴스는 새 테이블을 모르므로
@@ -9,7 +10,7 @@ const globalForPrisma = globalThis as unknown as { prisma?: PrismaClient; prisma
 
 function createClient() {
   const adapter = new PrismaPg({
-    connectionString: process.env.DATABASE_URL,
+    connectionString: databaseUrl(),
     // pg 기본값은 10초 쉰 연결을 닫는다. DB(파리)와 새 연결을 맺는 데 2~3초가 걸려
     // 화면을 잠깐 보다 탭을 누르면 멈칫했다 → 쉬는 연결을 10분 유지하고 keep-alive로 끊김을 막는다.
     idleTimeoutMillis: 10 * 60_000,

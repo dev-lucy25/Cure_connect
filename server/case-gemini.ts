@@ -1,6 +1,7 @@
 import "server-only";
 import { ApiError, GoogleGenAI, ThinkingLevel, type Content } from "@google/genai";
 import { z } from "zod";
+import { geminiApiKey } from "@/lib/env/server";
 import { caseAiOutputSchema, caseAiResultSchema, chatAnswerSchema, type CaseAiResult } from "@/lib/validation/case";
 
 // 케이스 AI(Gemini Flash). 서버에서만 호출한다.
@@ -45,8 +46,8 @@ const CHAT_PROMPT = `${RULES}
 const HISTORY_LIMIT = 10;
 
 let client: GoogleGenAI | null = null;
-function getClient() {
-  client ??= new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
+function getClient(apiKey: string) {
+  client ??= new GoogleGenAI({ apiKey });
   return client;
 }
 
@@ -57,18 +58,26 @@ const RETRY_IF_ELAPSED_UNDER_MS = 6_000;
 const RETRY_DELAY_MS = 800;
 
 async function call(systemInstruction: string, contents: Content[], json: boolean): Promise<AiResult<string>> {
-  if (!process.env.GEMINI_API_KEY) return { ok: false, reason: "config" };
+  const apiKey = geminiApiKey();
+  if (!apiKey) return { ok: false, reason: "config" };
+  const ai = getClient(apiKey);
   const signal = AbortSignal.timeout(AI_TIMEOUT_MS);
   const started = Date.now();
-  const first = await attempt(systemInstruction, contents, json, signal);
+  const first = await attempt(ai, systemInstruction, contents, json, signal);
   if (first.ok || first.reason !== "busy" || Date.now() - started > RETRY_IF_ELAPSED_UNDER_MS) return first;
   await new Promise((resolve) => setTimeout(resolve, RETRY_DELAY_MS));
-  return attempt(systemInstruction, contents, json, signal);
+  return attempt(ai, systemInstruction, contents, json, signal);
 }
 
-async function attempt(systemInstruction: string, contents: Content[], json: boolean, signal: AbortSignal): Promise<AiResult<string>> {
+async function attempt(
+  ai: GoogleGenAI,
+  systemInstruction: string,
+  contents: Content[],
+  json: boolean,
+  signal: AbortSignal,
+): Promise<AiResult<string>> {
   try {
-    const response = await getClient().models.generateContent({
+    const response = await ai.models.generateContent({
       model: AI_MODEL,
       contents,
       config: {
