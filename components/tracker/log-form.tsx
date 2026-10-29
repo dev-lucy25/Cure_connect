@@ -14,6 +14,7 @@ import TextareaField from "@/components/ui/textarea-field";
 import ChoiceChips from "@/components/ui/choice-chips";
 import Expandable from "@/components/motion/expandable";
 import { DIFFICULTY_LABELS, SKILLS, WARD_CATEGORIES } from "@/lib/skills";
+import { BULK_OPTIONS, WEEK_DAY_HOURS } from "@/lib/validation/practice";
 
 const HOUR_PRESETS = [
   { hours: "8", label: "8시간 (1일)" },
@@ -44,10 +45,11 @@ export default function LogForm({
   const pii = detectPii(activities);
   // 시간은 빠른 선택 버튼으로도 채우므로 직접 상태로 관리한다
   const [hours, setHours] = useState(String(v?.hours ?? initial?.hours ?? 8));
-  // 1주 일괄(평일 5일 × 8시간)은 새 일지에서만 고를 수 있다
-  const [week, setWeek] = useState(false);
+  // 여러 날 일괄(평일 2·5·10일 × 8시간)은 새 일지에서만 고를 수 있다. 0 = 하루만
+  const [bulk, setBulk] = useState(0);
+  const week = bulk > 0;
   const [date, setDate] = useState(v?.date ?? initial?.date ?? today);
-  const weekDays = week && date ? weekdaysFrom(date, 5) : [];
+  const weekDays = week && date ? weekdaysFrom(date, bulk) : [];
   // "오늘 어땠나요?"(선택): 고친 일지에 값이 있으면 펼친 채로
   const hasReflection = Boolean(initial?.difficulty || initial?.hardSkills.length || initial?.wardCategory);
   const [reflect, setReflect] = useState(hasReflection);
@@ -56,7 +58,7 @@ export default function LogForm({
   return (
     <form action={action} noValidate className="space-y-3 rounded-card border border-line/70 bg-surface p-4 shadow-soft">
       {initial && <input type="hidden" name="id" value={initial.id} />}
-      {week && <input type="hidden" name="bulk" value="week" />}
+      {week && <input type="hidden" name="bulk" value={bulk} />}
       <div className="grid grid-cols-2 gap-3">
         <Field
           id={`${p}date`}
@@ -71,7 +73,7 @@ export default function LogForm({
         {week ? (
           <div>
             <p className="mb-1.5 text-body-sm font-bold text-ink">실습 시간</p>
-            <p className="flex min-h-(--size-touch) items-center rounded-control bg-subtle px-4 text-body font-bold text-ink">40시간</p>
+            <p className="flex min-h-(--size-touch) items-center rounded-control bg-subtle px-4 text-body font-bold text-ink">{bulk * WEEK_DAY_HOURS}시간</p>
           </div>
         ) : (
           <Field
@@ -89,9 +91,9 @@ export default function LogForm({
           />
         )}
       </div>
-      {week && weekDays.length === 5 && (
+      {week && weekDays.length === bulk && (
         <p className="rounded-control bg-brand-soft px-4 py-2.5 text-body-sm text-brand-deep">
-          평일 5일에 8시간씩 기록돼요: {shortDate(weekDays[0])} ~ {shortDate(weekDays[4])}
+          평일 {bulk}일에 8시간씩 기록돼요: {shortDate(weekDays[0])} ~ {shortDate(weekDays[bulk - 1])} (이미 기록한 날은 건너뛰어요)
         </p>
       )}
       <div className="flex flex-wrap gap-2" role="group" aria-label="실습 시간 빠른 선택">
@@ -101,7 +103,7 @@ export default function LogForm({
             type="button"
             aria-pressed={!week && hours === preset.hours}
             onClick={() => {
-              setWeek(false);
+              setBulk(0);
               setHours(preset.hours);
             }}
             className={`press min-h-11 rounded-full px-4 text-body-sm font-bold ${
@@ -111,18 +113,20 @@ export default function LogForm({
             {preset.label}
           </button>
         ))}
-        {!initial && (
-          <button
-            type="button"
-            aria-pressed={week}
-            onClick={() => setWeek(true)}
-            className={`press min-h-11 rounded-full px-4 text-body-sm font-bold ${
-              week ? "bg-brand text-ink" : "bg-subtle text-ink-soft hover:text-ink"
-            }`}
-          >
-            40시간 (1주 일괄)
-          </button>
-        )}
+        {!initial &&
+          BULK_OPTIONS.map((o) => (
+            <button
+              key={o.days}
+              type="button"
+              aria-pressed={bulk === o.days}
+              onClick={() => setBulk(o.days)}
+              className={`press min-h-11 rounded-full px-4 text-body-sm font-bold ${
+                bulk === o.days ? "bg-brand text-ink" : "bg-subtle text-ink-soft hover:text-ink"
+              }`}
+            >
+              {o.label}
+            </button>
+          ))}
       </div>
       <div className="grid grid-cols-2 gap-3">
         <SelectField id={`${p}subject`} name="subject" label="실습 과목" defaultValue={v?.subject ?? initial?.subject ?? ""} error={errors.subject}>

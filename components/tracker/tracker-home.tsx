@@ -30,9 +30,12 @@ export default async function TrackerHome({ user }: { user: CurrentUser }) {
   ]);
 
   // 오늘이 기간 안에 있는 일정 = 현재 로테이션
-  const current = schedules.find((s) => s.startDate <= today && (s.endDate ?? s.startDate) >= today);
+  // 실습과 학사 일정(발표·시험)을 나눠 본다. 로테이션·다음 실습 카드는 실습만
+  const practice = schedules.filter((s) => s.kind === "practice");
+  const current = practice.find((s) => s.startDate <= today && (s.endDate ?? s.startDate) >= today);
   // D-day는 아직 시작 안 한 다음 실습 기준 (진행 중인 로테이션은 "진행 중"으로 따로)
-  const upcoming = schedules.find((s) => s.startDate > today);
+  const upcoming = practice.find((s) => s.startDate > today);
+  const nextAcademic = schedules.find((s) => s.kind === "academic" && s.startDate >= today);
 
   // 카드들이 위에서부터 차례로 떠오르며 나타난다
   return (
@@ -48,11 +51,11 @@ export default async function TrackerHome({ user }: { user: CurrentUser }) {
             approvedMinutes={progress.approvedMinutes}
             pendingMinutes={progress.pendingMinutes}
             goalHours={progress.goalHours}
-            dday={<DDayChip next={upcoming} current={current} today={today} />}
+            dday={<DDayChip next={upcoming} current={current} academic={nextAcademic} today={today} />}
           />
         </StaggerItem>
         <StaggerItem className="space-y-4 md:col-span-5 md:row-span-2">
-          {schedules[0] && <NextPracticeCard schedule={schedules[0]} today={today} />}
+          {practice[0] && <NextPracticeCard schedule={practice[0]} today={today} />}
           <ChecklistCard items={checklist} />
           <SchedulePanel schedules={schedules} past={pastSchedules} today={today} />
         </StaggerItem>

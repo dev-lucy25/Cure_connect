@@ -10,9 +10,9 @@ import {
   idSchema,
   logSchema,
   scheduleSchema,
-  weekLogSchema,
+  bulkLogSchema,
+  isBulkDays,
   WEEK_DAY_HOURS,
-  WEEK_DAYS,
   type FormState,
   type LogField,
   type ScheduleField,
@@ -43,6 +43,7 @@ function logValues(formData: FormData) {
   return { ...pick(formData, LOG_FIELDS), hardSkills: formData.getAll("hardSkills").map(String).join(",") };
 }
 const SCHEDULE_FIELDS = [
+  "kind",
   "hospital",
   "ward",
   "startDate",
@@ -68,20 +69,23 @@ export async function saveLog(_prev: FormState<LogField>, formData: FormData): P
   if (!target.ok) return { message: NOT_FOUND, values };
 
   // 1주 일괄: 시작일부터 평일 5일에 8시간씩 (새로 쓸 때만)
-  if (!target.id && formData.get("bulk") === "week") {
-    const parsed = weekLogSchema.safeParse(values);
+  // 여러 날 일괄(2일·1주·2주): 시작일부터 평일 n일에 8시간씩 (새로 쓸 때만). 예전 "week" = 5일
+  const bulkRaw = formData.get("bulk");
+  const bulkDays = bulkRaw === "week" ? 5 : Number(bulkRaw);
+  if (!target.id && bulkRaw && isBulkDays(bulkDays)) {
+    const parsed = bulkLogSchema(bulkDays).safeParse(values);
     if (!parsed.success) return { fieldErrors: fieldErrorsOf<LogField>(parsed.error), values };
     const { date, ...rest } = parsed.data;
     let result;
     try {
       result = await repo.createWeekLogs(
         user.id,
-        weekdaysFrom(date, WEEK_DAYS).map((day) => ({ ...rest, date: day, hours: WEEK_DAY_HOURS })),
+        weekdaysFrom(date, bulkDays).map((day) => ({ ...rest, date: day, hours: WEEK_DAY_HOURS })),
       );
     } catch {
       return { message: SAVE_FAILED, values };
     }
-    if (result.added === 0) return { message: "그 주는 이미 날마다 기록이 있어요. 하루씩 고쳐 주세요", values };
+    if (result.added === 0) return { message: "그 기간은 이미 날마다 기록이 있어요. 하루씩 고쳐 주세요", values };
     refresh();
     return { savedAt: Date.now(), notice: result.skipped ? `${result.added}일 기록했어요 (이미 기록한 ${result.skipped}일은 건너뜀)` : undefined };
   }

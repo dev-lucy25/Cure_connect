@@ -189,6 +189,11 @@ enum Shift {
 }
 
 // 일지 인증: 학생이 쓰면 pending, 지도교수가 확인하면 approved / rejected
+enum ScheduleKind {
+  practice
+  academic
+}
+
 // 병동 분류 (자유 글인 병동 이름을 통계로 묶기 위함)
 enum WardCategory {
   internal
@@ -241,6 +246,8 @@ model PracticeLog {
 model PracticeSchedule {
   id             String        @id @default(cuid())
   userId         String        @db.Uuid
+  // 실습(병원·병동) 또는 학사 일정(케이스 발표·술기 시험 등: ward에 일정 이름, hospital은 빈 칸)
+  kind           ScheduleKind  @default(practice)
   subject        Subject?
   hospital       String        @db.VarChar(60)
   ward           String        @db.VarChar(60)

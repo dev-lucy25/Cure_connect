@@ -1,7 +1,7 @@
 import "server-only";
 import { db } from "@/lib/db";
 import { fromDbDate, toDbDate } from "@/lib/dates";
-import type { LogStatus, Shift, Subject, WardCategory } from "@/generated/prisma/client";
+import type { LogStatus, ScheduleKind, Shift, Subject, WardCategory } from "@/generated/prisma/client";
 
 // 실습 일지·일정 DB 처리. 모든 함수는 userId를 첫 인자로 받고, 그 사용자 것만 읽고 바꾼다.
 // userId는 반드시 서버에서 확인한 로그인 사용자(getCurrentUser)의 id여야 한다.
@@ -25,6 +25,8 @@ export type LogItem = {
 
 export type ScheduleItem = {
   id: string;
+  /** practice: 실습, academic: 학사 일정(ward = 일정 이름) */
+  kind: ScheduleKind;
   subject: Subject | null;
   hospital: string;
   ward: string;
@@ -211,6 +213,7 @@ export async function deleteLog(userId: string, id: string): Promise<"deleted" |
 
 const scheduleSelect = {
   id: true,
+  kind: true,
   subject: true,
   hospital: true,
   ward: true,

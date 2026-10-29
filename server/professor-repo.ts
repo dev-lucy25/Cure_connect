@@ -49,7 +49,7 @@ export async function canSeeStudent(prof: Prof, studentId: string) {
 async function plannedHours(ids: string[], today: string) {
   const tomorrow = nextDay(today);
   const schedules = await db.practiceSchedule.findMany({
-    where: { userId: { in: ids }, OR: [{ startDate: { gte: toDbDate(tomorrow) } }, { endDate: { gte: toDbDate(tomorrow) } }] },
+    where: { userId: { in: ids }, kind: "practice", OR: [{ startDate: { gte: toDbDate(tomorrow) } }, { endDate: { gte: toDbDate(tomorrow) } }] },
     select: { userId: true, startDate: true, endDate: true },
   });
   const planned = new Map<string, number>();
