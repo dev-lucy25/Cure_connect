@@ -2,6 +2,7 @@ import { z } from "zod";
 import { todayKst, weekdaysFrom } from "@/lib/dates";
 import { detectPii, piiMessage } from "@/lib/validation/pii";
 import { SHIFT_KEYS, SUBJECT_KEYS } from "@/lib/subjects";
+import { SKILL_KEYS, WARD_CATEGORY_KEYS } from "@/lib/skills";
 
 // label은 조사까지 붙인 형태: { 을: "병원을", 은: "병원은" }
 const text = (label: { 을: string; 은: string }, max: number) =>
@@ -20,6 +21,18 @@ const isoDate = z.iso.date({ error: "날짜를 골라 주세요" });
 const subject = z.enum(SUBJECT_KEYS, { error: "실습 과목을 골라 주세요" });
 /** 듀티는 선택. 빈 칸 = null */
 const shift = z.preprocess((v) => (v === "" ? null : v), z.enum(SHIFT_KEYS, { error: "듀티를 다시 골라 주세요" }).nullable());
+
+/** 익명 통계용 선택 칸 (빈 값 = 안 고름) */
+const difficulty = z.preprocess(
+  (v) => (v === "" || v === undefined ? null : Number(v)),
+  z.number().int().min(1).max(5, { error: "난이도를 다시 골라 주세요" }).nullable(),
+);
+/** 체크박스 여러 개 → 쉼표로 이은 문자열로 받아 아는 키만 남긴다 */
+const hardSkills = z
+  .string()
+  .optional()
+  .transform((v) => [...new Set((v ?? "").split(",").filter((k): k is (typeof SKILL_KEYS)[number] => (SKILL_KEYS as readonly string[]).includes(k)))]);
+const wardCategory = z.preprocess((v) => (v === "" || v === undefined ? null : v), z.enum(WARD_CATEGORY_KEYS).nullable());
 
 export const logSchema = z.object({
   date: isoDate.refine((d) => d <= todayKst(), { error: "앞으로의 날짜는 일지로 쓸 수 없어요" }),
@@ -43,6 +56,9 @@ export const logSchema = z.object({
     const kinds = detectPii(value);
     if (kinds.length > 0) ctx.addIssue({ code: "custom", message: piiMessage(kinds) });
   }),
+  difficulty,
+  hardSkills,
+  wardCategory,
 });
 
 /** 1주 일괄: 시작일부터 평일 5일 × 8시간 */

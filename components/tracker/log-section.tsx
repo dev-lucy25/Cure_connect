@@ -40,7 +40,7 @@ export default function LogSection({
         <h2 id="log-title" className="text-title font-bold">
           실습 일지
         </h2>
-        <FormStatus savedAt={state.savedAt} />
+        <FormStatus savedAt={state.savedAt} savedText={state.notice} />
         {!writing && (
           <Button type="button" variant="secondary" onClick={() => setOpenedAt(Date.now())} className="px-4 text-body-sm">
             <IconPlus size={18} /> 일지 쓰기
@@ -213,7 +213,14 @@ function LogCard({ log, today }: { log: LogItem; today: string }) {
         )}
         <FormStatus message={del.message} />
         <FormStatus savedAt={state.savedAt} />
-        <RowActions id={log.id} onEdit={() => setEditAt(Date.now())} deleteAction={delAction} deleting={deleting} />
+        {log.status === "approved" ? (
+          // 인증된 일지는 잠긴다 (인증 시간이 말없이 바뀌거나 줄어드는 것을 막음)
+          <span className="inline-flex min-h-11 items-center gap-1 text-caption font-bold text-ink-soft" data-log-locked>
+            🔒 인증 완료 · 수정 불가
+          </span>
+        ) : (
+          <RowActions id={log.id} onEdit={() => setEditAt(Date.now())} deleteAction={delAction} deleting={deleting} />
+        )}
       </div>
     </motion.li>
   );

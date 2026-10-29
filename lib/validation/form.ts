@@ -10,6 +10,8 @@ export type FormState<F extends string> = {
   fieldErrors?: Partial<Record<F, string>>;
   message?: string;
   savedAt?: number;
+  /** 저장 토스트 문구를 바꿀 때 (기본 "저장했어요 🐢") */
+  notice?: string;
   values?: Partial<Record<F, string>>;
 };
 
