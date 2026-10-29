@@ -4,13 +4,13 @@ import { getOptionalUser } from "@/server/auth";
 import { listCases } from "@/server/case-repo";
 import LoginPrompt from "@/components/home/login-prompt";
 import CaseList from "@/components/cases/case-list";
-import { PageSkeleton } from "@/components/ui/skeleton";
+import { CasesSkeleton } from "@/components/ui/skeleton";
 
 export const metadata: Metadata = { title: "케이스 메모 · NursePass" };
 
 export default function CasesPage() {
   return (
-    <Suspense fallback={<PageSkeleton />}>
+    <Suspense fallback={<CasesSkeleton />}>
       <CasesContent />
     </Suspense>
   );

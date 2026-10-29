@@ -4,6 +4,7 @@ import { useActionState, useState, useTransition } from "react";
 import { AnimatePresence, motion } from "motion/react";
 import { SPRING_SOFT } from "@/lib/motion";
 import Collapse from "@/components/motion/collapse";
+import { LogsMoreSkeleton } from "@/components/ui/skeleton";
 import { loadMoreLogs, removeLog, saveLog } from "@/server/practice-actions";
 import type { FormState, LogField } from "@/lib/validation/practice";
 import type { LogItem } from "@/server/practice-repo";
@@ -141,9 +142,11 @@ function LogTimeline({
         </AnimatePresence>
       </ol>
       {failed && <FormStatus message="일지를 더 불러오지 못했어요. 다시 눌러 주세요" />}
-      {cursor && (
-        <Button type="button" variant="ghost" block disabled={loading} onClick={loadMore}>
-          {loading ? "불러오는 중..." : "더 보기"}
+      {/* 더 불러오는 동안 일지 카드 모양 스켈레톤 */}
+      {loading && <LogsMoreSkeleton />}
+      {cursor && !loading && (
+        <Button type="button" variant="ghost" block onClick={loadMore}>
+          더 보기
         </Button>
       )}
     </>

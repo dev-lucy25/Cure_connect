@@ -5,7 +5,7 @@ import { useActionState, useState, useTransition } from "react";
 import { AnimatePresence, motion } from "motion/react";
 import { FADE_UP, SPRING_SOFT, STAGGER_STEP } from "@/lib/motion";
 import { useTapEffect } from "@/components/motion/use-motion-prefs";
-import { SkeletonCard } from "@/components/ui/skeleton";
+import { CasesMoreSkeleton } from "@/components/ui/skeleton";
 import { createCaseAction, loadMoreCases } from "@/server/case-actions";
 import type { FormState } from "@/lib/validation/form";
 import type { CaseField } from "@/lib/validation/case";
@@ -136,12 +136,7 @@ function Pages({ items, nextCursor }: { items: CaseSummary[]; nextCursor: string
         ))}
       </ul>
       {/* 더 불러오는 동안 카드 모양 스켈레톤 */}
-      {loading && (
-        <div aria-busy aria-label="케이스를 더 불러오는 중" className="space-y-3">
-          <SkeletonCard lines={2} />
-          <SkeletonCard lines={2} />
-        </div>
-      )}
+      {loading && <CasesMoreSkeleton />}
       {failed && <FormStatus message="케이스를 더 불러오지 못했어요. 다시 눌러 주세요" />}
       {cursor && !loading && (
         <Button type="button" variant="ghost" block onClick={loadMore}>

@@ -8,7 +8,7 @@ import { idSchema } from "@/lib/validation/form";
 import CaseAiPanel from "@/components/cases/case-ai-panel";
 import CaseChat from "@/components/cases/case-chat";
 import CaseEditor from "@/components/cases/case-editor";
-import { SkeletonCard, WalkingTurtle } from "@/components/ui/skeleton";
+import { CaseDetailSkeleton } from "@/components/ui/skeleton";
 import { Stagger, StaggerItem } from "@/components/motion/stagger";
 
 export const metadata: Metadata = { title: "케이스 · NursePass" };
@@ -19,7 +19,7 @@ export default function CaseDetailPage({ params }: PageProps<"/cases/[id]">) {
       <Link href="/cases" className="inline-flex min-h-11 items-center text-body-sm font-bold text-ink-soft hover:text-ink">
         ← 케이스 목록
       </Link>
-      <Suspense fallback={<DetailSkeleton />}>
+      <Suspense fallback={<CaseDetailSkeleton />}>
         <CaseDetail params={params} />
       </Suspense>
     </div>
@@ -51,15 +51,5 @@ async function CaseDetail({ params }: { params: Promise<{ id: string }> }) {
         <CaseChat caseId={found.id} messages={messages} usedToday={usedToday} limit={AI_DAILY_LIMIT} />
       </StaggerItem>
     </Stagger>
-  );
-}
-
-function DetailSkeleton() {
-  return (
-    <div aria-busy className="space-y-3">
-      <SkeletonCard lines={4} tall />
-      <WalkingTurtle />
-      <SkeletonCard lines={3} />
-    </div>
   );
 }

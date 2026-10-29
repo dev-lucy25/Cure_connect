@@ -12,13 +12,13 @@ import Card from "@/components/ui/card";
 import { IconLogout } from "@/components/ui/icons";
 import PageHeader from "@/components/ui/page-header";
 import { Stagger, StaggerItem } from "@/components/motion/stagger";
-import { PageSkeleton } from "@/components/ui/skeleton";
+import { MeSkeleton } from "@/components/ui/skeleton";
 
 export const metadata: Metadata = { title: "내 정보 · NursePass" };
 
 export default function MePage() {
   return (
-    <Suspense fallback={<PageSkeleton />}>
+    <Suspense fallback={<MeSkeleton />}>
       <MeContent />
     </Suspense>
   );
