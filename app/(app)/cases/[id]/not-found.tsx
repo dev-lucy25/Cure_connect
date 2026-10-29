@@ -1,6 +1,6 @@
 import Link from "next/link";
 import NurseTurtle from "@/components/mascot/nurse-turtle";
-import { buttonClass } from "@/components/ui/button";
+import { buttonClass } from "@/components/ui/button-class";
 import Card from "@/components/ui/card";
 
 export default function CaseNotFound() {

@@ -1,6 +1,9 @@
 "use client";
 
 import { useActionState, useState } from "react";
+import { AnimatePresence, motion } from "motion/react";
+import { SPRING_SNAPPY, SPRING_SOFT } from "@/lib/motion";
+import { useTapEffect } from "@/components/motion/use-motion-prefs";
 import { askCaseAction } from "@/server/case-actions";
 import type { FormState } from "@/lib/validation/form";
 import type { ChatMessage } from "@/server/case-repo";
@@ -32,6 +35,7 @@ export default function CaseChat({
   const [clearedAt, setClearedAt] = useState<number | undefined>(undefined);
   const left = Math.max(0, limit - usedToday);
   const pii = detectPii(question);
+  const tap = useTapEffect();
 
   // 답을 저장하면 입력칸을 비운다 (렌더 중 이전 값과 비교, effect 없이)
   if (state.savedAt && state.savedAt !== clearedAt) {
@@ -52,30 +56,42 @@ export default function CaseChat({
       <p className="mt-1 text-body-sm text-ink-soft">이 케이스의 메모를 바탕으로 답해요</p>
 
       <ol aria-live="polite" className="mt-4 space-y-3">
-        {messages.map((m) => (
-          <Bubble key={m.id} role={m.role} content={m.content} />
-        ))}
-        {pending && (
-          <>
-            <Bubble role="user" content={sending} />
-            <li className="rounded-card bg-subtle px-4 py-2">
+        {/* 새 말풍선은 보낸 쪽 모서리에서 톡 튀어나온다. 처음 열 때 있던 대화는 그대로 */}
+        <AnimatePresence initial={false}>
+          {messages.map((m) => (
+            <Bubble key={m.id} role={m.role} content={m.content} />
+          ))}
+          {pending && <Bubble key="sending" role="user" content={sending} />}
+          {pending && (
+            <motion.li
+              key="thinking"
+              initial={{ opacity: 0, y: 8 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0 }}
+              transition={SPRING_SOFT}
+              className="rounded-card bg-subtle px-4 py-2"
+            >
               <WalkingTurtle label="답을 생각하고 있어요" />
-            </li>
-          </>
-        )}
+            </motion.li>
+          )}
+        </AnimatePresence>
       </ol>
 
       {messages.length === 0 && !pending && (
         <div className="mt-1 flex flex-wrap gap-2">
-          {SUGGESTIONS.map((s) => (
-            <button
+          {SUGGESTIONS.map((s, i) => (
+            <motion.button
               key={s}
               type="button"
               onClick={() => setQuestion(s)}
-              className="press min-h-11 rounded-full border border-line bg-surface px-3.5 text-body-sm font-bold text-ink-soft hover:text-ink"
+              initial={{ opacity: 0, y: 6 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ ...SPRING_SOFT, delay: i * 0.05 }}
+              whileTap={tap}
+              className="min-h-11 rounded-full border border-line bg-surface px-3.5 text-body-sm font-bold text-ink-soft transition-colors hover:text-ink"
             >
               {s}
-            </button>
+            </motion.button>
           ))}
         </div>
       )}
@@ -117,17 +133,28 @@ export default function CaseChat({
 }
 
 function Bubble({ role, content }: { role: "user" | "ai"; content: string }) {
+  const pop = {
+    layout: "position" as const,
+    initial: { opacity: 0, scale: 0.92, y: 8 },
+    animate: { opacity: 1, scale: 1, y: 0 },
+    exit: { opacity: 0 },
+    transition: SPRING_SNAPPY,
+    style: { transformOrigin: role === "user" ? "100% 100%" : "0% 100%" },
+  };
   if (role === "user") {
     return (
-      <li className="ml-10 rounded-card rounded-br-md bg-brand-soft px-4 py-3 text-body whitespace-pre-line break-words text-ink">
+      <motion.li
+        {...pop}
+        className="ml-10 rounded-card rounded-br-md bg-brand-soft px-4 py-3 text-body whitespace-pre-line break-words text-ink"
+      >
         {content}
-      </li>
+      </motion.li>
     );
   }
   return (
-    <li className="mr-6">
+    <motion.li {...pop} className="mr-6">
       <div className="rounded-card rounded-bl-md bg-subtle px-4 py-3 text-body whitespace-pre-line break-words text-ink">{content}</div>
       <p className="mt-1 pl-1 text-caption text-pink-deep">참고용 — 직접 확인하세요</p>
-    </li>
+    </motion.li>
   );
 }

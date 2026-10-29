@@ -1,25 +1,27 @@
-import type { ComponentProps } from "react";
+"use client";
 
-type Variant = "primary" | "secondary" | "ghost";
+import { motion, type HTMLMotionProps } from "motion/react";
+import { SPRING_SNAPPY } from "@/lib/motion";
+import { useTapEffect } from "@/components/motion/use-motion-prefs";
+import { buttonClass, type ButtonVariant } from "@/components/ui/button-class";
 
-const VARIANT: Record<Variant, string> = {
-  primary: "bg-brand-deep text-surface hover:brightness-110",
-  secondary: "bg-brand-soft text-brand-deep hover:brightness-95",
-  ghost: "bg-transparent text-ink-soft hover:bg-subtle",
-};
-
-/** 버튼 모양 클래스(모서리 14, 누르면 0.97). 링크(<Link>)를 버튼처럼 보이게 할 때도 쓴다 */
-export function buttonClass(variant: Variant = "primary", block = false) {
-  return `press inline-flex min-h-(--size-touch) items-center justify-center gap-2 rounded-control px-5 text-body font-bold disabled:cursor-not-allowed disabled:opacity-55 ${
-    block ? "w-full" : ""
-  } ${VARIANT[variant]}`;
-}
-
+// 버튼: 누르면 스프링으로 살짝 작아졌다 돌아온다 (비활성일 때는 반응 없음)
 export default function Button({
   variant = "primary",
   block = false,
   className = "",
+  disabled,
   ...props
-}: ComponentProps<"button"> & { variant?: Variant; block?: boolean }) {
-  return <button className={`${buttonClass(variant, block)} ${className}`} {...props} />;
+}: HTMLMotionProps<"button"> & { variant?: ButtonVariant; block?: boolean }) {
+  const tap = useTapEffect();
+  return (
+    <motion.button
+      whileTap={disabled ? undefined : tap}
+      transition={SPRING_SNAPPY}
+      disabled={disabled}
+      // CSS 눌림(.press)은 motion과 겹치지 않게 뺀다
+      className={`${buttonClass(variant, block).replace("press ", "")} ${className}`}
+      {...props}
+    />
+  );
 }

@@ -3,14 +3,14 @@ import { getOptionalUser, type CurrentUser } from "@/server/auth";
 import NurseTurtle from "@/components/mascot/nurse-turtle";
 import Card from "@/components/ui/card";
 import PageHeader from "@/components/ui/page-header";
-import { PageSkeleton } from "@/components/ui/skeleton";
+import { HomeSkeleton } from "@/components/ui/skeleton";
 import GuestHome from "@/components/home/guest-home";
 import TrackerHome from "@/components/tracker/tracker-home";
 
 export default function Home() {
   return (
     // 로그인 정보는 요청마다 읽으므로 Suspense 안에서 스트리밍한다
-    <Suspense fallback={<PageSkeleton />}>
+    <Suspense fallback={<HomeSkeleton />}>
       <HomeContent />
     </Suspense>
   );

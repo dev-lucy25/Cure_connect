@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import { Jua } from "next/font/google";
 import "./globals.css";
+import MotionProvider from "@/components/motion/motion-provider";
 
 // 제목·숫자 전용 둥근 글꼴. 한글 글리프는 unicode-range로 필요한 조각만 받으므로 preload는 끈다.
 const jua = Jua({
@@ -31,7 +32,9 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
       <head>
         <script dangerouslySetInnerHTML={{ __html: THEME_SCRIPT }} />
       </head>
-      <body className="flex min-h-full flex-col text-body text-ink">{children}</body>
+      <body className="flex min-h-full flex-col text-body text-ink">
+        <MotionProvider>{children}</MotionProvider>
+      </body>
     </html>
   );
 }

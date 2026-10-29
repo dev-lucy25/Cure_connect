@@ -1,6 +1,10 @@
 "use client";
 
 import { useActionState } from "react";
+import { AnimatePresence, motion } from "motion/react";
+import { SPRING_SNAPPY, SPRING_SOFT } from "@/lib/motion";
+import Collapse from "@/components/motion/collapse";
+import { Stagger, StaggerItem } from "@/components/motion/stagger";
 import { organizeCaseAction } from "@/server/case-actions";
 import type { FormState } from "@/lib/validation/form";
 import { AI_SECTIONS, type CaseAiResult } from "@/lib/validation/case";
@@ -51,25 +55,36 @@ export default function CaseAiPanel({
         </Chip>
       </div>
 
-      {stale && !pending && (
+      <Collapse open={stale && !pending}>
         <p className="mt-3 rounded-control bg-pink-soft px-4 py-2.5 text-body-sm font-bold text-pink-deep">
           정리한 뒤에 메모가 바뀌었어요. 다시 정리해 보세요.
         </p>
-      )}
+      </Collapse>
 
-      {pending ? (
-        <div className="py-6 text-center">
-          <WalkingTurtle label="정리하고 있어요" />
-          <p className="text-body-sm text-ink-soft">최대 15초 걸려요</p>
-        </div>
-      ) : ai ? (
-        <AiResultView ai={ai} />
-      ) : (
-        <div className="flex flex-col items-center py-6 text-center">
-          <NurseTurtle stage={3} mood="empty" size={80} decorative />
-          <p className="mt-2 text-body-sm text-ink-soft">메모를 SOAPIE·간호진단·빠진 사정 항목으로 정리해요</p>
-        </div>
-      )}
+      {/* 기다림 → 결과 → 빈 상태가 서로 부드럽게 바뀐다 */}
+      <AnimatePresence mode="wait" initial={false}>
+        <motion.div
+          key={pending ? "pending" : ai ? "result" : "empty"}
+          initial={{ opacity: 0, y: 8 }}
+          animate={{ opacity: 1, y: 0 }}
+          exit={{ opacity: 0, y: -6 }}
+          transition={SPRING_SOFT}
+        >
+          {pending ? (
+            <div className="py-6 text-center">
+              <WalkingTurtle label="정리하고 있어요" />
+              <p className="text-body-sm text-ink-soft">최대 15초 걸려요</p>
+            </div>
+          ) : ai ? (
+            <AiResultView ai={ai} />
+          ) : (
+            <div className="flex flex-col items-center py-6 text-center">
+              <NurseTurtle stage={3} mood="empty" size={80} decorative />
+              <p className="mt-2 text-body-sm text-ink-soft">메모를 SOAPIE·간호진단·빠진 사정 항목으로 정리해요</p>
+            </div>
+          )}
+        </motion.div>
+      </AnimatePresence>
 
       <form action={action} className="mt-4 space-y-2">
         <input type="hidden" name="id" value={caseId} />
@@ -83,60 +98,72 @@ export default function CaseAiPanel({
   );
 }
 
+// 결과: 안내 → 간호진단 → S·O·A·P·I·E → 빠진 항목 순으로 차례로 떠오른다. 진단 칩은 톡 튀며 나온다
 function AiResultView({ ai }: { ai: CaseAiResult }) {
   return (
-    <div className="mt-4 space-y-4">
-      <p className="rounded-control bg-pink-soft px-4 py-2.5 text-body-sm font-bold text-pink-deep">참고용 초안 — 직접 확인하세요</p>
+    <Stagger className="mt-4 space-y-4">
+      <StaggerItem>
+        <p className="rounded-control bg-pink-soft px-4 py-2.5 text-body-sm font-bold text-pink-deep">참고용 초안 — 직접 확인하세요</p>
+      </StaggerItem>
 
       {ai.nursingDiagnoses.length > 0 && (
-        <div>
+        <StaggerItem>
           <h3 className="text-body-sm font-bold text-ink-soft">간호진단</h3>
           <ul className="mt-2 flex flex-wrap gap-1.5">
-            {ai.nursingDiagnoses.map((d) => (
-              <li key={d}>
+            {ai.nursingDiagnoses.map((d, i) => (
+              <motion.li
+                key={d}
+                initial={{ opacity: 0, scale: 0.85 }}
+                animate={{ opacity: 1, scale: 1 }}
+                transition={{ ...SPRING_SNAPPY, delay: 0.1 + i * 0.05 }}
+              >
                 <Chip>{d}</Chip>
-              </li>
+              </motion.li>
             ))}
           </ul>
-        </div>
+        </StaggerItem>
       )}
 
       <div className="space-y-3">
         {AI_SECTIONS.map((key) => (
-          <section key={key} aria-label={`${key} ${SECTION[key].label}`}>
-            <span className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-body-sm font-bold ${SECTION[key].className}`}>
-              <span className="font-display text-title leading-none">{key}</span>
-              {SECTION[key].label}
-            </span>
-            {ai[key].length > 0 ? (
-              <ul className="mt-2 list-disc space-y-1 pl-5 text-body">
-                {ai[key].map((line, i) => (
-                  <li key={i} className="break-words">
-                    {line}
-                  </li>
-                ))}
-              </ul>
-            ) : (
-              <p className="mt-2 pl-1 text-body-sm text-ink-soft">메모에 해당 내용이 없어요</p>
-            )}
-          </section>
+          <StaggerItem key={key}>
+            <section aria-label={`${key} ${SECTION[key].label}`}>
+              <span className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-body-sm font-bold ${SECTION[key].className}`}>
+                <span className="font-display text-title leading-none">{key}</span>
+                {SECTION[key].label}
+              </span>
+              {ai[key].length > 0 ? (
+                <ul className="mt-2 list-disc space-y-1 pl-5 text-body">
+                  {ai[key].map((line, i) => (
+                    <li key={i} className="break-words">
+                      {line}
+                    </li>
+                  ))}
+                </ul>
+              ) : (
+                <p className="mt-2 pl-1 text-body-sm text-ink-soft">메모에 해당 내용이 없어요</p>
+              )}
+            </section>
+          </StaggerItem>
         ))}
       </div>
 
       {ai.missingInfo.length > 0 && (
-        <div role="note" className="rounded-control border border-warn-line bg-warn-bg px-4 py-3 text-warn-ink">
-          <h3 className="flex items-center gap-1.5 text-body font-bold">
-            <span aria-hidden>⚠️</span> 빠진 사정 항목
-          </h3>
-          <ul className="mt-1.5 list-disc space-y-1 pl-5 text-body-sm">
-            {ai.missingInfo.map((m, i) => (
-              <li key={i} className="break-words">
-                {m}
-              </li>
-            ))}
-          </ul>
-        </div>
+        <StaggerItem>
+          <div role="note" className="rounded-control border border-warn-line bg-warn-bg px-4 py-3 text-warn-ink">
+            <h3 className="flex items-center gap-1.5 text-body font-bold">
+              <span aria-hidden>⚠️</span> 빠진 사정 항목
+            </h3>
+            <ul className="mt-1.5 list-disc space-y-1 pl-5 text-body-sm">
+              {ai.missingInfo.map((m, i) => (
+                <li key={i} className="break-words">
+                  {m}
+                </li>
+              ))}
+            </ul>
+          </div>
+        </StaggerItem>
       )}
-    </div>
+    </Stagger>
   );
 }

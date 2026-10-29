@@ -6,17 +6,19 @@ import { logout } from "@/server/auth-actions";
 import { listOrganizations } from "@/server/org-repo";
 import LoginPrompt from "@/components/home/login-prompt";
 import { ProfessorUpgradeForm, ProfileForm } from "@/components/me/profile-forms";
-import Button, { buttonClass } from "@/components/ui/button";
+import Button from "@/components/ui/button";
+import { buttonClass } from "@/components/ui/button-class";
 import Card from "@/components/ui/card";
 import { IconLogout } from "@/components/ui/icons";
 import PageHeader from "@/components/ui/page-header";
-import { PageSkeleton } from "@/components/ui/skeleton";
+import { Stagger, StaggerItem } from "@/components/motion/stagger";
+import { MeSkeleton } from "@/components/ui/skeleton";
 
 export const metadata: Metadata = { title: "내 정보 · NursePass" };
 
 export default function MePage() {
   return (
-    <Suspense fallback={<PageSkeleton />}>
+    <Suspense fallback={<MeSkeleton />}>
       <MeContent />
     </Suspense>
   );
@@ -29,14 +31,16 @@ async function MeContent() {
   const orgs = await listOrganizations();
 
   return (
-    <div className="space-y-3">
+    <Stagger className="space-y-3">
       <PageHeader title="내 정보" description={`${user.email} · ${user.role === "professor" ? "교수·조교" : "학생"} 계정`} />
       <div className="grid gap-4 pt-2 md:grid-cols-2 md:items-start">
-        <Card>
-          <h2 className="mb-4 text-title font-bold text-ink">프로필</h2>
-          <ProfileForm user={user} orgs={orgs} />
-        </Card>
-        <div className="space-y-4">
+        <StaggerItem>
+          <Card>
+            <h2 className="mb-4 text-title font-bold text-ink">프로필</h2>
+            <ProfileForm user={user} orgs={orgs} />
+          </Card>
+        </StaggerItem>
+        <StaggerItem className="space-y-4">
           <Card>
             <h2 className="mb-3 text-title font-bold text-ink">계정</h2>
             <div className="space-y-2">
@@ -59,8 +63,8 @@ async function MeContent() {
               <ProfessorUpgradeForm orgs={orgs} />
             </Card>
           )}
-        </div>
+        </StaggerItem>
       </div>
-    </div>
+    </Stagger>
   );
 }

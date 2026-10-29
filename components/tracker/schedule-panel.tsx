@@ -1,6 +1,10 @@
 "use client";
 
 import { useActionState, useState } from "react";
+import { AnimatePresence, motion } from "motion/react";
+import { SPRING_SOFT } from "@/lib/motion";
+import Collapse from "@/components/motion/collapse";
+import Expandable from "@/components/motion/expandable";
 import { removeSchedule, saveSchedule } from "@/server/practice-actions";
 import type { FormState, ScheduleField } from "@/lib/validation/practice";
 import type { ScheduleItem } from "@/server/practice-repo";
@@ -33,16 +37,17 @@ export default function SchedulePanel({ schedules, today }: { schedules: Schedul
           )}
         </div>
       </div>
-      {adding && (
+      <Collapse open={adding}>
         <ScheduleForm action={action} state={state} pending={pending} today={today} onCancel={() => setOpenedAt(null)} />
-      )}
-      {schedules.length > 0 && (
-        <ul className="divide-y divide-line/70 rounded-card border border-line/70 bg-surface shadow-soft">
+      </Collapse>
+      {/* 일정이 생기거나 지워지면 줄이 펼쳐지며 들어오고 접히며 빠진다. 비면 테두리도 숨김(empty:) */}
+      <ul className="divide-y divide-line/70 overflow-hidden rounded-card border border-line/70 bg-surface shadow-soft empty:hidden">
+        <AnimatePresence initial={false}>
           {schedules.map((s) => (
             <ScheduleRow key={s.id} schedule={s} today={today} />
           ))}
-        </ul>
-      )}
+        </AnimatePresence>
+      </ul>
     </section>
   );
 }
@@ -53,26 +58,44 @@ function ScheduleRow({ schedule, today }: { schedule: ScheduleItem; today: strin
   const [editAt, setEditAt] = useState<number | null>(null);
   const editing = editAt !== null && !(state.savedAt && state.savedAt > editAt);
 
-  if (editing) {
-    return (
-      <li className="p-2">
-        <ScheduleForm
-          action={action}
-          state={state}
-          pending={pending}
-          today={today}
-          initial={schedule}
-          onCancel={() => setEditAt(null)}
-        />
-      </li>
-    );
-  }
-
   return (
-    <li className="flex flex-wrap items-center gap-3 py-2 pr-2 pl-4">
-      <span className="w-14 shrink-0 font-display text-title text-brand-deep">
-        {dDayLabel(daysBetween(today, schedule.startDate))}
-      </span>
+    <motion.li
+      layout="position"
+      initial={{ opacity: 0, height: 0 }}
+      animate={{ opacity: 1, height: "auto" }}
+      exit={{ opacity: 0, height: 0 }}
+      transition={SPRING_SOFT}
+      className="overflow-hidden"
+    >
+      {editing ? (
+        <div className="p-2">
+          <ScheduleForm action={action} state={state} pending={pending} today={today} initial={schedule} onCancel={() => setEditAt(null)} />
+        </div>
+      ) : (
+        <ScheduleSummary schedule={schedule} today={today} deleteMessage={del.message} savedAt={state.savedAt}>
+          <RowActions id={schedule.id} onEdit={() => setEditAt(Date.now())} deleteAction={delAction} deleting={deleting} />
+        </ScheduleSummary>
+      )}
+    </motion.li>
+  );
+}
+
+function ScheduleSummary({
+  schedule,
+  today,
+  deleteMessage,
+  savedAt,
+  children,
+}: {
+  schedule: ScheduleItem;
+  today: string;
+  deleteMessage?: string;
+  savedAt?: number;
+  children: React.ReactNode;
+}) {
+  return (
+    <div className="flex flex-wrap items-center gap-3 py-2 pr-2 pl-4">
+      <span className="w-14 shrink-0 font-display text-title text-brand-deep">{dDayLabel(daysBetween(today, schedule.startDate))}</span>
       <div className="min-w-0 flex-1">
         <p className="truncate font-bold">{schedule.ward}</p>
         <p className="truncate text-body-sm text-ink-soft">
@@ -80,10 +103,10 @@ function ScheduleRow({ schedule, today }: { schedule: ScheduleItem; today: strin
           {schedule.endDate && ` ~ ${shortDate(schedule.endDate)}`}
         </p>
       </div>
-      <FormStatus message={del.message} />
-      <FormStatus savedAt={state.savedAt} />
-      <RowActions id={schedule.id} onEdit={() => setEditAt(Date.now())} deleteAction={delAction} deleting={deleting} />
-    </li>
+      <FormStatus message={deleteMessage} />
+      <FormStatus savedAt={savedAt} />
+      {children}
+    </div>
   );
 }
 
@@ -106,6 +129,9 @@ function ScheduleForm({
   const v = state.values;
   // 같은 화면에 폼이 여러 개 있을 수 있어 id가 겹치지 않게 접두어를 붙인다
   const p = initial ? `s-${initial.id}-` : "s-new-";
+  // 병동 정보는 접어 두고, 이미 적어 둔 값이 있거나 오류가 있으면 펼친다
+  const [moreOpen, setMoreOpen] = useState(initial ? hasDetails(initial) : false);
+  const showMore = moreOpen || DETAIL_FIELDS.some((f) => errors[f]);
   return (
     <form action={action} noValidate className="space-y-3 rounded-card border border-line/70 bg-surface p-4 shadow-soft">
       {initial && <input type="hidden" name="id" value={initial.id} />}
@@ -169,95 +195,103 @@ function ScheduleForm({
           error={errors.department}
         />
       </div>
-      {/* 병동 정보는 접어 두고, 오류가 있거나 이미 적어 둔 값이 있으면 펼친다 */}
-      <details
-        open={DETAIL_FIELDS.some((f) => errors[f]) || (initial ? hasDetails(initial) : false)}
-        className="rounded-control bg-subtle p-3"
-      >
-        <summary className="min-h-11 cursor-pointer content-center text-body-sm font-bold text-ink">
+      {/* 접혀 있어도 입력칸은 남아 있어 고칠 때 기존 값이 지워지지 않는다 */}
+      <div className="rounded-control bg-subtle px-3 py-1">
+        <button
+          type="button"
+          aria-expanded={showMore}
+          aria-controls={`${p}more`}
+          onClick={() => setMoreOpen((open) => !open)}
+          className="flex min-h-11 w-full items-center justify-between gap-2 text-left text-body-sm font-bold text-ink"
+        >
           병동 정보 더 입력하기 (근무 시간 · 집결 · 수간호사 · 질환 · 조원)
-        </summary>
-        <div className="mt-3 space-y-3">
-          <div className="grid grid-cols-3 gap-3">
-            <SelectField id={`${p}shift`} name="shift" label="듀티" defaultValue={v?.shift ?? initial?.shift ?? ""} error={errors.shift}>
-              <option value="">-</option>
-              {SHIFTS.map((s) => (
-                <option key={s.key} value={s.key}>
-                  {s.label}
-                </option>
-              ))}
-            </SelectField>
+          <motion.span aria-hidden animate={{ rotate: showMore ? 180 : 0 }} transition={SPRING_SOFT} className="text-ink-soft">
+            ▾
+          </motion.span>
+        </button>
+        <Expandable open={showMore}>
+          <div id={`${p}more`} className="space-y-3 pt-1 pb-2">
+            <div className="grid grid-cols-3 gap-3">
+              <SelectField id={`${p}shift`} name="shift" label="듀티" defaultValue={v?.shift ?? initial?.shift ?? ""} error={errors.shift}>
+                <option value="">-</option>
+                {SHIFTS.map((s) => (
+                  <option key={s.key} value={s.key}>
+                    {s.label}
+                  </option>
+                ))}
+              </SelectField>
+              <Field
+                id={`${p}shiftStart`}
+                name="shiftStart"
+                label="시작"
+                type="time"
+                defaultValue={v?.shiftStart ?? initial?.shiftStart ?? ""}
+                error={errors.shiftStart}
+              />
+              <Field
+                id={`${p}shiftEnd`}
+                name="shiftEnd"
+                label="끝"
+                type="time"
+                defaultValue={v?.shiftEnd ?? initial?.shiftEnd ?? ""}
+                error={errors.shiftEnd}
+              />
+            </div>
+            <div className="grid grid-cols-[1fr_auto] gap-3">
+              <Field
+                id={`${p}meetingPlace`}
+                name="meetingPlace"
+                label="집결 장소"
+                placeholder="예: 본관 7층 엘리베이터 앞"
+                defaultValue={v?.meetingPlace ?? initial?.meetingPlace ?? ""}
+                error={errors.meetingPlace}
+              />
+              <Field
+                id={`${p}meetingTime`}
+                name="meetingTime"
+                label="집결 시각"
+                type="time"
+                defaultValue={v?.meetingTime ?? initial?.meetingTime ?? ""}
+                error={errors.meetingTime}
+              />
+            </div>
             <Field
-              id={`${p}shiftStart`}
-              name="shiftStart"
-              label="시작"
-              type="time"
-              defaultValue={v?.shiftStart ?? initial?.shiftStart ?? ""}
-              error={errors.shiftStart}
+              id={`${p}preceptor`}
+              name="preceptor"
+              label="담당 수간호사 (현장지도자)"
+              placeholder="예: 박지영 수간호사"
+              defaultValue={v?.preceptor ?? initial?.preceptor ?? ""}
+              error={errors.preceptor}
             />
             <Field
-              id={`${p}shiftEnd`}
-              name="shiftEnd"
-              label="끝"
-              type="time"
-              defaultValue={v?.shiftEnd ?? initial?.shiftEnd ?? ""}
-              error={errors.shiftEnd}
+              id={`${p}commonDiseases`}
+              name="commonDiseases"
+              label="주요 다빈도 질환 (쉼표로 구분)"
+              placeholder="예: 간경변증, 위장관출혈, 급성췌장염"
+              defaultValue={v?.commonDiseases ?? initial?.commonDiseases.join(", ") ?? ""}
+              error={errors.commonDiseases}
             />
+            <div className="grid grid-cols-[6rem_1fr] gap-3">
+              <Field
+                id={`${p}groupName`}
+                name="groupName"
+                label="조"
+                placeholder="예: 3조"
+                defaultValue={v?.groupName ?? initial?.groupName ?? ""}
+                error={errors.groupName}
+              />
+              <Field
+                id={`${p}teammates`}
+                name="teammates"
+                label="조원 (쉼표로 구분)"
+                placeholder="예: 박소연, 정민수"
+                defaultValue={v?.teammates ?? initial?.teammates.join(", ") ?? ""}
+                error={errors.teammates}
+              />
+            </div>
           </div>
-          <div className="grid grid-cols-[1fr_auto] gap-3">
-            <Field
-              id={`${p}meetingPlace`}
-              name="meetingPlace"
-              label="집결 장소"
-              placeholder="예: 본관 7층 엘리베이터 앞"
-              defaultValue={v?.meetingPlace ?? initial?.meetingPlace ?? ""}
-              error={errors.meetingPlace}
-            />
-            <Field
-              id={`${p}meetingTime`}
-              name="meetingTime"
-              label="집결 시각"
-              type="time"
-              defaultValue={v?.meetingTime ?? initial?.meetingTime ?? ""}
-              error={errors.meetingTime}
-            />
-          </div>
-          <Field
-            id={`${p}preceptor`}
-            name="preceptor"
-            label="담당 수간호사 (현장지도자)"
-            placeholder="예: 박지영 수간호사"
-            defaultValue={v?.preceptor ?? initial?.preceptor ?? ""}
-            error={errors.preceptor}
-          />
-          <Field
-            id={`${p}commonDiseases`}
-            name="commonDiseases"
-            label="주요 다빈도 질환 (쉼표로 구분)"
-            placeholder="예: 간경변증, 위장관출혈, 급성췌장염"
-            defaultValue={v?.commonDiseases ?? initial?.commonDiseases.join(", ") ?? ""}
-            error={errors.commonDiseases}
-          />
-          <div className="grid grid-cols-[6rem_1fr] gap-3">
-            <Field
-              id={`${p}groupName`}
-              name="groupName"
-              label="조"
-              placeholder="예: 3조"
-              defaultValue={v?.groupName ?? initial?.groupName ?? ""}
-              error={errors.groupName}
-            />
-            <Field
-              id={`${p}teammates`}
-              name="teammates"
-              label="조원 (쉼표로 구분)"
-              placeholder="예: 박소연, 정민수"
-              defaultValue={v?.teammates ?? initial?.teammates.join(", ") ?? ""}
-              error={errors.teammates}
-            />
-          </div>
-        </div>
-      </details>
+        </Expandable>
+      </div>
       <FormStatus message={state.message} />
       <div className="flex gap-2">
         <Button type="submit" disabled={pending} className="flex-1">
@@ -285,6 +319,14 @@ const DETAIL_FIELDS = [
 
 function hasDetails(s: ScheduleItem) {
   return Boolean(
-    s.shift || s.shiftStart || s.shiftEnd || s.meetingPlace || s.meetingTime || s.preceptor || s.groupName || s.commonDiseases.length || s.teammates.length,
+    s.shift ||
+    s.shiftStart ||
+    s.shiftEnd ||
+    s.meetingPlace ||
+    s.meetingTime ||
+    s.preceptor ||
+    s.groupName ||
+    s.commonDiseases.length ||
+    s.teammates.length,
   );
 }

@@ -10,6 +10,7 @@ import ProgressHero from "@/components/tracker/progress-hero";
 import SchedulePanel from "@/components/tracker/schedule-panel";
 import SubjectBreakdown from "@/components/tracker/subject-breakdown";
 import NextPracticeCard from "@/components/tracker/next-practice-card";
+import { Stagger, StaggerItem } from "@/components/motion/stagger";
 import ChecklistCard from "@/components/tracker/checklist-card";
 
 // 학생 실습 시간 화면.
@@ -28,33 +29,34 @@ export default async function TrackerHome({ user }: { user: CurrentUser }) {
   // 오늘이 기간 안에 있는 일정 = 현재 로테이션
   const current = schedules.find((s) => s.startDate <= today && (s.endDate ?? s.startDate) >= today);
 
+  // 카드들이 위에서부터 차례로 떠오르며 나타난다
   return (
-    <div className="space-y-3">
+    <Stagger className="space-y-3">
       <PageHeader title="실습 시간" description={`${user.name}님의 실습 기록`} />
-      <div className="pt-2">
+      <StaggerItem className="pt-2">
         <ProfileBanner user={user} totalMinutes={progress.totalMinutes} goalHours={progress.goalHours} current={current} />
-      </div>
+      </StaggerItem>
       <div className="flex flex-col gap-4 md:grid md:grid-cols-12 md:items-start">
-        <div className="md:col-span-7">
+        <StaggerItem className="md:col-span-7">
           <ProgressHero
             totalMinutes={progress.totalMinutes}
             approvedMinutes={progress.approvedMinutes}
             goalHours={progress.goalHours}
             dday={<DDayChip next={schedules[0]} today={today} />}
           />
-        </div>
-        <div className="space-y-4 md:col-span-5 md:row-span-2">
+        </StaggerItem>
+        <StaggerItem className="space-y-4 md:col-span-5 md:row-span-2">
           {schedules[0] && <NextPracticeCard schedule={schedules[0]} today={today} />}
           <ChecklistCard items={checklist} />
           <SchedulePanel schedules={schedules} today={today} />
-        </div>
-        <div className="md:col-span-7">
+        </StaggerItem>
+        <StaggerItem className="md:col-span-7">
           <SubjectBreakdown minutes={subjectMinutes} />
-        </div>
+        </StaggerItem>
       </div>
-      <div className="pt-3">
+      <StaggerItem className="pt-3">
         <LogSection items={logs.items} nextCursor={logs.nextCursor} version={progress.logsVersion} today={today} />
-      </div>
-    </div>
+      </StaggerItem>
+    </Stagger>
   );
 }
