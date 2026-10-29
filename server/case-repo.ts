@@ -1,7 +1,7 @@
 import "server-only";
 import { db } from "@/lib/db";
 import { toDbDate, todayKst } from "@/lib/dates";
-import { caseAiResultSchema, type CaseAiResult } from "@/lib/validation/case";
+import { storedCaseAiSchema, type CaseAiResult } from "@/lib/validation/case";
 
 // 케이스 메모 DB 처리. 모든 함수는 userId를 첫 인자로 받고, 그 사용자 것만 읽고 바꾼다.
 // userId는 반드시 서버에서 확인한 로그인 사용자(getCurrentUser)의 id여야 한다.
@@ -52,8 +52,8 @@ export async function getCase(userId: string, id: string): Promise<CaseDetail | 
     select: { id: true, title: true, ward: true, memo: true, aiResult: true, aiAt: true, memoUpdatedAt: true },
   });
   if (!row) return null;
-  // DB에 저장된 결과도 형식을 다시 확인한다 (깨진 값은 없는 것으로 본다)
-  const ai = row.aiResult === null ? null : caseAiResultSchema.safeParse(row.aiResult);
+  // DB에 저장된 결과도 형식을 다시 확인한다 (깨진 값은 없는 것으로 본다). 예전 형식(v1)은 새 형식으로 바꿔 읽는다
+  const ai = row.aiResult === null ? null : storedCaseAiSchema.safeParse(row.aiResult);
   return {
     id: row.id,
     title: row.title,

@@ -73,7 +73,7 @@ export default function CaseAiPanel({
           {pending ? (
             <div className="py-6 text-center">
               <WalkingTurtle label="정리하고 있어요" />
-              <p className="text-body-sm text-ink-soft">최대 15초 걸려요</p>
+              <p className="text-body-sm text-ink-soft">최대 25초 걸려요</p>
             </div>
           ) : ai ? (
             <AiResultView ai={ai} />
@@ -98,29 +98,41 @@ export default function CaseAiPanel({
   );
 }
 
-// 결과: 안내 → 간호진단 → S·O·A·P·I·E → 빠진 항목 순으로 차례로 떠오른다. 진단 칩은 톡 튀며 나온다
+// 결과: 안내·제목 → 우선순위 간호진단 → S·O·A·P·I·E → 빠진 항목 순으로 차례로 떠오른다. 진단 줄은 톡 튀며 나온다
 function AiResultView({ ai }: { ai: CaseAiResult }) {
   return (
     <Stagger className="mt-4 space-y-4">
-      <StaggerItem>
+      <StaggerItem className="space-y-2">
         <p className="rounded-control bg-pink-soft px-4 py-2.5 text-body-sm font-bold text-pink-deep">참고용 초안 — 직접 확인하세요</p>
+        {ai.title && (
+          <p className="text-title font-bold text-ink">
+            <span aria-hidden>📋 </span>
+            {ai.title}
+          </p>
+        )}
       </StaggerItem>
 
-      {ai.nursingDiagnoses.length > 0 && (
+      {ai.diagnoses.length > 0 && (
         <StaggerItem>
-          <h3 className="text-body-sm font-bold text-ink-soft">간호진단</h3>
-          <ul className="mt-2 flex flex-wrap gap-1.5">
-            {ai.nursingDiagnoses.map((d, i) => (
+          <h3 className="text-body-sm font-bold text-ink-soft">NANDA-I 우선순위 간호진단</h3>
+          <ol className="mt-2 space-y-2">
+            {ai.diagnoses.map((d, i) => (
               <motion.li
-                key={d}
-                initial={{ opacity: 0, scale: 0.85 }}
+                key={`${d.priority}-${d.name}`}
+                initial={{ opacity: 0, scale: 0.94 }}
                 animate={{ opacity: 1, scale: 1 }}
                 transition={{ ...SPRING_SNAPPY, delay: 0.1 + i * 0.05 }}
+                className="rounded-control border border-warn-line bg-warn-bg px-3 py-2.5"
               >
-                <Chip>{d}</Chip>
+                <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
+                  <span className="rounded-full bg-ink px-2 py-0.5 text-caption font-bold text-canvas">{d.priority}순위</span>
+                  <span className="font-bold break-words text-ink">{d.name}</span>
+                  {d.domain && <span className="ml-auto text-caption text-warn-ink">{d.domain}</span>}
+                </div>
+                {d.relatedTo && <p className="mt-1 text-body-sm break-words text-warn-ink">관련요인: {d.relatedTo}</p>}
               </motion.li>
             ))}
-          </ul>
+          </ol>
         </StaggerItem>
       )}
 
