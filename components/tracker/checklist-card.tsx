@@ -4,7 +4,11 @@ import { useActionState, useOptimistic, useState, useTransition } from "react";
 import { AnimatePresence, motion } from "motion/react";
 import { SPRING_SOFT, TWEEN_POP } from "@/lib/motion";
 import Collapse from "@/components/motion/collapse";
-import { addChecklistItem, deleteChecklistItem, resetChecklist, setChecklistDone } from "@/server/checklist-actions";
+import { addChecklistItem, deleteChecklistItem, importWardChecklist, resetChecklist, setChecklistDone } from "@/server/checklist-actions";
+import { WARD_CHECKLISTS } from "@/lib/ward-checklists";
+import { WARD_CATEGORIES } from "@/lib/skills";
+import ProgressBar from "@/components/motion/progress-bar";
+import SelectField from "@/components/ui/select-field";
 import type { ChecklistEntry } from "@/server/checklist-repo";
 import type { FormState } from "@/lib/validation/form";
 import Button from "@/components/ui/button";
@@ -61,6 +65,14 @@ export default function ChecklistCard({ items }: { items: ChecklistEntry[] }) {
         </div>
       </div>
 
+      {optimistic.length > 0 && (
+        <ProgressBar
+          percent={Math.round((doneCount / optimistic.length) * 100)}
+          label="실습 준비 달성도"
+          className="mt-3 h-2 overflow-hidden rounded-full bg-subtle"
+          barClassName={`h-full rounded-full ${doneCount === optimistic.length ? "bg-pink" : "bg-brand"}`}
+        />
+      )}
       {optimistic.length === 0 && (
         <p className="mt-3 rounded-control bg-subtle px-4 py-3 text-body-sm text-ink-soft">비어 있어요. 아래에서 챙길 준비물을 추가해 보세요</p>
       )}
@@ -139,6 +151,42 @@ export default function ChecklistCard({ items }: { items: ChecklistEntry[] }) {
         </div>
       )}
       <FormStatus savedAt={state.savedAt} savedText="추가했어요 🎒" />
+      <WardImport />
     </Card>
+  );
+}
+
+/** 병동별 맞춤 항목 불러오기: 병동을 고르고 누르면 그 병동 준비 항목이 내 목록에 추가된다 */
+function WardImport() {
+  const wards = WARD_CATEGORIES.filter((w) => WARD_CHECKLISTS[w.key]);
+  const [ward, setWard] = useState<string>(wards[0]?.key ?? "");
+  const [result, setResult] = useState<{ message?: string; savedAt?: number; notice?: string }>({});
+  const [busy, startBusy] = useTransition();
+  return (
+    <div className="mt-4 border-t border-line/70 pt-3" data-ward-import>
+      <div className="flex items-end gap-2">
+        <div className="min-w-0 flex-1">
+          <SelectField id="ward-import" name="ward" label="병동별 준비 항목 불러오기" value={ward} onChange={(e) => setWard(e.target.value)}>
+            {wards.map((w) => (
+              <option key={w.key} value={w.key}>
+                {w.label}
+              </option>
+            ))}
+          </SelectField>
+        </div>
+        <Button
+          type="button"
+          variant="secondary"
+          disabled={busy || !ward}
+          onClick={() => startBusy(async () => setResult(await importWardChecklist(ward)))}
+          className="min-h-(--size-touch) shrink-0 px-4 text-body-sm"
+        >
+          {busy ? "불러오는 중..." : "불러오기"}
+        </Button>
+      </div>
+      <div className="mt-2">
+        <FormStatus message={result.message} savedAt={result.savedAt} savedText={result.notice} />
+      </div>
+    </div>
   );
 }
