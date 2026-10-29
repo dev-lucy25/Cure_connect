@@ -3,8 +3,15 @@ import type { ScheduleItem } from "@/server/practice-repo";
 import Chip from "@/components/ui/chip";
 import { IconCalendar } from "@/components/ui/icons";
 
-// 가장 가까운 다음 실습 → "내과병동 실습 D-5" 칩
-export default function DDayChip({ next, today }: { next: ScheduleItem | undefined; today: string }) {
+// 가장 가까운 다음 실습 → "내과병동 실습 D-5" 칩. 다음 실습이 없고 진행 중인 로테이션만 있으면 "진행 중"
+export default function DDayChip({ next, current, today }: { next: ScheduleItem | undefined; current?: ScheduleItem; today: string }) {
+  if (!next && current) {
+    return (
+      <Chip>
+        <IconCalendar size={16} /> {current.ward} 실습 진행 중 · {1 - daysBetween(today, current.startDate)}일차
+      </Chip>
+    );
+  }
   if (!next) {
     return (
       <Chip tone="neutral">

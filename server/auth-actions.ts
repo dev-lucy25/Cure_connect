@@ -140,14 +140,21 @@ export async function signup(_prev: AuthFormState, formData: FormData): Promise<
       select: { id: true },
     });
   } catch {
-    // 위에서 확인한 사이에 같은 학번이 먼저 가입된 경우. 계정은 만들어졌으니 학번 없이 로그인 후 내 정보에서 고치게 한다
+    // 위에서 확인한 사이에 같은 학번이 먼저 가입된 경우. 계정은 만들어졌으니 역할·학교는 그대로 두고 학번만 비운다
+    // (교수는 초대 코드를 이미 확인했으므로 교수로 유지). 인증 뒤 내 정보에서 학번을 다시 넣는다
     await db.profile.upsert({
       where: { id: data.user.id },
-      create: { id: data.user.id, email: input.email, name: input.name, role: "student" },
+      create: {
+        id: data.user.id,
+        email: input.email,
+        name: input.name,
+        role: input.role,
+        orgId: input.orgId,
+        staffTitle: professor ? input.staffTitle : null,
+      },
       update: {},
       select: { id: true },
     });
-    return { status: "error", message: "학번·교번이 방금 다른 계정에 등록됐어요. 로그인 후 내 정보에서 다시 입력해 주세요", values };
   }
 
   // 메일 인증이 켜져 있으면 세션 없이 돌아온다 → 메일로 받은 코드를 넣는 화면으로

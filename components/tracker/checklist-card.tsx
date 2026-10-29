@@ -61,6 +61,9 @@ export default function ChecklistCard({ items }: { items: ChecklistEntry[] }) {
         </div>
       </div>
 
+      {optimistic.length === 0 && (
+        <p className="mt-3 rounded-control bg-subtle px-4 py-3 text-body-sm text-ink-soft">비어 있어요. 아래에서 챙길 준비물을 추가해 보세요</p>
+      )}
       <ul className="mt-3 space-y-1">
         <AnimatePresence initial={false}>
           {optimistic.map((item) => (

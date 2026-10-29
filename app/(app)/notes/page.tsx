@@ -41,7 +41,9 @@ async function NotesContent({ searchParams }: Pick<PageProps<"/notes">, "searchP
     <div className="space-y-3">
       <PageHeader title="선배 병동 족보" description="병동별 수간호사님 질문·준비물·분위기·꿀팁" />
       <div className="pt-2">
+        {/* 이미 족보 화면에 있다가 ?write=1(충전소 "후기 작성하기")로 와도 쓰기 창이 열리게 새로 그린다 */}
         <NotesMarket
+          key={one(sp.write) === "1" ? "write" : "browse"}
           items={page.items}
           nextCursor={page.nextCursor}
           filter={filter}

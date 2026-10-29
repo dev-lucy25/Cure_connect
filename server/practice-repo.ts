@@ -247,6 +247,18 @@ export async function listUpcomingSchedules(userId: string, today: string): Prom
   return rows.map(toScheduleItem);
 }
 
+/** 끝난 일정 최근 10개 (끝난 뒤에도 고치거나 지울 수 있게) */
+export async function listPastSchedules(userId: string, today: string): Promise<ScheduleItem[]> {
+  const day = toDbDate(today);
+  const rows = await db.practiceSchedule.findMany({
+    where: { userId, OR: [{ endDate: { lt: day } }, { endDate: null, startDate: { lt: day } }] },
+    orderBy: [{ startDate: "desc" }, { id: "desc" }],
+    take: 10,
+    select: scheduleSelect,
+  });
+  return rows.map(toScheduleItem);
+}
+
 export async function createSchedule(userId: string, input: ScheduleInput) {
   await db.practiceSchedule.create({ data: { userId, ...toScheduleData(input) } });
 }

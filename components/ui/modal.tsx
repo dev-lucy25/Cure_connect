@@ -2,6 +2,7 @@
 
 import { useEffect, useId, useRef, useSyncExternalStore } from "react";
 import { createPortal } from "react-dom";
+import { usePathname } from "next/navigation";
 import { AnimatePresence, motion, useReducedMotion, type PanInfo } from "motion/react";
 import { SPRING_SNAPPY, SPRING_SOFT } from "@/lib/motion";
 import IconButton from "@/components/ui/icon-button";
@@ -39,6 +40,15 @@ export default function Modal({
   const panelRef = useRef<HTMLDivElement>(null);
   const titleId = useId();
   const descId = useId();
+
+  // 모달 안의 링크로 다른 화면에 가면 닫는다 (레이아웃에 있는 모달은 화면이 바뀌어도 남아 있기 때문)
+  const pathname = usePathname();
+  const lastPath = useRef(pathname);
+  useEffect(() => {
+    if (lastPath.current === pathname) return;
+    lastPath.current = pathname;
+    if (open) onClose();
+  }, [pathname, open, onClose]);
 
   // 열릴 때: 첫 입력칸(없으면 창)에 포커스, 뒤 화면 스크롤 잠금 / 닫힐 때: 포커스 되돌리기
   useEffect(() => {

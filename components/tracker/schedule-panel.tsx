@@ -17,9 +17,10 @@ import FormStatus from "@/components/ui/form-status";
 import { IconPlus } from "@/components/ui/icons";
 import RowActions from "@/components/tracker/row-actions";
 
-export default function SchedulePanel({ schedules, today }: { schedules: ScheduleItem[]; today: string }) {
+export default function SchedulePanel({ schedules, past, today }: { schedules: ScheduleItem[]; past: ScheduleItem[]; today: string }) {
   const [state, action, pending] = useActionState<FormState<ScheduleField>, FormData>(saveSchedule, {});
   const [openedAt, setOpenedAt] = useState<number | null>(null);
+  const [showPast, setShowPast] = useState(false);
   const adding = openedAt !== null && !(state.savedAt && state.savedAt > openedAt);
 
   return (
@@ -48,6 +49,28 @@ export default function SchedulePanel({ schedules, today }: { schedules: Schedul
           ))}
         </AnimatePresence>
       </ul>
+      {/* 끝난 일정: 접어 두고, 펼치면 고치기·지우기 가능 */}
+      {past.length > 0 && (
+        <div>
+          <button
+            type="button"
+            aria-expanded={showPast}
+            onClick={() => setShowPast((v) => !v)}
+            className="inline-flex min-h-11 items-center text-body-sm font-bold text-ink-soft hover:text-ink"
+          >
+            {showPast ? "지난 일정 접기" : `지난 일정 ${past.length}개 보기`}
+          </button>
+          <Collapse open={showPast}>
+            <ul className="divide-y divide-line/70 overflow-hidden rounded-card border border-line/70 bg-surface/70 shadow-soft" data-past-schedules>
+              <AnimatePresence initial={false}>
+                {past.map((s) => (
+                  <ScheduleRow key={s.id} schedule={s} today={today} />
+                ))}
+              </AnimatePresence>
+            </ul>
+          </Collapse>
+        </div>
+      )}
     </section>
   );
 }
@@ -95,7 +118,7 @@ function ScheduleSummary({
 }) {
   return (
     <div className="flex flex-wrap items-center gap-3 py-2 pr-2 pl-4">
-      <span className="w-14 shrink-0 font-display text-title text-brand-deep">{dDayLabel(daysBetween(today, schedule.startDate))}</span>
+      <span className="w-14 shrink-0 font-display text-title text-brand-deep">{scheduleBadge(schedule, today)}</span>
       <div className="min-w-0 flex-1">
         <p className="truncate font-bold">{schedule.ward}</p>
         <p className="truncate text-body-sm text-ink-soft">
@@ -316,6 +339,14 @@ const DETAIL_FIELDS = [
   "groupName",
   "teammates",
 ] as const;
+
+/** 일정 줄 왼쪽 표시: 다가오면 D-n, 진행 중이면 "진행", 끝났으면 "지남" */
+function scheduleBadge(s: ScheduleItem, today: string) {
+  const end = s.endDate ?? s.startDate;
+  if (end < today) return "지남";
+  if (s.startDate <= today) return "진행";
+  return dDayLabel(daysBetween(today, s.startDate));
+}
 
 function hasDetails(s: ScheduleItem) {
   return Boolean(
