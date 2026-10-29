@@ -61,23 +61,24 @@ const memoBlock = (memo: string, ward: string) => `실습 병동: ${ward}\n<memo
 const RETRY_IF_ELAPSED_UNDER_MS = 6_000;
 const RETRY_DELAY_MS = 800;
 
-async function call(systemInstruction: string, contents: Content[], json: boolean): Promise<AiResult<string>> {
+/** schema를 주면 그 JSON 형식으로만 답하게 한다 (생각은 LOW), 없으면 자유 글 (생각은 MINIMAL) */
+async function call(systemInstruction: string, contents: Content[], schema?: z.ZodType): Promise<AiResult<string>> {
   const apiKey = geminiApiKey();
   if (!apiKey) return { ok: false, reason: "config" };
   const ai = getClient(apiKey);
   const signal = AbortSignal.timeout(AI_TIMEOUT_MS);
   const started = Date.now();
-  const first = await attempt(ai, systemInstruction, contents, json, signal);
+  const first = await attempt(ai, systemInstruction, contents, schema, signal);
   if (first.ok || first.reason !== "busy" || Date.now() - started > RETRY_IF_ELAPSED_UNDER_MS) return first;
   await new Promise((resolve) => setTimeout(resolve, RETRY_DELAY_MS));
-  return attempt(ai, systemInstruction, contents, json, signal);
+  return attempt(ai, systemInstruction, contents, schema, signal);
 }
 
 async function attempt(
   ai: GoogleGenAI,
   systemInstruction: string,
   contents: Content[],
-  json: boolean,
+  schema: z.ZodType | undefined,
   signal: AbortSignal,
 ): Promise<AiResult<string>> {
   try {
@@ -89,9 +90,9 @@ async function attempt(
         abortSignal: signal,
         httpOptions: { timeout: AI_TIMEOUT_MS, retryOptions: { attempts: 1 } },
         // 제한 시간 안에 끝나도록 생각은 짧게: SOAPIE 정리는 LOW, 대화는 MINIMAL
-        thinkingConfig: { thinkingLevel: json ? ThinkingLevel.LOW : ThinkingLevel.MINIMAL },
+        thinkingConfig: { thinkingLevel: schema ? ThinkingLevel.LOW : ThinkingLevel.MINIMAL },
         maxOutputTokens: 4096,
-        ...(json ? { responseMimeType: "application/json", responseJsonSchema: z.toJSONSchema(caseAiOutputSchema) } : {}),
+        ...(schema ? { responseMimeType: "application/json", responseJsonSchema: z.toJSONSchema(schema) } : {}),
       },
     });
     if (response.promptFeedback?.blockReason) return { ok: false, reason: "refused" };
@@ -112,20 +113,37 @@ async function attempt(
   }
 }
 
+/** 공통 규칙(지시문 무시·사실만·식별 정보 금지) — 다른 AI 기능 프롬프트 앞에 붙인다 */
+export const AI_RULES = RULES;
+
+/**
+ * JSON으로 답하는 AI 호출 (채점 참고안·수정 요청·모의질문 평가·실습일지 등 공용).
+ * outputSchema는 Gemini에 보낼 형식, checkSchema는 받은 뒤 다시 확인할 형식(보통 같음)
+ */
+export async function aiJson<T>(
+  systemInstruction: string,
+  userText: string,
+  outputSchema: z.ZodType,
+  checkSchema: z.ZodType<T>,
+): Promise<AiResult<T>> {
+  const raw = await call(systemInstruction, [{ role: "user", parts: [{ text: userText }] }], outputSchema);
+  if (!raw.ok) return raw;
+  let parsed: unknown;
+  try {
+    parsed = JSON.parse(raw.value);
+  } catch {
+    return { ok: false, reason: "format" };
+  }
+  const checked = checkSchema.safeParse(parsed);
+  return checked.success ? { ok: true, value: checked.data } : { ok: false, reason: "format" };
+}
+
 export const geminiCaseAi: CaseAi = {
   async soapie(memo, ward) {
-    const raw = await call(SOAPIE_PROMPT, [{ role: "user", parts: [{ text: memoBlock(memo, ward) }] }], true);
-    if (!raw.ok) return raw;
-    let parsed: unknown;
-    try {
-      parsed = JSON.parse(raw.value);
-    } catch {
-      return { ok: false, reason: "format" };
-    }
-    const checked = caseAiResultSchema.safeParse(parsed);
-    if (!checked.success) return { ok: false, reason: "format" };
+    const checked = await aiJson(SOAPIE_PROMPT, memoBlock(memo, ward), caseAiOutputSchema, caseAiResultSchema);
+    if (!checked.ok) return checked;
     // 제목에 환자 식별 정보처럼 보이는 게 섞이면 제목만 버린다
-    const result = detectPii(checked.data.title).length > 0 ? { ...checked.data, title: "" } : checked.data;
+    const result = detectPii(checked.value.title).length > 0 ? { ...checked.value, title: "" } : checked.value;
     return { ok: true, value: normalizeAiResult(result) };
   },
 
@@ -134,7 +152,7 @@ export const geminiCaseAi: CaseAi = {
       role: t.role === "ai" ? "model" : "user",
       parts: [{ text: t.content }],
     }));
-    const raw = await call(`${CHAT_PROMPT}\n\n${memoBlock(memo, ward)}`, [...recent, { role: "user", parts: [{ text: question }] }], false);
+    const raw = await call(`${CHAT_PROMPT}\n\n${memoBlock(memo, ward)}`, [...recent, { role: "user", parts: [{ text: question }] }]);
     if (!raw.ok) return raw;
     const checked = chatAnswerSchema.safeParse(raw.value);
     return checked.success ? { ok: true, value: checked.data } : { ok: false, reason: "format" };
