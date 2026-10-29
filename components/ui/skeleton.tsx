@@ -181,6 +181,25 @@ export function ProfessorHomeSkeleton() {
   );
 }
 
+/** 알림함: 제목 + 알림 줄들 */
+export function NotificationsSkeleton() {
+  return (
+    <SkeletonBox label="알림을 불러오는 중" className="space-y-4">
+      <HeaderBones />
+      {Array.from({ length: 5 }, (_, i) => (
+        <CardShell key={i} className="flex gap-3 p-4">
+          <Bone className="mt-1.5 size-2 shrink-0" />
+          <div className="flex-1 space-y-2">
+            <Bone className="h-4 w-1/2" />
+            <Bone className="h-3 w-5/6" />
+            <Bone className="h-3 w-1/4" />
+          </div>
+        </CardShell>
+      ))}
+    </SkeletonBox>
+  );
+}
+
 export function LogsMoreSkeleton() {
   return (
     <SkeletonBox label="일지를 더 불러오는 중" className="space-y-3">

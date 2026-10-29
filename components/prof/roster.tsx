@@ -1,8 +1,9 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useTransition } from "react";
 import { AnimatePresence, motion } from "motion/react";
 import type { RosterFilter, RosterRow, StudentStatus } from "@/server/professor-repo";
+import { nudgeAction } from "@/server/professor-actions";
 import { SPRING_SNAPPY, SPRING_SOFT } from "@/lib/motion";
 import AnimatedNumber from "@/components/motion/animated-number";
 import ProgressBar from "@/components/motion/progress-bar";
@@ -10,6 +11,7 @@ import { useTapEffect } from "@/components/motion/use-motion-prefs";
 import NurseTurtle from "@/components/mascot/nurse-turtle";
 import { buttonClass } from "@/components/ui/button-class";
 import Chip from "@/components/ui/chip";
+import FormStatus from "@/components/ui/form-status";
 
 const FILTERS: { key: RosterFilter; label: string }[] = [
   { key: "ALL", label: "전체" },
@@ -31,13 +33,37 @@ function matches(row: RosterRow, filter: RosterFilter) {
 
 const subline = (r: RosterRow) => [r.memberNo, r.classLabel, r.orgName].filter(Boolean).join(" · ");
 
-// 학생 현황판: 필터(선택 알약이 미끄러짐) + CSV 내려받기.
+type NudgeState = { message?: string; sentAt?: number; notice?: string };
+
+// 학생 현황판: 필터(선택 알약이 미끄러짐) + CSV 내려받기 + 독려 알림(학생당 하루 1번).
 // md 이상은 표, 모바일은 카드 목록. 필터를 바꾸면 줄이 부드럽게 빠지고 들어온다.
 export default function Roster({ rows, hasRoom }: { rows: RosterRow[]; hasRoom: boolean }) {
   const tap = useTapEffect();
   const [filter, setFilter] = useState<RosterFilter>("ALL");
   const shown = rows.filter((r) => matches(r, filter));
   const filters = hasRoom ? FILTERS : FILTERS.filter((f) => f.key !== "ROOM");
+  const [nudge, setNudge] = useState<NudgeState>({});
+  const [sending, setSending] = useState<string | null>(null);
+  const [, startTransition] = useTransition();
+  const notNudged = shown.filter((r) => !r.nudgedToday);
+
+  // key: 누르고 있는 버튼("all" 또는 학생 id) — 그 버튼만 "보내는 중"으로 바뀐다
+  function send(key: string, ids: string[]) {
+    setSending(key);
+    startTransition(async () => {
+      setNudge(await nudgeAction(ids));
+      setSending(null);
+    });
+  }
+  const nudgeButton = (r: RosterRow) => (
+    <NudgeButton
+      nudged={r.nudgedToday}
+      pending={sending === r.id}
+      disabled={sending !== null}
+      onClick={() => send(r.id, [r.id])}
+      name={r.name}
+    />
+  );
 
   return (
     <section className="rounded-card border border-line bg-surface shadow-soft">
@@ -79,6 +105,30 @@ export default function Roster({ rows, hasRoom }: { rows: RosterRow[]; hasRoom: 
         })}
       </div>
 
+      {shown.length > 0 && (
+        <div className="space-y-2 px-5 pb-3">
+          <motion.button
+            type="button"
+            whileTap={tap}
+            disabled={notNudged.length === 0 || sending !== null}
+            onClick={() =>
+              send(
+                "all",
+                notNudged.map((r) => r.id),
+              )
+            }
+            className={`${buttonClass("secondary")} min-h-11 w-full text-body-sm md:w-auto`}
+          >
+            {sending === "all"
+              ? "보내는 중..."
+              : notNudged.length === 0
+                ? "✓ 오늘 모두 독려했어요"
+                : `🔔 보이는 학생 ${notNudged.length}명에게 독려 알림`}
+          </motion.button>
+          <FormStatus message={nudge.message} savedAt={nudge.sentAt} savedText={nudge.notice} />
+        </div>
+      )}
+
       {shown.length === 0 ? (
         <div className="flex flex-col items-center px-5 pt-2 pb-8 text-center">
           <NurseTurtle stage={2} size={80} decorative />
@@ -117,6 +167,7 @@ export default function Roster({ rows, hasRoom }: { rows: RosterRow[]; hasRoom: 
                     {r.place ?? "실습 기록 없음"} · 인증 <AnimatedNumber value={r.approvedHours} suffix="h" />
                   </p>
                   <Progress row={r} />
+                  <div className="mt-3 flex justify-end">{nudgeButton(r)}</div>
                 </motion.li>
               ))}
             </AnimatePresence>
@@ -131,7 +182,8 @@ export default function Roster({ rows, hasRoom }: { rows: RosterRow[]; hasRoom: 
                   <th className="px-3 py-2.5 font-bold">현재 실습지</th>
                   <th className="w-64 px-3 py-2.5 font-bold">누적 / 기준</th>
                   <th className="px-3 py-2.5 font-bold">인증</th>
-                  <th className="px-5 py-2.5 font-bold">상태</th>
+                  <th className="px-3 py-2.5 font-bold">상태</th>
+                  <th className="px-5 py-2.5 text-right font-bold">독려 알림</th>
                 </tr>
               </thead>
               <tbody>
@@ -161,11 +213,12 @@ export default function Roster({ rows, hasRoom }: { rows: RosterRow[]; hasRoom: 
                       <td className="px-3 py-3 whitespace-nowrap text-ink-soft">
                         <AnimatedNumber value={r.approvedHours} suffix="h" />
                       </td>
-                      <td className="px-5 py-3">
+                      <td className="px-3 py-3">
                         <Chip tone={STATUS[r.status].tone} className="text-caption whitespace-nowrap">
                           {STATUS[r.status].label}
                         </Chip>
                       </td>
+                      <td className="px-5 py-3 text-right">{nudgeButton(r)}</td>
                     </motion.tr>
                   ))}
                 </AnimatePresence>
@@ -195,5 +248,36 @@ function Progress({ row }: { row: RosterRow }) {
         barClassName={`h-full rounded-full ${row.status === "DONE" ? "bg-pink" : row.status === "RISK" ? "bg-warn-line" : "bg-brand"}`}
       />
     </div>
+  );
+}
+
+/** 학생 한 명 독려 버튼. 오늘 이미 받았으면 "오늘 보냄"으로 잠긴다 */
+function NudgeButton({
+  nudged,
+  pending,
+  disabled,
+  onClick,
+  name,
+}: {
+  nudged: boolean;
+  pending: boolean;
+  disabled: boolean;
+  onClick: () => void;
+  name: string;
+}) {
+  const tap = useTapEffect();
+  if (nudged)
+    return <span className="inline-flex min-h-11 items-center text-caption font-bold whitespace-nowrap text-ink-soft">✓ 오늘 보냄</span>;
+  return (
+    <motion.button
+      type="button"
+      whileTap={tap}
+      disabled={disabled}
+      onClick={onClick}
+      aria-label={`${name} 학생에게 독려 알림 보내기`}
+      className="inline-flex min-h-11 items-center rounded-full bg-subtle px-3.5 text-caption font-bold whitespace-nowrap text-ink hover:bg-brand-soft disabled:opacity-55 md:bg-canvas"
+    >
+      {pending ? "보내는 중..." : "🔔 독려"}
+    </motion.button>
   );
 }

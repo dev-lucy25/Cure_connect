@@ -2,6 +2,7 @@ import "server-only";
 import { db } from "@/lib/db";
 import type { Prisma } from "@/generated/prisma/client";
 import type { CurrentUser } from "@/server/auth";
+import { notifiedToday, notify } from "@/server/notification-repo";
 
 // 교수 대시보드 DB 처리. 교수는 "같은 학교 또는 자기 방 코드"의 학생만 볼 수 있다(다른 학생은 존재도 모름).
 // prof는 반드시 서버에서 확인한 교수 계정이어야 한다.
@@ -27,6 +28,8 @@ export type RosterRow = {
   goalHours: number;
   percent: number;
   status: StudentStatus;
+  /** 오늘 이미 독려 알림을 받았는가 (학생당 하루 1번) */
+  nudgedToday: boolean;
 };
 
 /** 이 교수가 볼 수 있는 학생 조건. 학교도 방 코드도 없으면 아무도 안 보인다 */
@@ -65,7 +68,7 @@ export async function listRoster(prof: Prof, filter: RosterFilter = "ALL"): Prom
     },
   });
   const ids = students.map((s) => s.id);
-  const [totals, approved, latest] = ids.length
+  const [totals, approved, latest, nudged] = ids.length
     ? await Promise.all([
         db.practiceLog.groupBy({ by: ["userId"], where: { userId: { in: ids } }, _sum: { minutes: true } }),
         db.practiceLog.groupBy({ by: ["userId"], where: { userId: { in: ids }, status: "approved" }, _sum: { minutes: true } }),
@@ -75,8 +78,9 @@ export async function listRoster(prof: Prof, filter: RosterFilter = "ALL"): Prom
           distinct: ["userId"],
           select: { userId: true, hospital: true, ward: true },
         }),
+        notifiedToday(db, ids, NUDGE_KIND),
       ])
-    : [[], [], []];
+    : [[], [], [], new Set<string>()];
   const minutesOf = (rows: { userId: string; _sum: { minutes: number | null } }[], id: string) =>
     rows.find((r) => r.userId === id)?._sum.minutes ?? 0;
   const placeOf = new Map(latest.map((l) => [l.userId, `${l.hospital} ${l.ward}`]));
@@ -97,6 +101,7 @@ export async function listRoster(prof: Prof, filter: RosterFilter = "ALL"): Prom
       goalHours: s.goalHours,
       percent: Math.min(100, Math.round((hours / s.goalHours) * 1000) / 10),
       status: statusOf(hours, s.goalHours),
+      nudgedToday: nudged.has(s.id),
     };
   });
   if (filter === "ROOM") return rows.filter((r) => r.sameRoom);
@@ -117,6 +122,41 @@ export async function professorKpis(prof: Prof): Promise<Kpis> {
     risk: roster.filter((r) => r.status === "RISK").length,
     pendingSubmissions,
   };
+}
+
+export const NUDGE_KIND = "nudge";
+export type NudgeResult = { sent: number; skipped: number };
+
+const hoursText = (h: number) => (Math.round(h * 10) / 10).toLocaleString("ko-KR");
+
+/**
+ * 독려 알림: 내가 볼 수 있는 학생에게만, 학생당 하루 1번(다른 교수님이 보냈어도 1번).
+ * 동시에 눌러도 두 번 가지 않게 잠금 안에서 오늘 받은 학생을 다시 확인한다.
+ */
+export async function nudgeStudents(prof: Prof & { name: string }, studentIds: string[]): Promise<NudgeResult> {
+  const wanted = new Set(studentIds);
+  const targets = (await listRoster(prof, "ALL")).filter((r) => wanted.has(r.id));
+  if (targets.length === 0) return { sent: 0, skipped: 0 };
+  return db.$transaction(async (tx) => {
+    await tx.$executeRaw`SELECT pg_advisory_xact_lock(hashtext(${NUDGE_KIND}))`;
+    const done = await notifiedToday(
+      tx,
+      targets.map((r) => r.id),
+      NUDGE_KIND,
+    );
+    const send = targets.filter((r) => !done.has(r.id));
+    await notify(
+      send.map((r) => ({
+        userId: r.id,
+        kind: NUDGE_KIND,
+        title: "🐢 실습 시간 확인 독려",
+        body: `${prof.name} 교수님: 지금 누적 ${hoursText(r.hours)}시간(${r.percent}%)이에요. 졸업 기준 ${r.goalHours.toLocaleString("ko-KR")}시간까지 실습 기록을 꾸준히 남겨 주세요.`,
+        link: "/",
+      })),
+      tx,
+    );
+    return { sent: send.length, skipped: targets.length - send.length };
+  });
 }
 
 export type RoomResult = "saved" | "taken";
