@@ -15,21 +15,62 @@ enum Role {
 // Supabase Auth 사용자(auth.users)와 1:1. id는 Supabase 사용자 id를 그대로 쓴다.
 // 역할은 서버만 정한다: 가입 시 항상 student, professor는 시드 스크립트로만 생성.
 model Profile {
-  id        String   @id @db.Uuid
-  email     String   @unique
-  name      String   @db.VarChar(30)
-  role      Role     @default(student)
+  id         String   @id @db.Uuid
+  email      String   @unique
+  name       String   @db.VarChar(30)
+  role       Role     @default(student)
   // 졸업 목표 실습 시간 (사용자가 바꿀 수 있음)
-  goalHours Int      @default(1000)
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  goalHours  Int      @default(1000)
+  // 족보 열람용 크레딧. 가입 300 · 족보 등록 +500(하루 1회·한 달 4회) · 열람 -가격(0/300/500) · 판매 시 가격의 80% 적립 (0 미만 금지는 DB CHECK)
+  credits    Int      @default(300)
+  // 소속 학교. 학교 없이 개인으로 쓰는 학생은 null
+  orgId      String?
+  // 학번(학생) 또는 교번(교수). 같은 학교 안에서만 고유 → 학교 + 학번으로 로그인
+  memberNo   String?  @db.VarChar(20)
+  grade      Int?
+  classGroup String?  @db.VarChar(10)
+  // 교수 직책 (예: 실습과장, 조교)
+  staffTitle String?  @db.VarChar(30)
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  org Organization? @relation(fields: [orgId], references: [id], onDelete: SetNull)
 
   practiceLogs      PracticeLog[]
   practiceSchedules PracticeSchedule[]
+  checklistItems    ChecklistItem[]
+  submissions       CaseSubmission[]
+  payments          Payment[]
   caseNotes         CaseNote[]
   aiUsages          AiUsage[]
+  wardNotes         WardNote[]
+  wardNoteUnlocks   WardNoteUnlock[]
+  wardNoteRatings   WardNoteRating[]
+  creditLedger      CreditLedger[]
 
+  @@unique([orgId, memberNo])
   @@index([role])
+  @@index([orgId, role])
+}
+
+enum OrgPlan {
+  free
+  pro
+}
+
+// 학교·기관. 교수 계정은 이 학교의 inviteCode를 알아야만 만들 수 있다.
+// 초대 코드는 마이그레이션에서 무작위로 만들어 DB에만 있다 (git에 남기지 않음).
+model Organization {
+  id           String    @id @default(cuid())
+  name         String    @unique @db.VarChar(60)
+  shortName    String    @db.VarChar(20)
+  plan         OrgPlan   @default(free)
+  licenseUntil DateTime?
+  inviteCode   String    @unique @db.VarChar(20)
+  createdAt    DateTime  @default(now())
+
+  members     Profile[]
+  submissions CaseSubmission[]
 }
 
 // 케이스 메모와 AI 정리 결과(SOAPIE·간호진단·빠진 사정 항목).
@@ -46,11 +87,48 @@ model CaseNote {
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
 
-  user     Profile           @relation(fields: [userId], references: [id], onDelete: Cascade)
-  messages CaseChatMessage[]
+  user        Profile           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  messages    CaseChatMessage[]
+  submissions CaseSubmission[]
 
   // 내 케이스를 최근 수정순으로 나눠 읽는다
   @@index([userId, updatedAt(sort: Desc), id(sort: Desc)])
+}
+
+// 과제 제출: 학생 → 같은 학교 교수. 제출 순간의 메모·AI 결과를 복사해 고정한다(이후 케이스를 고쳐도 제출본은 그대로)
+enum SubmissionStatus {
+  submitted
+  graded
+  revision
+}
+
+// ⚠️ 마이그레이션 20261029070000에 스키마로 표현 못 하는 부분 고유 인덱스 "CaseSubmission_one_pending_per_case"가 있다
+//   (같은 케이스는 채점 대기 제출이 하나만). 다음 migrate diff에 이 인덱스 DROP 줄이 생기면 지울 것.
+model CaseSubmission {
+  id          String           @id @default(cuid())
+  // 원본 케이스. 케이스를 지워도 제출본은 남는다(null)
+  caseId      String?
+  studentId   String           @db.Uuid
+  orgId       String
+  title       String           @db.VarChar(60)
+  ward        String           @db.VarChar(60)
+  memo        String           @db.VarChar(2000)
+  aiResult    Json
+  status      SubmissionStatus @default(submitted)
+  grade       String?          @db.VarChar(10)
+  feedback    String?          @db.VarChar(2000)
+  gradedBy    String?          @db.Uuid
+  submittedAt DateTime         @default(now())
+  gradedAt    DateTime?
+
+  student  Profile      @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  org      Organization @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  caseNote CaseNote?    @relation(fields: [caseId], references: [id], onDelete: SetNull)
+
+  // 교수: 우리 학교 채점 대기 최신순 / 학생: 내 제출 최신순 / 케이스별 최근 제출
+  @@index([orgId, status, submittedAt(sort: Desc)])
+  @@index([studentId, submittedAt(sort: Desc)])
+  @@index([caseId, submittedAt(sort: Desc)])
 }
 
 enum ChatRole {
@@ -74,26 +152,55 @@ model CaseChatMessage {
 
 // AI 정리 하루 사용 횟수 (1인 하루 20회). day는 한국 날짜
 model AiUsage {
-  userId String @db.Uuid
+  userId String   @db.Uuid
   day    DateTime @db.Date
-  count  Int    @default(0)
+  count  Int      @default(0)
 
   user Profile @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@id([userId, day])
 }
 
+// 간호교육인증평가 전공 영역 6과목 (과목별 목표 시간은 lib/subjects.ts)
+enum Subject {
+  adult
+  maternal
+  child
+  community
+  psych
+  management
+}
+
+enum Shift {
+  day
+  evening
+  night
+}
+
+// 일지 인증: 학생이 쓰면 pending, 지도교수가 확인하면 approved / rejected
+enum LogStatus {
+  pending
+  approved
+  rejected
+}
+
 // 실습 일지. 시간은 소수 오차가 없도록 분 단위 정수로 저장한다 (화면은 0.5시간 단위).
 model PracticeLog {
-  id         String   @id @default(cuid())
-  userId     String   @db.Uuid
-  date       DateTime @db.Date
-  hospital   String   @db.VarChar(60)
-  ward       String   @db.VarChar(60)
+  id         String    @id @default(cuid())
+  userId     String    @db.Uuid
+  date       DateTime  @db.Date
+  // 과목이 없던 예전 일지는 마이그레이션에서 성인간호학으로 채웠다 (화면에서 고칠 수 있음)
+  subject    Subject   @default(adult)
+  shift      Shift?
+  hospital   String    @db.VarChar(60)
+  ward       String    @db.VarChar(60)
   minutes    Int
-  activities String   @db.VarChar(2000)
-  createdAt  DateTime @default(now())
-  updatedAt  DateTime @updatedAt
+  activities String    @db.VarChar(2000)
+  status     LogStatus @default(pending)
+  reviewedBy String?   @db.Uuid
+  reviewedAt DateTime?
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @updatedAt
 
   user Profile @relation(fields: [userId], references: [id], onDelete: Cascade)
 
@@ -101,18 +208,192 @@ model PracticeLog {
   @@index([userId, date(sort: Desc), id(sort: Desc)])
 }
 
-// 다음 실습 일정 → "내과병동 실습 D-5"
+// 실습 일정 → "다음 실습 D-3" 카드. 병동 정보(근무 시간·집결·수간호사·다빈도 질환·조원)는 모두 선택 입력
 model PracticeSchedule {
-  id        String   @id @default(cuid())
-  userId    String   @db.Uuid
-  hospital  String   @db.VarChar(60)
-  ward      String   @db.VarChar(60)
-  startDate DateTime @db.Date
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  id             String    @id @default(cuid())
+  userId         String    @db.Uuid
+  subject        Subject?
+  hospital       String    @db.VarChar(60)
+  ward           String    @db.VarChar(60)
+  department     String?   @db.VarChar(30)
+  startDate      DateTime  @db.Date
+  endDate        DateTime? @db.Date
+  shift          Shift?
+  // "07:00" 형식
+  shiftStart     String?   @db.VarChar(5)
+  shiftEnd       String?   @db.VarChar(5)
+  meetingPlace   String?   @db.VarChar(80)
+  meetingTime    String?   @db.VarChar(5)
+  preceptor      String?   @db.VarChar(40)
+  commonDiseases String[]  @default([])
+  groupName      String?   @db.VarChar(20)
+  teammates      String[]  @default([])
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
 
   user Profile @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   // 다가오는 일정을 시작일순으로 찾는다
   @@index([userId, startDate])
+}
+
+// 첫 출근 준비물 체크리스트. 처음 열 때 기본 항목을 넣어 준다
+model ChecklistItem {
+  id        String   @id @default(cuid())
+  userId    String   @db.Uuid
+  text      String   @db.VarChar(100)
+  done      Boolean  @default(false)
+  sortOrder Int
+  createdAt DateTime @default(now())
+
+  user Profile @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, sortOrder])
+}
+
+// 족보 실습 과목 분류 (마켓 필터)
+enum NoteCategory {
+  adult
+  critical
+  maternal_child
+  psych_community
+}
+
+enum NoteStatus {
+  published
+  hidden
+}
+
+// 병동 족보: 자주 받은 질문 · 준비물 · 분위기 · 팁 (항목형)
+// 무료 맛보기(누구나): 제목·준비물·분위기 / 시크릿(열람한 사람·작성자만): 자주 받은 질문·팁
+model WardNote {
+  id          String       @id @default(cuid())
+  authorId    String       @db.Uuid
+  hospital    String       @db.VarChar(60)
+  ward        String       @db.VarChar(60)
+  title       String       @db.VarChar(80)
+  questions   String[]
+  supplies    String[]
+  atmosphere  String       @default("") @db.VarChar(500)
+  tips        String[]
+  category    NoteCategory
+  // 열람 가격(크레딧): 0(무료) · 300 · 500 (DB CHECK)
+  price       Int          @default(300)
+  // "N명 열람" (열람 기록 수, 작성자·무료 열람 제외)
+  salesCount  Int          @default(0)
+  // 평점 = ratingSum / ratingCount (열람한 사람만 1~5)
+  ratingSum   Int          @default(0)
+  ratingCount Int          @default(0)
+  status      NoteStatus   @default(published)
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+
+  author  Profile          @relation(fields: [authorId], references: [id], onDelete: Cascade)
+  unlocks WardNoteUnlock[]
+  ratings WardNoteRating[]
+
+  // 최신순 목록, 분류·병동 필터, 인기순, 내 족보
+  @@index([status, createdAt(sort: Desc), id(sort: Desc)])
+  @@index([category, createdAt(sort: Desc)])
+  @@index([ward, createdAt(sort: Desc)])
+  @@index([salesCount(sort: Desc)])
+  @@index([authorId])
+}
+
+// 열람 기록. (사용자, 족보)가 기본 키라 같은 족보는 한 번만 열린다(= 한 번만 차감)
+model WardNoteUnlock {
+  userId    String   @db.Uuid
+  noteId    String
+  createdAt DateTime @default(now())
+
+  user Profile  @relation(fields: [userId], references: [id], onDelete: Cascade)
+  note WardNote @relation(fields: [noteId], references: [id], onDelete: Cascade)
+
+  @@id([userId, noteId])
+  @@index([noteId])
+}
+
+// 평점(1~5). 열람한 사람만, (사용자, 족보) 하나 — 다시 매기면 바뀐다
+model WardNoteRating {
+  userId    String   @db.Uuid
+  noteId    String
+  score     Int
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  user Profile  @relation(fields: [userId], references: [id], onDelete: Cascade)
+  note WardNote @relation(fields: [noteId], references: [id], onDelete: Cascade)
+
+  @@id([userId, noteId])
+  @@index([noteId])
+}
+
+enum CreditReason {
+  signup
+  upload
+  unlock
+  delete_note
+  // 내 족보가 열람돼 받은 판매 수익(가격의 80%)
+  sale
+  // 유료 충전(결제) · 결제 취소
+  purchase
+  refund
+  // 운영자 조정(예: 크레딧 단위 변경 환산)
+  admin_adjust
+}
+
+// 크레딧 변동 내역. 잔액(Profile.credits) = 이 사용자의 delta 합계여야 한다.
+// noteId는 족보가 지워져도 내역을 남기려고 외래 키로 묶지 않는다.
+// ⚠️ 마이그레이션 20261029040000에 스키마로 표현 못 하는 것이 있다:
+//   부분 고유 인덱스 "CreditLedger_once_per_note", Profile INSERT 트리거 "Profile_signup_credit".
+//   다음 마이그레이션을 `prisma migrate diff`로 만들 때 이 인덱스를 DROP하는 줄이 생기면 지울 것.
+model CreditLedger {
+  id             String       @id @default(cuid())
+  userId         String       @db.Uuid
+  delta          Int
+  reason         CreditReason
+  noteId         String?
+  // sale: 산 사람 / unlock: 판 사람(작성자)
+  counterpartyId String?      @db.Uuid
+  // purchase·refund: 어느 결제의 충전·취소인지
+  paymentId      String?
+  createdAt      DateTime     @default(now())
+
+  user Profile @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, createdAt(sort: Desc)])
+}
+
+// 크레딧 충전 결제. 금액·크레딧은 서버의 상품표(lib/credits)에서만 정한다.
+// 지금은 가상 결제(mock) — 승인 단계만 토스페이먼츠로 바꾸면 실제 결제가 된다.
+enum PaymentStatus {
+  ready
+  done
+  canceled
+  failed
+}
+
+enum PaymentProvider {
+  mock
+  toss
+}
+
+// ⚠️ 마이그레이션 20261030010000에 스키마로 표현 못 하는 부분 고유 인덱스 "CreditLedger_once_per_payment"가 있다
+//   (결제마다 충전·취소 내역은 한 번씩). 다음 migrate diff에 이 인덱스 DROP 줄이 생기면 지울 것.
+model Payment {
+  id         String          @id @default(cuid())
+  orderId    String          @unique @db.VarChar(64)
+  userId     String          @db.Uuid
+  packageId  String          @db.VarChar(30)
+  amountKrw  Int
+  credits    Int
+  provider   PaymentProvider @default(mock)
+  status     PaymentStatus   @default(ready)
+  approvedAt DateTime?
+  canceledAt DateTime?
+  createdAt  DateTime        @default(now())
+
+  user Profile @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, createdAt(sort: Desc)])
 }

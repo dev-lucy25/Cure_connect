@@ -30,8 +30,10 @@ yarn-debug.log*
 yarn-error.log*
 .pnpm-debug.log*
 
-# env files (can opt-in for committing if needed)
+# env files: 절대 커밋 금지. 실제 키는 로컬 .env 와 배포 환경변수(Vercel)에만 둔다.
+# .env.example 은 값이 빈 항목 목록만 커밋한다.
 .env*
+*.env
 !.env.example
 
 # prisma client (generated)

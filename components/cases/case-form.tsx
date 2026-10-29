@@ -1,6 +1,10 @@
 "use client";
 
 import { useState } from "react";
+import { motion } from "motion/react";
+import { SPRING_SOFT } from "@/lib/motion";
+import { CASE_PRESETS, type CasePreset } from "@/lib/case-presets";
+import { useTapEffect } from "@/components/motion/use-motion-prefs";
 import type { FormState } from "@/lib/validation/form";
 import { MEMO_MAX, type CaseField } from "@/lib/validation/case";
 import { detectPii, piiMessage } from "@/lib/validation/pii";
@@ -30,27 +34,62 @@ export default function CaseForm({
   // 메모는 글자 수와 환자 식별 정보를 입력하는 동안 바로 보여주려고 직접 상태로 관리한다
   const [memo, setMemo] = useState(v?.memo ?? initial?.memo ?? "");
   const pii = detectPii(memo);
+  // 예시를 고르면 제목·병동 칸을 새 값으로 다시 그린다(key)
+  const [preset, setPreset] = useState<CasePreset | null>(null);
+  const tap = useTapEffect();
+
+  function loadPreset(p: CasePreset) {
+    setPreset(p);
+    setMemo(p.memo);
+  }
 
   return (
     <form action={action} noValidate className="space-y-3 rounded-card border border-line/70 bg-surface p-4 shadow-soft">
       {initial && <input type="hidden" name="id" value={initial.id} />}
+      {/* 새 케이스일 때만: 예시 시나리오를 눌러 채워 보기 */}
+      {!initial && (
+        <div>
+          <p className="mb-1.5 text-body-sm font-bold text-ink">💡 예시 불러오기</p>
+          <div className="flex flex-wrap gap-1.5">
+            {CASE_PRESETS.map((p, i) => (
+              <motion.button
+                key={p.key}
+                type="button"
+                aria-pressed={preset?.key === p.key}
+                onClick={() => loadPreset(p)}
+                initial={{ opacity: 0, y: 6 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ ...SPRING_SOFT, delay: i * 0.05 }}
+                whileTap={tap}
+                className={`min-h-11 rounded-full px-3.5 text-body-sm font-bold transition-colors ${
+                  preset?.key === p.key ? "bg-brand text-ink" : "bg-subtle text-ink-soft hover:text-ink"
+                }`}
+              >
+                예시{i + 1}: {p.label}
+              </motion.button>
+            ))}
+          </div>
+        </div>
+      )}
       <div className="grid gap-3 sm:grid-cols-2">
         <Field
+          key={`title-${preset?.key ?? ""}`}
           id="case-title"
           name="title"
           label="제목"
           placeholder="예: 폐렴 환자 호흡 간호"
           maxLength={60}
-          defaultValue={v?.title ?? initial?.title}
+          defaultValue={preset?.title ?? v?.title ?? initial?.title}
           error={errors.title}
         />
         <Field
+          key={`ward-${preset?.key ?? ""}`}
           id="case-ward"
           name="ward"
           label="병동"
           placeholder="예: 71병동 (내과)"
           maxLength={60}
-          defaultValue={v?.ward ?? initial?.ward}
+          defaultValue={preset?.ward ?? v?.ward ?? initial?.ward}
           error={errors.ward}
         />
       </div>

@@ -5,10 +5,13 @@ import { createClient } from "@supabase/supabase-js";
 import { PrismaPg } from "@prisma/adapter-pg";
 import { PrismaClient, type Role } from "../generated/prisma/client";
 
-const accounts: { email: string; name: string; role: Role }[] = [
-  { email: "prof@nursepass.test", name: "한교수", role: "professor" },
-  { email: "student1@nursepass.test", name: "김하늘", role: "student" },
-  { email: "student2@nursepass.test", name: "이서연", role: "student" },
+// 모두 동의과학대(org_dit, 마이그레이션 20261029050000에서 생성) 소속. 학교 + 학번으로도 로그인할 수 있다
+type Account = { email: string; name: string; role: Role; memberNo: string; grade?: number; classGroup?: string; staffTitle?: string };
+const ORG_ID = "org_dit";
+const accounts: Account[] = [
+  { email: "prof@nursepass.test", name: "한교수", role: "professor", memberNo: "P2019001", staffTitle: "실습과장" },
+  { email: "student1@nursepass.test", name: "김하늘", role: "student", memberNo: "20241042", grade: 3, classGroup: "B" },
+  { email: "student2@nursepass.test", name: "이서연", role: "student", memberNo: "20241015", grade: 3, classGroup: "B" },
 ];
 
 function requireEnv(name: string) {
@@ -39,11 +42,8 @@ async function main() {
         if (error) throw error;
         id = data.user.id;
       }
-      await db.profile.upsert({
-        where: { id },
-        create: { id, ...account },
-        update: { name: account.name, role: account.role },
-      });
+      const fields = { ...account, orgId: ORG_ID };
+      await db.profile.upsert({ where: { id }, create: { id, ...fields }, update: fields });
     }
   } finally {
     await db.$disconnect();

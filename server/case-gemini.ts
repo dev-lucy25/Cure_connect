@@ -1,7 +1,9 @@
 import "server-only";
 import { ApiError, GoogleGenAI, ThinkingLevel, type Content } from "@google/genai";
 import { z } from "zod";
-import { caseAiOutputSchema, caseAiResultSchema, chatAnswerSchema, type CaseAiResult } from "@/lib/validation/case";
+import { geminiApiKey } from "@/lib/env/server";
+import { caseAiOutputSchema, caseAiResultSchema, chatAnswerSchema, normalizeAiResult, type CaseAiResult } from "@/lib/validation/case";
+import { detectPii } from "@/lib/validation/pii";
 
 // 케이스 AI(Gemini Flash). 서버에서만 호출한다.
 // - SOAPIE 정리: JSON 형식을 강제하고 zod로 다시 확인
@@ -9,7 +11,8 @@ import { caseAiOutputSchema, caseAiResultSchema, chatAnswerSchema, type CaseAiRe
 
 // gemini-3.8-flash는 무료 등급에서 응답이 15초를 넘겨(2026-10 확인) 무료로 빠르게 답하는 3.6을 쓴다
 export const AI_MODEL = "gemini-3.6-flash";
-export const AI_TIMEOUT_MS = 15_000;
+// 제목·우선순위·NANDA 영역까지 채우는 v2 형식은 15초를 넘길 때가 있어(2026-10-29 확인, 504 Deadline) 25초로 둔다
+export const AI_TIMEOUT_MS = 25_000;
 
 export type AiFailure = "timeout" | "busy" | "format" | "refused" | "config" | "failed";
 export type AiResult<T> = { ok: true; value: T } | { ok: false; reason: AiFailure };
@@ -30,7 +33,9 @@ const SOAPIE_PROMPT = `${RULES}
 학생의 메모를 SOAPIE 케이스스터디 초안으로 정리합니다.
 - S(주관적 자료)는 환자의 호소를 따옴표로, O(객관적 자료)는 관찰·측정값으로 씁니다.
 - A(사정)는 자료에 근거한 간호문제, P(계획)는 측정 가능한 목표, I(중재)는 구체적 간호활동, E(평가)는 목표 달성을 확인할 방법으로 씁니다.
-- nursingDiagnoses에는 NANDA-I 간호진단 이름을 "진단명 r/t 관련요인" 형태로 1~3개 씁니다.
+- title에는 이 케이스를 한눈에 알 수 있는 제목을 40자 이내로 씁니다 (예: "복강경 충수절제술 환자의 급성 통증 케이스"). 환자 이름·나이·병실 같은 식별 정보는 넣지 않습니다.
+- diagnoses에는 NANDA-I 간호진단을 1~3개, 가장 시급한 것부터 priority 1, 2, 3으로 씁니다.
+  name은 진단명(예: "급성 통증"), relatedTo는 메모에 근거한 관련요인(예: "외과적 절개 및 조직 손상"), domain은 주어진 NANDA-I 영역 중 하나입니다.
 - missingInfo에는 케이스스터디를 완성하려면 더 사정해야 할 항목을 씁니다.
 - 각 항목은 한국어 한 문장(100자 이내)으로, 항목당 최대 6개까지 씁니다. 메모에 없으면 빈 배열로 둡니다.`;
 
@@ -45,37 +50,45 @@ const CHAT_PROMPT = `${RULES}
 const HISTORY_LIMIT = 10;
 
 let client: GoogleGenAI | null = null;
-function getClient() {
-  client ??= new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
+function getClient(apiKey: string) {
+  client ??= new GoogleGenAI({ apiKey });
   return client;
 }
 
 const memoBlock = (memo: string, ward: string) => `실습 병동: ${ward}\n<memo>\n${memo}\n</memo>`;
 
-// 무료 등급은 잠깐 "바쁨"(429·5xx)으로 거절할 때가 있다. 15초 안에서 여유가 있으면 1번만 다시 시도한다.
+// 무료 등급은 잠깐 "바쁨"(429·5xx)으로 거절할 때가 있다. 제한 시간 안에서 여유가 있으면 1번만 다시 시도한다.
 const RETRY_IF_ELAPSED_UNDER_MS = 6_000;
 const RETRY_DELAY_MS = 800;
 
 async function call(systemInstruction: string, contents: Content[], json: boolean): Promise<AiResult<string>> {
-  if (!process.env.GEMINI_API_KEY) return { ok: false, reason: "config" };
+  const apiKey = geminiApiKey();
+  if (!apiKey) return { ok: false, reason: "config" };
+  const ai = getClient(apiKey);
   const signal = AbortSignal.timeout(AI_TIMEOUT_MS);
   const started = Date.now();
-  const first = await attempt(systemInstruction, contents, json, signal);
+  const first = await attempt(ai, systemInstruction, contents, json, signal);
   if (first.ok || first.reason !== "busy" || Date.now() - started > RETRY_IF_ELAPSED_UNDER_MS) return first;
   await new Promise((resolve) => setTimeout(resolve, RETRY_DELAY_MS));
-  return attempt(systemInstruction, contents, json, signal);
+  return attempt(ai, systemInstruction, contents, json, signal);
 }
 
-async function attempt(systemInstruction: string, contents: Content[], json: boolean, signal: AbortSignal): Promise<AiResult<string>> {
+async function attempt(
+  ai: GoogleGenAI,
+  systemInstruction: string,
+  contents: Content[],
+  json: boolean,
+  signal: AbortSignal,
+): Promise<AiResult<string>> {
   try {
-    const response = await getClient().models.generateContent({
+    const response = await ai.models.generateContent({
       model: AI_MODEL,
       contents,
       config: {
         systemInstruction,
         abortSignal: signal,
         httpOptions: { timeout: AI_TIMEOUT_MS, retryOptions: { attempts: 1 } },
-        // 15초 안에 끝나도록 생각은 짧게: SOAPIE 정리는 LOW, 대화는 MINIMAL
+        // 제한 시간 안에 끝나도록 생각은 짧게: SOAPIE 정리는 LOW, 대화는 MINIMAL
         thinkingConfig: { thinkingLevel: json ? ThinkingLevel.LOW : ThinkingLevel.MINIMAL },
         maxOutputTokens: 4096,
         ...(json ? { responseMimeType: "application/json", responseJsonSchema: z.toJSONSchema(caseAiOutputSchema) } : {}),
@@ -90,6 +103,8 @@ async function attempt(systemInstruction: string, contents: Content[], json: boo
   } catch (error) {
     if (signal.aborted) return { ok: false, reason: "timeout" };
     if (error instanceof ApiError) {
+      // 504는 Gemini 쪽에서 우리 제한 시간을 넘긴 것 → "바쁨"이 아니라 "시간 초과"로 알린다
+      if (error.status === 504) return { ok: false, reason: "timeout" };
       if (error.status === 429 || error.status >= 500) return { ok: false, reason: "busy" };
       if (error.status === 401 || error.status === 403) return { ok: false, reason: "config" };
     }
@@ -108,7 +123,10 @@ export const geminiCaseAi: CaseAi = {
       return { ok: false, reason: "format" };
     }
     const checked = caseAiResultSchema.safeParse(parsed);
-    return checked.success ? { ok: true, value: checked.data } : { ok: false, reason: "format" };
+    if (!checked.success) return { ok: false, reason: "format" };
+    // 제목에 환자 식별 정보처럼 보이는 게 섞이면 제목만 버린다
+    const result = detectPii(checked.data.title).length > 0 ? { ...checked.data, title: "" } : checked.data;
+    return { ok: true, value: normalizeAiResult(result) };
   },
 
   async reply(memo, ward, history, question) {
@@ -124,7 +142,7 @@ export const geminiCaseAi: CaseAi = {
 };
 
 export const AI_FAILURE_MESSAGE: Record<AiFailure, string> = {
-  timeout: "AI가 15초 안에 답하지 못했어요. 잠시 후 다시 시도해 주세요",
+  timeout: `AI가 ${AI_TIMEOUT_MS / 1000}초 안에 답하지 못했어요. 잠시 후 다시 시도해 주세요`,
   busy: "지금 AI 사용자가 많아요. 잠시 후 다시 시도해 주세요",
   format: "AI 답을 정리하지 못했어요. 다시 시도해 주세요",
   refused: "이 내용은 AI가 답할 수 없어요. 내용을 확인해 주세요",

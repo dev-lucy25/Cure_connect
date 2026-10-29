@@ -49,9 +49,23 @@ export const IconLogout = (p: IconProps) => (
   </Icon>
 );
 
+export const IconUser = (p: IconProps) => (
+  <Icon {...p}>
+    <circle cx="12" cy="8.5" r="3.5" />
+    <path d="M5 19.5c1-3.5 3.8-5.5 7-5.5s6 2 7 5.5" />
+  </Icon>
+);
+
 export const IconChart = (p: IconProps) => (
   <Icon {...p}>
     <path d="M4.5 19.5h15M7.5 16v-5M12 16V7M16.5 16v-3" />
+  </Icon>
+);
+
+export const IconTool = (p: IconProps) => (
+  <Icon {...p}>
+    <rect x="5" y="3.5" width="14" height="17" rx="2.5" />
+    <path d="M8.5 7.5h7M8.5 12h1M12 12h1M15.5 12h0M8.5 15.5h1M12 15.5h1M15.5 15.5h0" />
   </Icon>
 );
 
