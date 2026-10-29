@@ -18,6 +18,8 @@ export type CurrentUser = {
   grade: number | null;
   classGroup: string | null;
   staffTitle: string | null;
+  /** 실습반 방 코드 (교수: 관리하는 방 / 학생: 들어간 방) */
+  roomCode: string | null;
 };
 
 /**
@@ -59,6 +61,7 @@ const PROFILE_SELECT = {
   grade: true,
   classGroup: true,
   staffTitle: true,
+  roomCode: true,
   org: { select: { name: true } },
 } as const;
 

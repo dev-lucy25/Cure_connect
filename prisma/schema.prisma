@@ -15,24 +15,30 @@ enum Role {
 // Supabase Auth 사용자(auth.users)와 1:1. id는 Supabase 사용자 id를 그대로 쓴다.
 // 역할은 서버만 정한다: 가입 시 항상 student, professor는 시드 스크립트로만 생성.
 model Profile {
-  id         String   @id @db.Uuid
-  email      String   @unique
-  name       String   @db.VarChar(30)
-  role       Role     @default(student)
+  id              String   @id @db.Uuid
+  email           String   @unique
+  name            String   @db.VarChar(30)
+  role            Role     @default(student)
   // 졸업 목표 실습 시간 (사용자가 바꿀 수 있음)
-  goalHours  Int      @default(1000)
+  goalHours       Int      @default(1000)
   // 족보 열람용 크레딧. 가입 300 · 족보 등록 +500(하루 1회·한 달 4회) · 열람 -가격(0/300/500) · 판매 시 가격의 80% 적립 (0 미만 금지는 DB CHECK)
-  credits    Int      @default(300)
+  credits         Int      @default(300)
   // 소속 학교. 학교 없이 개인으로 쓰는 학생은 null
-  orgId      String?
+  orgId           String?
   // 학번(학생) 또는 교번(교수). 같은 학교 안에서만 고유 → 학교 + 학번으로 로그인
-  memberNo   String?  @db.VarChar(20)
-  grade      Int?
-  classGroup String?  @db.VarChar(10)
+  memberNo        String?  @db.VarChar(20)
+  grade           Int?
+  classGroup      String?  @db.VarChar(10)
   // 교수 직책 (예: 실습과장, 조교)
-  staffTitle String?  @db.VarChar(30)
-  createdAt  DateTime @default(now())
-  updatedAt  DateTime @updatedAt
+  staffTitle      String?  @db.VarChar(30)
+  // 실습반 방 코드. 교수: 자기가 관리하는 방(교수끼리 겹치지 않음) / 학생: 들어간 방
+  roomCode        String?  @db.VarChar(20)
+  // 준비물 체크리스트 기본 항목을 이미 넣어 줬는가 (다 지워도 다시 생기지 않게)
+  checklistSeeded Boolean  @default(false)
+  // 교수 익명 통계(병동·술기 난이도)에서 내 일지를 뺀다
+  statsOptOut     Boolean  @default(false)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
 
   org Organization? @relation(fields: [orgId], references: [id], onDelete: SetNull)
 
@@ -41,6 +47,7 @@ model Profile {
   checklistItems    ChecklistItem[]
   submissions       CaseSubmission[]
   payments          Payment[]
+  notifications     Notification[]
   caseNotes         CaseNote[]
   aiUsages          AiUsage[]
   wardNotes         WardNote[]
@@ -51,6 +58,7 @@ model Profile {
   @@unique([orgId, memberNo])
   @@index([role])
   @@index([orgId, role])
+  @@index([roomCode])
 }
 
 enum OrgPlan {
@@ -109,21 +117,24 @@ model CaseSubmission {
   // 원본 케이스. 케이스를 지워도 제출본은 남는다(null)
   caseId      String?
   studentId   String           @db.Uuid
-  orgId       String
+  // 제출할 때의 학교 (방 코드로만 연결된 학생은 null). 채점 대상은 "그 학생을 볼 수 있는 교수"
+  orgId       String?
   title       String           @db.VarChar(60)
   ward        String           @db.VarChar(60)
   memo        String           @db.VarChar(2000)
   aiResult    Json
   status      SubmissionStatus @default(submitted)
   grade       String?          @db.VarChar(10)
+  // 100점 만점 점수 (선택, 학점과 함께)
+  score       Int?
   feedback    String?          @db.VarChar(2000)
   gradedBy    String?          @db.Uuid
   submittedAt DateTime         @default(now())
   gradedAt    DateTime?
 
-  student  Profile      @relation(fields: [studentId], references: [id], onDelete: Cascade)
-  org      Organization @relation(fields: [orgId], references: [id], onDelete: Cascade)
-  caseNote CaseNote?    @relation(fields: [caseId], references: [id], onDelete: SetNull)
+  student  Profile       @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  org      Organization? @relation(fields: [orgId], references: [id], onDelete: SetNull)
+  caseNote CaseNote?     @relation(fields: [caseId], references: [id], onDelete: SetNull)
 
   // 교수: 우리 학교 채점 대기 최신순 / 학생: 내 제출 최신순 / 케이스별 최근 제출
   @@index([orgId, status, submittedAt(sort: Desc)])
@@ -178,6 +189,25 @@ enum Shift {
 }
 
 // 일지 인증: 학생이 쓰면 pending, 지도교수가 확인하면 approved / rejected
+enum ScheduleKind {
+  practice
+  academic
+}
+
+// 병동 분류 (자유 글인 병동 이름을 통계로 묶기 위함)
+enum WardCategory {
+  internal
+  surgical
+  icu
+  er
+  pediatric
+  obstetric
+  psychiatric
+  community
+  operating
+  other
+}
+
 enum LogStatus {
   pending
   approved
@@ -186,21 +216,25 @@ enum LogStatus {
 
 // 실습 일지. 시간은 소수 오차가 없도록 분 단위 정수로 저장한다 (화면은 0.5시간 단위).
 model PracticeLog {
-  id         String    @id @default(cuid())
-  userId     String    @db.Uuid
-  date       DateTime  @db.Date
+  id           String        @id @default(cuid())
+  userId       String        @db.Uuid
+  date         DateTime      @db.Date
   // 과목이 없던 예전 일지는 마이그레이션에서 성인간호학으로 채웠다 (화면에서 고칠 수 있음)
-  subject    Subject   @default(adult)
-  shift      Shift?
-  hospital   String    @db.VarChar(60)
-  ward       String    @db.VarChar(60)
-  minutes    Int
-  activities String    @db.VarChar(2000)
-  status     LogStatus @default(pending)
-  reviewedBy String?   @db.Uuid
-  reviewedAt DateTime?
-  createdAt  DateTime  @default(now())
-  updatedAt  DateTime  @updatedAt
+  subject      Subject       @default(adult)
+  shift        Shift?
+  hospital     String        @db.VarChar(60)
+  ward         String        @db.VarChar(60)
+  minutes      Int
+  activities   String        @db.VarChar(2000)
+  // 익명 통계용 (선택): 오늘 난이도 1~5, 어려웠던 술기(lib/skills.ts 키), 병동 분류
+  difficulty   Int?
+  hardSkills   String[]      @default([])
+  wardCategory WardCategory?
+  status       LogStatus     @default(pending)
+  reviewedBy   String?       @db.Uuid
+  reviewedAt   DateTime?
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @updatedAt
 
   user Profile @relation(fields: [userId], references: [id], onDelete: Cascade)
 
@@ -210,26 +244,31 @@ model PracticeLog {
 
 // 실습 일정 → "다음 실습 D-3" 카드. 병동 정보(근무 시간·집결·수간호사·다빈도 질환·조원)는 모두 선택 입력
 model PracticeSchedule {
-  id             String    @id @default(cuid())
-  userId         String    @db.Uuid
+  id             String        @id @default(cuid())
+  userId         String        @db.Uuid
+  // 실습(병원·병동) 또는 학사 일정(케이스 발표·술기 시험 등: ward에 일정 이름, hospital은 빈 칸)
+  kind           ScheduleKind  @default(practice)
   subject        Subject?
-  hospital       String    @db.VarChar(60)
-  ward           String    @db.VarChar(60)
-  department     String?   @db.VarChar(30)
-  startDate      DateTime  @db.Date
-  endDate        DateTime? @db.Date
+  hospital       String        @db.VarChar(60)
+  ward           String        @db.VarChar(60)
+  department     String?       @db.VarChar(30)
+  startDate      DateTime      @db.Date
+  endDate        DateTime?     @db.Date
   shift          Shift?
   // "07:00" 형식
-  shiftStart     String?   @db.VarChar(5)
-  shiftEnd       String?   @db.VarChar(5)
-  meetingPlace   String?   @db.VarChar(80)
-  meetingTime    String?   @db.VarChar(5)
-  preceptor      String?   @db.VarChar(40)
-  commonDiseases String[]  @default([])
-  groupName      String?   @db.VarChar(20)
-  teammates      String[]  @default([])
-  createdAt      DateTime  @default(now())
-  updatedAt      DateTime  @updatedAt
+  shiftStart     String?       @db.VarChar(5)
+  shiftEnd       String?       @db.VarChar(5)
+  meetingPlace   String?       @db.VarChar(80)
+  meetingTime    String?       @db.VarChar(5)
+  preceptor      String?       @db.VarChar(40)
+  commonDiseases String[]      @default([])
+  groupName      String?       @db.VarChar(20)
+  teammates      String[]      @default([])
+  // 핵심 준비사항 (예: 포셉·청진기 지참, 수간호사 OT 질문 대비)
+  prepNotes      String        @default("") @db.VarChar(300)
+  wardCategory   WardCategory?
+  createdAt      DateTime      @default(now())
+  updatedAt      DateTime      @updatedAt
 
   user Profile @relation(fields: [userId], references: [id], onDelete: Cascade)
 
@@ -395,5 +434,23 @@ model Payment {
 
   user Profile @relation(fields: [userId], references: [id], onDelete: Cascade)
 
+  @@index([userId, createdAt(sort: Desc)])
+}
+
+// 앱 안 알림: 교수의 독려 알림, 과제 채점 결과, 일지 인증 결과, 족보 판매 등
+model Notification {
+  id        String    @id @default(cuid())
+  userId    String    @db.Uuid
+  kind      String    @db.VarChar(30)
+  title     String    @db.VarChar(80)
+  body      String    @db.VarChar(500)
+  link      String?   @db.VarChar(200)
+  readAt    DateTime?
+  createdAt DateTime  @default(now())
+
+  user Profile @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  // 안 읽은 알림 개수·최신순 목록
+  @@index([userId, readAt])
   @@index([userId, createdAt(sort: Desc)])
 }

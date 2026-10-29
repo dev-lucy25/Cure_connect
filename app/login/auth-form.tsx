@@ -2,6 +2,7 @@
 
 import { useActionState, useId, useState } from "react";
 import Link from "next/link";
+import { useSearchParams } from "next/navigation";
 import { AnimatePresence, motion } from "motion/react";
 import { SPRING_SNAPPY, SPRING_SOFT } from "@/lib/motion";
 import Collapse from "@/components/motion/collapse";
@@ -19,6 +20,8 @@ type Role = "student" | "professor";
 
 export default function AuthForm({ orgs }: { orgs: OrgOption[] }) {
   const [mode, setMode] = useState<Mode>("login");
+  // 로그인이 필요한 화면에서 왔으면 로그인 뒤 그 화면으로 (서버에서 다시 안전한 경로인지 확인)
+  const next = useSearchParams().get("next") ?? "";
 
   return (
     <>
@@ -55,7 +58,7 @@ export default function AuthForm({ orgs }: { orgs: OrgOption[] }) {
           exit={{ opacity: 0, y: -6 }}
           transition={SPRING_SOFT}
         >
-          {mode === "login" ? <LoginForm orgs={orgs} /> : <SignupForm orgs={orgs} />}
+          {mode === "login" ? <LoginForm orgs={orgs} next={next} /> : <SignupForm orgs={orgs} />}
         </motion.div>
       </AnimatePresence>
     </>
@@ -93,6 +96,11 @@ function Message({ state }: { state: AuthFormState }) {
       }`}
     >
       {state.message}
+      {state.needsVerify && (
+        <Link href="/verify" className="ml-1 font-bold underline underline-offset-2">
+          인증 코드 입력하기 →
+        </Link>
+      )}
     </motion.p>
   );
 }
@@ -181,7 +189,7 @@ function OrgSelect({
   );
 }
 
-function LoginForm({ orgs }: { orgs: OrgOption[] }) {
+function LoginForm({ orgs, next }: { orgs: OrgOption[]; next: string }) {
   const [state, action, pending] = useActionState<AuthFormState, FormData>(login, {});
   const [method, setMethod] = useState<"email" | "member">("email");
   const [role, setRole] = useState<Role>("student");
@@ -194,6 +202,7 @@ function LoginForm({ orgs }: { orgs: OrgOption[] }) {
       <FormHeader state={state} pending={pending} subtitle="학번 또는 이메일로 로그인하세요" />
 
       <form action={action} noValidate className="mt-6 space-y-4">
+        <input type="hidden" name="next" value={next} />
         <Segmented
           name="method"
           legend="로그인 방법"
@@ -276,6 +285,7 @@ function SignupForm({ orgs }: { orgs: OrgOption[] }) {
           error={errors.email}
         />
         <Field name="password" label="비밀번호 (8자 이상)" type="password" autoComplete="new-password" error={errors.password} />
+        <Field name="passwordConfirm" label="비밀번호 확인" type="password" autoComplete="new-password" error={errors.passwordConfirm} />
 
         <OrgSelect
           orgs={orgs}
@@ -330,6 +340,16 @@ function SignupForm({ orgs }: { orgs: OrgOption[] }) {
             <Field name="classGroup" label="반 (선택)" placeholder="예: B" defaultValue={values.classGroup} error={errors.classGroup} />
           </div>
         </Collapse>
+
+        <Field
+          name="roomCode"
+          label={professor ? "실습반 방 코드 만들기 (선택)" : "실습반 방 코드 (선택)"}
+          placeholder={professor ? "예: DIT-2026 · 학생들에게 알려 줄 코드" : "교수님께 받은 코드 · 예: DIT-2026"}
+          autoCapitalize="characters"
+          autoComplete="off"
+          defaultValue={values.roomCode}
+          error={errors.roomCode}
+        />
 
         <Message state={state} />
 

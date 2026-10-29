@@ -4,6 +4,8 @@ import Link from "next/link";
 import { getOptionalUser } from "@/server/auth";
 import { logout } from "@/server/auth-actions";
 import { listOrganizations } from "@/server/org-repo";
+import { getActivitySummary } from "@/server/activity-repo";
+import ActivitySummary from "@/components/me/activity-summary";
 import LoginPrompt from "@/components/home/login-prompt";
 import { ProfessorUpgradeForm, ProfileForm } from "@/components/me/profile-forms";
 import Button from "@/components/ui/button";
@@ -28,7 +30,7 @@ export default function MePage() {
 async function MeContent() {
   const user = await getOptionalUser();
   if (!user) return <LoginPrompt title="로그인하고 내 정보를 관리해요" body="학교와 학번을 연결하면 학번으로도 로그인할 수 있어요" />;
-  const orgs = await listOrganizations();
+  const [orgs, summary] = await Promise.all([listOrganizations(), user.role === "student" ? getActivitySummary(user.id) : null]);
 
   return (
     <Stagger className="space-y-3">
@@ -41,6 +43,7 @@ async function MeContent() {
           </Card>
         </StaggerItem>
         <StaggerItem className="space-y-4">
+          {summary && <ActivitySummary summary={summary} />}
           <Card>
             <h2 className="mb-3 text-title font-bold text-ink">계정</h2>
             <div className="space-y-2">

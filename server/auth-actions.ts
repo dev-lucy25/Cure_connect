@@ -4,7 +4,9 @@ import { redirect } from "next/navigation";
 import { db } from "@/lib/db";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { siteOrigin } from "@/lib/site-origin";
-import { emailForMember, inviteCodeMatches, memberNoTaken, orgExists } from "@/server/org-repo";
+import { setPendingEmail } from "@/lib/pending-email";
+import { safeNext } from "@/lib/safe-next";
+import { emailForMember, inviteCodeMatches, memberNoTaken, orgExists, roomCodeInUse, roomExists } from "@/server/org-repo";
 import {
   loginSchema,
   memberLoginSchema,
@@ -41,19 +43,45 @@ export async function login(_prev: AuthFormState, formData: FormData): Promise<A
   const supabase = await createSupabaseServerClient();
   const { error } = await supabase.auth.signInWithPassword(credentials);
   if (error) {
-    const notConfirmed = error.code === "email_not_confirmed";
-    return { status: "error", message: notConfirmed ? "이메일 인증을 먼저 완료해 주세요" : WRONG_LOGIN, values };
+    if (error.code === "email_not_confirmed") {
+      await setPendingEmail("signup", credentials.email);
+      return { status: "error", message: "이메일 인증을 먼저 완료해 주세요", needsVerify: true, values };
+    }
+    return { status: "error", message: WRONG_LOGIN, values };
   }
 
-  redirect("/");
+  // 로그인이 필요한 화면에서 왔으면 그 화면으로 돌아간다
+  redirect(safeNext(String(formData.get("next") ?? "")));
 }
 
-const SIGNUP_FIELDS = ["name", "email", "role", "orgId", "memberNo", "grade", "classGroup", "staffTitle", "inviteCode"] as const;
+/** Supabase 가입 오류 코드 → 사용자 안내 */
+function signupError(code: string | undefined): AuthFormState {
+  switch (code) {
+    case "user_already_exists":
+    case "email_exists":
+      return { fieldErrors: { email: "이미 가입된 이메일이에요. 로그인해 주세요" } };
+    case "weak_password":
+      return { fieldErrors: { password: "너무 쉬운 비밀번호예요. 영문·숫자·기호를 섞어 주세요" } };
+    case "email_address_invalid":
+    case "email_address_not_authorized":
+      return { fieldErrors: { email: "이 이메일 주소로는 인증 메일을 보낼 수 없어요. 다른 이메일을 써 주세요" } };
+    case "over_email_send_rate_limit":
+    case "over_request_rate_limit":
+      return { status: "error", message: "지금 인증 메일을 보낼 수 있는 횟수를 넘었어요. 잠시(최대 1시간) 뒤 다시 가입해 주세요" };
+    case "signup_disabled":
+    case "email_provider_disabled":
+      return { status: "error", message: "지금은 새 가입을 받지 않아요. 관리자에게 문의해 주세요" };
+    default:
+      return { status: "error", message: "가입하지 못했어요. 잠시 후 다시 시도해 주세요" };
+  }
+}
+
+const SIGNUP_FIELDS = ["name", "email", "role", "orgId", "memberNo", "grade", "classGroup", "staffTitle", "inviteCode", "roomCode"] as const;
 
 export async function signup(_prev: AuthFormState, formData: FormData): Promise<AuthFormState> {
   const values = Object.fromEntries(SIGNUP_FIELDS.map((f) => [f, str(formData, f)]));
 
-  const parsed = signupSchema.safeParse({ ...values, password: formData.get("password") });
+  const parsed = signupSchema.safeParse({ ...values, password: formData.get("password"), passwordConfirm: formData.get("passwordConfirm") });
   if (!parsed.success) return { fieldErrors: firstErrors(parsed.error), values };
   const input = parsed.data;
 
@@ -67,6 +95,13 @@ export async function signup(_prev: AuthFormState, formData: FormData): Promise<
   if (input.orgId && input.memberNo && (await memberNoTaken(input.orgId, input.memberNo))) {
     return { fieldErrors: { memberNo: "이 학교에 이미 가입된 학번·교번이에요" }, values };
   }
+  // 방 코드: 학생은 있는 방만(오타 방지), 교수는 다른 교수와 겹치지 않는 새 방
+  if (input.roomCode && input.role === "student" && !(await roomExists(input.roomCode))) {
+    return { fieldErrors: { roomCode: "없는 방 코드예요. 교수님께 받은 코드를 확인해 주세요" }, values };
+  }
+  if (input.roomCode && input.role === "professor" && (await roomCodeInUse(input.roomCode))) {
+    return { fieldErrors: { roomCode: "이미 쓰이고 있는 방 코드예요. 다른 코드를 정해 주세요" }, values };
+  }
 
   const supabase = await createSupabaseServerClient();
   const { data, error } = await supabase.auth.signUp({
@@ -78,11 +113,11 @@ export async function signup(_prev: AuthFormState, formData: FormData): Promise<
 
   // 이메일 인증이 켜져 있으면 중복 가입은 오류 대신 identities가 빈 사용자로 돌아온다.
   const duplicated = data.user?.identities?.length === 0;
-  if (error || !data.user || duplicated) {
-    const taken = duplicated || error?.code === "user_already_exists";
-    return taken
-      ? { fieldErrors: { email: "이미 가입된 이메일이에요" }, values }
-      : { status: "error", message: "가입하지 못했어요. 잠시 후 다시 시도해 주세요", values };
+  if (duplicated) return { fieldErrors: { email: "이미 가입된 이메일이에요. 로그인해 주세요" }, values };
+  if (error || !data.user) {
+    // 원인을 뭉뚱그리지 않고 알려 준다. 서버 기록에는 오류 코드만 남긴다(이메일·비밀번호는 남기지 않음)
+    console.error("[signup] supabase", error?.status, error?.code);
+    return { ...signupError(error?.code), values };
   }
 
   const professor = input.role === "professor";
@@ -99,23 +134,33 @@ export async function signup(_prev: AuthFormState, formData: FormData): Promise<
         grade: professor ? null : input.grade,
         classGroup: professor ? null : input.classGroup,
         staffTitle: professor ? input.staffTitle : null,
+        roomCode: input.roomCode,
       },
       update: {},
       select: { id: true },
     });
   } catch {
-    // 위에서 확인한 사이에 같은 학번이 먼저 가입된 경우. 계정은 만들어졌으니 학번 없이 로그인 후 내 정보에서 고치게 한다
+    // 위에서 확인한 사이에 같은 학번이 먼저 가입된 경우. 계정은 만들어졌으니 역할·학교는 그대로 두고 학번만 비운다
+    // (교수는 초대 코드를 이미 확인했으므로 교수로 유지). 인증 뒤 내 정보에서 학번을 다시 넣는다
     await db.profile.upsert({
       where: { id: data.user.id },
-      create: { id: data.user.id, email: input.email, name: input.name, role: "student" },
+      create: {
+        id: data.user.id,
+        email: input.email,
+        name: input.name,
+        role: input.role,
+        orgId: input.orgId,
+        staffTitle: professor ? input.staffTitle : null,
+      },
       update: {},
       select: { id: true },
     });
-    return { status: "error", message: "학번·교번이 방금 다른 계정에 등록됐어요. 로그인 후 내 정보에서 다시 입력해 주세요", values };
   }
 
+  // 메일 인증이 켜져 있으면 세션 없이 돌아온다 → 메일로 받은 코드를 넣는 화면으로
   if (!data.session) {
-    return { status: "info", message: "인증 메일을 보냈어요. 메일의 링크를 누른 뒤 로그인해 주세요", values };
+    await setPendingEmail("signup", input.email);
+    redirect("/verify");
   }
   redirect("/");
 }

@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { loginHref } from "@/lib/safe-next";
 import { useActionState, useCallback, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { motion } from "motion/react";
@@ -29,6 +30,7 @@ function hrefWith(filter: NoteFilter, change: Partial<NoteFilter>) {
   if (next.category) q.set("category", next.category);
   if (next.ward) q.set("ward", next.ward);
   if (next.sort === "popular") q.set("sort", "popular");
+  if (next.q) q.set("q", next.q);
   const s = q.toString();
   return s ? `/notes?${s}` : "/notes";
 }
@@ -38,6 +40,7 @@ export default function NotesMarket({
   nextCursor,
   filter,
   credits,
+  viewer,
   canWrite,
   rewardAvailable,
   startWriting,
@@ -45,8 +48,10 @@ export default function NotesMarket({
   items: NoteCardData[];
   nextCursor: string | null;
   filter: NoteFilter;
-  /** null이면 로그인 전(또는 교수) */
+  /** 학생만 숫자, 손님·교수는 null */
   credits: number | null;
+  /** 보는 사람: 손님은 로그인 안내, 교수는 읽기 전용 안내 */
+  viewer: "guest" | "student" | "professor";
   /** 학생만 족보를 올린다 */
   canWrite: boolean;
   rewardAvailable: boolean;
@@ -54,7 +59,7 @@ export default function NotesMarket({
   startWriting: boolean;
 }) {
   const router = useRouter();
-  const loggedIn = credits !== null;
+  const loggedIn = viewer === "student" && credits !== null;
   const tap = useTapEffect();
   const [shopOpen, setShopOpen] = useState(false);
   const [state, action, pending] = useActionState<NoteFormState, FormData>(createNoteAction, {});
@@ -95,8 +100,8 @@ export default function NotesMarket({
               ✍️ 내 실습 족보 팔고 +{UPLOAD_REWARD} C
             </Button>
           ) : (
-            !loggedIn && (
-              <Link href="/login" className={`${buttonClass("secondary")} px-4 text-body-sm`}>
+            viewer === "guest" && (
+              <Link href={loginHref("/notes")} className={`${buttonClass("secondary")} px-4 text-body-sm`}>
                 로그인하고 300 C 받기
               </Link>
             )
@@ -110,8 +115,43 @@ export default function NotesMarket({
       </motion.section>
       <FormStatus savedAt={state.savedAt} savedText={state.notice} />
 
-      {/* 분류 필터 (선택 알약이 미끄러짐) + 정렬 + 병동 */}
+      {/* 검색 + 분류 필터 (선택 알약이 미끄러짐) + 정렬 + 병동 */}
       <nav aria-label="족보 필터" className="space-y-2">
+        <form
+          role="search"
+          onSubmit={(e) => {
+            e.preventDefault();
+            const q = String(new FormData(e.currentTarget).get("q") ?? "").trim();
+            router.push(hrefWith(filter, { q: q || undefined }), { scroll: false });
+          }}
+          className="flex gap-2"
+        >
+          <label htmlFor="note-search" className="sr-only">
+            족보 검색
+          </label>
+          <input
+            id="note-search"
+            name="q"
+            type="search"
+            defaultValue={filter.q ?? ""}
+            maxLength={40}
+            placeholder="🔍 병원·병동·제목으로 찾기"
+            className="min-h-11 min-w-0 flex-1 rounded-control border border-line bg-surface px-4 text-body-sm text-ink placeholder:text-ink-soft focus:border-brand-deep focus:outline-none"
+          />
+          <Button type="submit" variant="secondary" className="min-h-11 shrink-0 px-4 text-body-sm">
+            찾기
+          </Button>
+        </form>
+        {filter.q && (
+          <Link
+            href={hrefWith(filter, { q: undefined })}
+            scroll={false}
+            className="inline-flex min-h-11 items-center gap-1 rounded-full bg-brand-soft px-3 text-body-sm font-bold text-brand-deep"
+            aria-label={`'${filter.q}' 검색 지우기`}
+          >
+            “{filter.q}” 검색 결과 ✕
+          </Link>
+        )}
         <ul className="-mx-5 flex gap-1.5 overflow-x-auto px-5 pb-1 md:mx-0 md:flex-wrap md:px-0">
           {[{ key: undefined, label: "전체 병동" }, ...NOTE_CATEGORIES].map((c) => {
             const active = filter.category === c.key;
@@ -169,7 +209,7 @@ export default function NotesMarket({
           items={items}
           nextCursor={nextCursor}
           filter={filter}
-          loggedIn={loggedIn}
+          viewer={viewer}
           onInsufficient={openShop}
         />
       )}
@@ -194,13 +234,13 @@ function NotePages({
   items,
   nextCursor,
   filter,
-  loggedIn,
+  viewer,
   onInsufficient,
 }: {
   items: NoteCardData[];
   nextCursor: string | null;
   filter: NoteFilter;
-  loggedIn: boolean;
+  viewer: "guest" | "student" | "professor";
   onInsufficient: () => void;
 }) {
   const [more, setMore] = useState<NoteCardData[]>([]);
@@ -233,7 +273,7 @@ function NotePages({
             animate="show"
             transition={{ ...SPRING_SOFT, delay: Math.min(i < items.length ? i : i - items.length, 8) * STAGGER_STEP }}
           >
-            <NoteCard note={note} loggedIn={loggedIn} onInsufficient={onInsufficient} />
+            <NoteCard note={note} viewer={viewer} onInsufficient={onInsufficient} />
           </motion.div>
         ))}
       </div>

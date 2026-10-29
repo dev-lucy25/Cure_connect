@@ -19,6 +19,7 @@ export default function NextPracticeCard({ schedule, today }: { schedule: Schedu
     { label: "담당 수간호사", value: schedule.preceptor },
     { label: "주요 다빈도 질환", value: schedule.commonDiseases.join(", ") || null },
     { label: "실습 조원", value: team || null },
+    { label: "핵심 준비사항", value: schedule.prepNotes || null },
   ].filter((r) => r.value);
 
   return (

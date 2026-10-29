@@ -1,7 +1,7 @@
 import "server-only";
 import { db } from "@/lib/db";
 import { fromDbDate, toDbDate } from "@/lib/dates";
-import type { LogStatus, Shift, Subject } from "@/generated/prisma/client";
+import type { LogStatus, ScheduleKind, Shift, Subject, WardCategory } from "@/generated/prisma/client";
 
 // 실습 일지·일정 DB 처리. 모든 함수는 userId를 첫 인자로 받고, 그 사용자 것만 읽고 바꾼다.
 // userId는 반드시 서버에서 확인한 로그인 사용자(getCurrentUser)의 id여야 한다.
@@ -18,10 +18,15 @@ export type LogItem = {
   ward: string;
   hours: number;
   activities: string;
+  difficulty: number | null;
+  hardSkills: string[];
+  wardCategory: string | null;
 };
 
 export type ScheduleItem = {
   id: string;
+  /** practice: 실습, academic: 학사 일정(ward = 일정 이름) */
+  kind: ScheduleKind;
   subject: Subject | null;
   hospital: string;
   ward: string;
@@ -37,11 +42,23 @@ export type ScheduleItem = {
   commonDiseases: string[];
   groupName: string | null;
   teammates: string[];
+  prepNotes: string;
 };
 
 type ScheduleInput = Omit<ScheduleItem, "id">;
 
-type LogInput = { date: string; subject: Subject; shift: Shift | null; hospital: string; ward: string; hours: number; activities: string };
+type LogInput = {
+  date: string;
+  subject: Subject;
+  shift: Shift | null;
+  hospital: string;
+  ward: string;
+  hours: number;
+  activities: string;
+  difficulty: number | null;
+  hardSkills: string[];
+  wardCategory: WardCategory | null;
+};
 
 const logSelect = {
   id: true,
@@ -53,6 +70,9 @@ const logSelect = {
   ward: true,
   minutes: true,
   activities: true,
+  difficulty: true,
+  hardSkills: true,
+  wardCategory: true,
 } as const;
 
 type LogRow = Omit<LogItem, "date" | "hours"> & { date: Date; minutes: number };
@@ -70,23 +90,42 @@ function toLogData(input: LogInput) {
     ward: input.ward,
     minutes: Math.round(input.hours * 60),
     activities: input.activities,
+    difficulty: input.difficulty,
+    hardSkills: input.hardSkills,
+    wardCategory: input.wardCategory,
   };
 }
+
+const DAY_MINUTES = 24 * 60;
+type Tx = Parameters<Parameters<typeof db.$transaction>[0]>[0];
+
+/** 그날 이미 기록한 분 (exceptId 일지는 빼고) */
+async function dayMinutes(tx: Tx, userId: string, date: string, exceptId?: string) {
+  const agg = await tx.practiceLog.aggregate({
+    where: { userId, date: toDbDate(date), ...(exceptId ? { NOT: { id: exceptId } } : {}) },
+    _sum: { minutes: true },
+  });
+  return agg._sum.minutes ?? 0;
+}
+
+export type LogWriteResult = { status: "saved" } | { status: "over_day"; date: string; left: number } | { status: "not_found" | "locked" };
 
 /**
  * 누적 실습 시간과 목표. 일지를 하나씩 불러오지 않고 DB에서 합계만 계산한다.
  * logsVersion은 일지가 추가·수정·삭제될 때마다 바뀌는 값 (더 불러온 목록을 새로 시작할 때 씀)
  */
 export async function getProgress(userId: string) {
-  const [agg, approved, profile] = await Promise.all([
+  const [agg, approved, pending, profile] = await Promise.all([
     db.practiceLog.aggregate({ where: { userId }, _sum: { minutes: true }, _count: true, _max: { updatedAt: true } }),
     db.practiceLog.aggregate({ where: { userId, status: "approved" }, _sum: { minutes: true } }),
+    db.practiceLog.aggregate({ where: { userId, status: "pending" }, _sum: { minutes: true } }),
     db.profile.findUniqueOrThrow({ where: { id: userId }, select: { goalHours: true } }),
   ]);
   return {
     totalMinutes: agg._sum.minutes ?? 0,
     // 누적은 전체 기준, 지도교수가 인증한 시간은 따로 보여 준다
     approvedMinutes: approved._sum.minutes ?? 0,
+    pendingMinutes: pending._sum.minutes ?? 0,
     goalHours: profile.goalHours,
     logsVersion: `${agg._count}-${agg._max.updatedAt?.getTime() ?? 0}`,
   };
@@ -114,31 +153,67 @@ export async function listLogs(userId: string, cursor?: string) {
   return { items, nextCursor: hasMore ? items[items.length - 1].id : null };
 }
 
-export async function createLog(userId: string, input: LogInput) {
-  await db.practiceLog.create({ data: { userId, ...toLogData(input) } });
-}
+/** 같은 사용자 저장이 동시에 와도 하루 합계를 한 번에 하나씩 확인한다 */
+const lockUser = (tx: Tx, userId: string) => tx.$executeRaw`SELECT pg_advisory_xact_lock(hashtext(${`logs:${userId}`}))`;
 
-/** 여러 날 일지를 한 번에 (1주 일괄). 전부 들어가거나 하나도 안 들어간다 */
-export async function createLogs(userId: string, inputs: LogInput[]) {
-  await db.practiceLog.createMany({ data: inputs.map((input) => ({ userId, ...toLogData(input) })) });
-}
-
-/** 내 일지가 아니면 0건이 바뀌고 false. 고치면 지도교수 인증을 다시 받아야 하므로 대기 상태로 돌린다 */
-export async function updateLog(userId: string, id: string, input: LogInput) {
-  const { count } = await db.practiceLog.updateMany({
-    where: { id, userId },
-    data: { ...toLogData(input), status: "pending", reviewedBy: null, reviewedAt: null },
+/** 일지 한 건. 그날 합계가 24시간을 넘으면 저장하지 않는다 */
+export async function createLog(userId: string, input: LogInput): Promise<LogWriteResult> {
+  return db.$transaction(async (tx) => {
+    await lockUser(tx, userId);
+    const used = await dayMinutes(tx, userId, input.date);
+    const minutes = Math.round(input.hours * 60);
+    if (used + minutes > DAY_MINUTES) return { status: "over_day" as const, date: input.date, left: (DAY_MINUTES - used) / 60 };
+    await tx.practiceLog.create({ data: { userId, ...toLogData(input) } });
+    return { status: "saved" as const };
   });
-  return count === 1;
 }
 
-export async function deleteLog(userId: string, id: string) {
-  const { count } = await db.practiceLog.deleteMany({ where: { id, userId } });
-  return count === 1;
+/** 1주 일괄: 이미 기록이 있는 날은 건너뛰고 나머지만 넣는다 (같은 주를 두 번 눌러도 중복 없음) */
+export async function createWeekLogs(userId: string, inputs: LogInput[]) {
+  return db.$transaction(async (tx) => {
+    await lockUser(tx, userId);
+    const logged = await tx.practiceLog.findMany({
+      where: { userId, date: { in: inputs.map((i) => toDbDate(i.date)) } },
+      select: { date: true },
+      distinct: ["date"],
+    });
+    const skip = new Set(logged.map((l) => fromDbDate(l.date)));
+    const add = inputs.filter((i) => !skip.has(i.date));
+    if (add.length) await tx.practiceLog.createMany({ data: add.map((input) => ({ userId, ...toLogData(input) })) });
+    return { added: add.length, skipped: inputs.length - add.length };
+  });
+}
+
+/**
+ * 내 일지만 고친다. 지도교수가 인증한 일지는 잠겨서 못 고친다(locked).
+ * 고치면 인증을 다시 받아야 하므로 대기 상태로 돌린다. 하루 합계 24시간 검사는 이 일지를 뺀 나머지 기준
+ */
+export async function updateLog(userId: string, id: string, input: LogInput): Promise<LogWriteResult> {
+  return db.$transaction(async (tx) => {
+    await lockUser(tx, userId);
+    const found = await tx.practiceLog.findFirst({ where: { id, userId }, select: { status: true } });
+    if (!found) return { status: "not_found" as const };
+    if (found.status === "approved") return { status: "locked" as const };
+    const used = await dayMinutes(tx, userId, input.date, id);
+    const minutes = Math.round(input.hours * 60);
+    if (used + minutes > DAY_MINUTES) return { status: "over_day" as const, date: input.date, left: (DAY_MINUTES - used) / 60 };
+    await tx.practiceLog.update({ where: { id }, data: { ...toLogData(input), status: "pending", reviewedBy: null, reviewedAt: null } });
+    return { status: "saved" as const };
+  });
+}
+
+/** 인증된 일지는 지울 수 없다 (인증 시간이 말없이 줄어드는 것을 막음) */
+export async function deleteLog(userId: string, id: string): Promise<"deleted" | "not_found" | "locked"> {
+  const found = await db.practiceLog.findFirst({ where: { id, userId }, select: { status: true } });
+  if (!found) return "not_found";
+  if (found.status === "approved") return "locked";
+  const { count } = await db.practiceLog.deleteMany({ where: { id, userId, status: { not: "approved" } } });
+  return count === 1 ? "deleted" : "locked";
 }
 
 const scheduleSelect = {
   id: true,
+  kind: true,
   subject: true,
   hospital: true,
   ward: true,
@@ -154,6 +229,7 @@ const scheduleSelect = {
   commonDiseases: true,
   groupName: true,
   teammates: true,
+  prepNotes: true,
 } as const;
 
 type ScheduleRow = Omit<ScheduleItem, "startDate" | "endDate"> & { startDate: Date; endDate: Date | null };
@@ -172,6 +248,18 @@ export async function listUpcomingSchedules(userId: string, today: string): Prom
   const rows = await db.practiceSchedule.findMany({
     where: { userId, OR: [{ endDate: { gte: day } }, { endDate: null, startDate: { gte: day } }] },
     orderBy: [{ startDate: "asc" }, { id: "asc" }],
+    take: 10,
+    select: scheduleSelect,
+  });
+  return rows.map(toScheduleItem);
+}
+
+/** 끝난 일정 최근 10개 (끝난 뒤에도 고치거나 지울 수 있게) */
+export async function listPastSchedules(userId: string, today: string): Promise<ScheduleItem[]> {
+  const day = toDbDate(today);
+  const rows = await db.practiceSchedule.findMany({
+    where: { userId, OR: [{ endDate: { lt: day } }, { endDate: null, startDate: { lt: day } }] },
+    orderBy: [{ startDate: "desc" }, { id: "desc" }],
     take: 10,
     select: scheduleSelect,
   });

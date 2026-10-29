@@ -69,6 +69,16 @@ export function ProfileForm({ user, orgs }: { user: CurrentUser; orgs: OrgOption
         )
       )}
 
+      {!professor && (
+        <Field
+          name="roomCode"
+          label="실습반 방 코드 (선택)"
+          placeholder="교수님께 받은 코드 · 예: DIT-2026"
+          autoCapitalize="characters"
+          defaultValue={v("roomCode", user.roomCode)}
+          error={errors.roomCode}
+        />
+      )}
       <FormStatus message={state.message} savedAt={state.savedAt} />
       <Button type="submit" block disabled={pending}>
         {pending ? "저장 중..." : "저장하기"}

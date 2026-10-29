@@ -13,3 +13,11 @@ export function databaseUrl() {
 export function geminiApiKey() {
   return process.env.GEMINI_API_KEY || null;
 }
+
+/**
+ * 체험(데모) 로그인: DEMO_LOGIN_ENABLED=true 이고 시드 계정 비밀번호가 있을 때만 켜진다.
+ * 비밀번호는 서버에서만 쓰고 화면·브라우저로 보내지 않는다. 꺼져 있으면 null → 체험 버튼이 숨는다
+ */
+export function demoLoginPassword() {
+  return process.env.DEMO_LOGIN_ENABLED === "true" && process.env.SEED_USER_PASSWORD ? process.env.SEED_USER_PASSWORD : null;
+}

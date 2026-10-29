@@ -5,9 +5,10 @@ import { createClient } from "@supabase/supabase-js";
 import { PrismaPg } from "@prisma/adapter-pg";
 import { PrismaClient, type Role } from "../generated/prisma/client";
 
-// 모두 동의과학대(org_dit, 마이그레이션 20261029050000에서 생성) 소속. 학교 + 학번으로도 로그인할 수 있다
+// 모두 동의과학대(org_dit, 마이그레이션 20261029050000에서 생성) 소속, 방 코드 DIT-2026. 학교 + 학번으로도 로그인할 수 있다
 type Account = { email: string; name: string; role: Role; memberNo: string; grade?: number; classGroup?: string; staffTitle?: string };
 const ORG_ID = "org_dit";
+const ROOM_CODE = "DIT-2026";
 const accounts: Account[] = [
   { email: "prof@nursepass.test", name: "한교수", role: "professor", memberNo: "P2019001", staffTitle: "실습과장" },
   { email: "student1@nursepass.test", name: "김하늘", role: "student", memberNo: "20241042", grade: 3, classGroup: "B" },
@@ -42,7 +43,7 @@ async function main() {
         if (error) throw error;
         id = data.user.id;
       }
-      const fields = { ...account, orgId: ORG_ID };
+      const fields = { ...account, orgId: ORG_ID, roomCode: ROOM_CODE };
       await db.profile.upsert({ where: { id }, create: { id, ...fields }, update: fields });
     }
   } finally {

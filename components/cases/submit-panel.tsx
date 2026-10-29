@@ -15,18 +15,19 @@ import SubmissionStatusChip from "@/components/cases/submission-status-chip";
 // submittedAgo는 서버에서 계산해 넘긴다(서버·브라우저 첫 그림이 같도록)
 export default function SubmitPanel({
   caseId,
-  canSubmit,
+  professors,
   submission,
   submittedAgo,
 }: {
   caseId: string;
-  /** 학교가 연결된 학생만 제출 가능 */
-  canSubmit: boolean;
+  /** 과제를 받아 볼 교수님(같은 학교·같은 방). 없으면 제출 대신 연결 안내 */
+  professors: string[];
   submission: SubmissionSummary | null;
   submittedAgo: string | null;
 }) {
   const [state, action, pending] = useActionState<FormState<never>, FormData>(submitCaseAction, {});
   const waiting = submission?.status === "submitted";
+  const canSubmit = professors.length > 0;
 
   return (
     <div className="mt-2 space-y-2">
@@ -55,9 +56,11 @@ export default function SubmitPanel({
         <Button type="submit" variant="primary" block disabled={pending || waiting || !canSubmit}>
           {pending ? "제출하는 중..." : waiting ? "채점을 기다리는 중" : submission ? "📤 다시 제출" : "📤 교수님께 과제 제출"}
         </Button>
-        {!canSubmit && (
+        {canSubmit ? (
+          <p className="text-center text-caption text-ink-soft">받는 교수님: {professors.join(", ")}</p>
+        ) : (
           <p className="text-center text-body-sm text-ink-soft">
-            학교를 연결하면 제출할 수 있어요 ·{" "}
+            과제를 받을 교수님이 아직 없어요. 학교나 실습반 방 코드를 연결해 주세요 ·{" "}
             <Link href="/me" className="font-bold text-brand-deep underline underline-offset-2">
               내 정보
             </Link>

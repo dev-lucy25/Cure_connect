@@ -1,8 +1,12 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import { Suspense } from "react";
+import { Bone } from "@/components/ui/skeleton";
 import AuthForm from "@/app/login/auth-form";
 import ThemeToggle from "@/components/theme/theme-toggle";
 import { listOrganizations } from "@/server/org-repo";
+import { demoLoginPassword } from "@/lib/env/server";
+import { DemoLoginCard } from "@/components/home/demo-login";
 
 export const metadata: Metadata = { title: "로그인 · NursePass" };
 
@@ -15,6 +19,8 @@ const FEATURES = [
 // 모바일: 소개 → 로그인 폼 세로로. md 이상: 왼쪽 소개 / 오른쪽 폼 2단
 export default async function LoginPage() {
   const orgs = await listOrganizations();
+  // 체험 버튼은 배포 환경변수(DEMO_LOGIN_ENABLED)로 켤 때만
+  const demo = demoLoginPassword() !== null;
 
   return (
     <main className="mx-auto flex w-full max-w-(--width-app) flex-1 flex-col px-5 pt-3 pb-10 md:max-w-(--width-wide) md:px-8">
@@ -45,10 +51,28 @@ export default async function LoginPage() {
           </ul>
         </section>
         <div>
-          <AuthForm orgs={orgs} />
+          {/* 주소의 next(돌아갈 화면)를 읽는 부분만 기다린다 */}
+          <Suspense fallback={<AuthFormBones />}>
+            <AuthForm orgs={orgs} />
+          </Suspense>
+          {demo && <DemoLoginCard />}
           <p className="mt-6 text-center text-body-sm text-ink-soft">환자 식별 정보는 입력하지 마세요</p>
         </div>
       </div>
     </main>
+  );
+}
+
+function AuthFormBones() {
+  return (
+    <div role="status" aria-busy aria-label="불러오는 중" className="space-y-3">
+      <Bone className="h-12 w-full" />
+      <div className="space-y-4 rounded-card border border-line bg-surface p-5">
+        <div aria-hidden className="skeleton mx-auto size-28 rounded-full" />
+        <Bone className="h-12 w-full rounded-control" />
+        <Bone className="h-12 w-full rounded-control" />
+        <Bone className="h-12 w-full rounded-control" />
+      </div>
+    </div>
   );
 }

@@ -19,7 +19,7 @@ const DEFAULT_ITEMS = [
 const select = { id: true, text: true, done: true } as const;
 
 /**
- * 내 체크리스트. 처음 열면 기본 6개를 넣어 준다.
+ * 내 체크리스트. 처음 한 번만 기본 6개를 넣어 준다(Profile.checklistSeeded) — 전부 지워도 다시 생기지 않는다.
  * 같은 사용자 요청이 동시에 와도 기본 항목이 두 번 들어가지 않게, 사용자별 잠금(advisory lock) 안에서 확인·추가한다.
  */
 export async function listChecklist(userId: string): Promise<ChecklistEntry[]> {
@@ -28,9 +28,13 @@ export async function listChecklist(userId: string): Promise<ChecklistEntry[]> {
 
   return db.$transaction(async (tx) => {
     await tx.$executeRaw`SELECT pg_advisory_xact_lock(hashtext(${`checklist:${userId}`}))`;
-    const count = await tx.checklistItem.count({ where: { userId } });
-    if (count === 0) {
+    const [count, profile] = await Promise.all([
+      tx.checklistItem.count({ where: { userId } }),
+      tx.profile.findUniqueOrThrow({ where: { id: userId }, select: { checklistSeeded: true } }),
+    ]);
+    if (count === 0 && !profile.checklistSeeded) {
       await tx.checklistItem.createMany({ data: DEFAULT_ITEMS.map((text, i) => ({ userId, text, sortOrder: i })) });
+      await tx.profile.update({ where: { id: userId }, data: { checklistSeeded: true }, select: { id: true } });
     }
     return tx.checklistItem.findMany({ where: { userId }, orderBy: [{ sortOrder: "asc" }, { id: "asc" }], select });
   });

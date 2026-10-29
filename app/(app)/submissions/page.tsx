@@ -5,6 +5,7 @@ import { getOptionalUser } from "@/server/auth";
 import { listMySubmissions } from "@/server/submission-repo";
 import { timeAgoFromNow } from "@/lib/dates";
 import LoginPrompt from "@/components/home/login-prompt";
+import RoleNotice from "@/components/home/role-notice";
 import SubmissionStatusChip from "@/components/cases/submission-status-chip";
 import { Stagger, StaggerItem } from "@/components/motion/stagger";
 import NurseTurtle from "@/components/mascot/nurse-turtle";
@@ -26,7 +27,7 @@ export default function SubmissionsPage() {
 async function SubmissionsContent() {
   const user = await getOptionalUser();
   if (!user) return <LoginPrompt title="로그인하고 제출 현황을 확인해요" body="케이스를 교수님께 제출하면 여기서 채점 결과를 볼 수 있어요" />;
-  if (user.role !== "student") return <LoginPrompt title="학생 계정 전용 화면이에요" body="교수 계정은 채점 화면을 이용해 주세요" />;
+  if (user.role !== "student") return <RoleNotice title="학생 계정 전용 화면이에요" body="학생들이 낸 과제는 학생 현황의 '채점 대기 과제'에서 볼 수 있어요" />;
   const items = await listMySubmissions(user.id);
 
   return (
@@ -63,6 +64,10 @@ async function SubmissionsContent() {
                     </div>
                     <SubmissionStatusChip status={s.status} grade={s.grade} />
                   </div>
+                  {s.score !== null && <p className="text-body-sm font-bold text-brand-deep">점수 {s.score}점</p>}
+                  {s.status === "revision" && (
+                    <p className="text-body-sm text-pink-deep">교수님 피드백대로 케이스를 고치고 다시 정리한 뒤 “다시 제출”해 주세요</p>
+                  )}
                   {s.feedback && <p className="rounded-control bg-subtle px-3 py-2 text-body-sm break-words whitespace-pre-line">💬 {s.feedback}</p>}
                   {s.caseId && (
                     <Link href={`/cases/${s.caseId}`} className="inline-flex min-h-11 items-center text-body-sm font-bold text-brand-deep">
