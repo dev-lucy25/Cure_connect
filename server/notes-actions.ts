@@ -124,6 +124,7 @@ const filterSchema = z.object({
   category: z.enum(NOTE_CATEGORY_KEYS).optional(),
   ward: z.string().trim().min(1).max(60).optional(),
   sort: z.enum(["new", "popular"]).optional(),
+  q: z.string().trim().min(1).max(40).optional(),
 });
 
 /** 목록은 로그인 없이도 볼 수 있다(잠긴 본문은 어차피 보내지 않음) */

@@ -28,6 +28,7 @@ async function NotesContent({ searchParams }: Pick<PageProps<"/notes">, "searchP
     category: NOTE_CATEGORY_KEYS.find((k) => k === category),
     ward: ward && ward.length <= 60 ? ward : undefined,
     sort: one(sp.sort) === "popular" ? "popular" : "new",
+    q: one(sp.q)?.trim().slice(0, 40) || undefined,
   };
   const user = await getOptionalUser();
   const student = user?.role === "student";

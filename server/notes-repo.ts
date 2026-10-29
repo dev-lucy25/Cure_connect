@@ -36,7 +36,8 @@ export type NoteCard = {
 };
 
 export type NoteSort = "new" | "popular";
-export type NoteFilter = { category?: NoteCategory; ward?: string; sort?: NoteSort };
+/** q: 제목·병원·병동 일부로 찾기 (대소문자 무시) */
+export type NoteFilter = { category?: NoteCategory; ward?: string; sort?: NoteSort; q?: string };
 
 const TX = { timeout: 15_000, maxWait: 10_000 };
 
@@ -50,7 +51,20 @@ function authorLabel(author: { name: string; grade: number | null }) {
 /** 공개된 족보 20개씩 (최신순 또는 인기순). 시크릿은 열 수 있는 것만 따로 불러온다 */
 export async function listNotes(viewerId: string | null, filter: NoteFilter = {}, cursor?: string) {
   const rows = await db.wardNote.findMany({
-    where: { status: "published", ...(filter.category ? { category: filter.category } : {}), ...(filter.ward ? { ward: filter.ward } : {}) },
+    where: {
+      status: "published",
+      ...(filter.category ? { category: filter.category } : {}),
+      ...(filter.ward ? { ward: filter.ward } : {}),
+      ...(filter.q
+        ? {
+            OR: [
+              { title: { contains: filter.q, mode: "insensitive" as const } },
+              { hospital: { contains: filter.q, mode: "insensitive" as const } },
+              { ward: { contains: filter.q, mode: "insensitive" as const } },
+            ],
+          }
+        : {}),
+    },
     orderBy: filter.sort === "popular" ? [{ salesCount: "desc" }, { createdAt: "desc" }, { id: "desc" }] : [{ createdAt: "desc" }, { id: "desc" }],
     take: NOTE_PAGE_SIZE + 1,
     ...(cursor ? { cursor: { id: cursor }, skip: 1 } : {}),

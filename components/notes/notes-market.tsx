@@ -30,6 +30,7 @@ function hrefWith(filter: NoteFilter, change: Partial<NoteFilter>) {
   if (next.category) q.set("category", next.category);
   if (next.ward) q.set("ward", next.ward);
   if (next.sort === "popular") q.set("sort", "popular");
+  if (next.q) q.set("q", next.q);
   const s = q.toString();
   return s ? `/notes?${s}` : "/notes";
 }
@@ -114,8 +115,43 @@ export default function NotesMarket({
       </motion.section>
       <FormStatus savedAt={state.savedAt} savedText={state.notice} />
 
-      {/* 분류 필터 (선택 알약이 미끄러짐) + 정렬 + 병동 */}
+      {/* 검색 + 분류 필터 (선택 알약이 미끄러짐) + 정렬 + 병동 */}
       <nav aria-label="족보 필터" className="space-y-2">
+        <form
+          role="search"
+          onSubmit={(e) => {
+            e.preventDefault();
+            const q = String(new FormData(e.currentTarget).get("q") ?? "").trim();
+            router.push(hrefWith(filter, { q: q || undefined }), { scroll: false });
+          }}
+          className="flex gap-2"
+        >
+          <label htmlFor="note-search" className="sr-only">
+            족보 검색
+          </label>
+          <input
+            id="note-search"
+            name="q"
+            type="search"
+            defaultValue={filter.q ?? ""}
+            maxLength={40}
+            placeholder="🔍 병원·병동·제목으로 찾기"
+            className="min-h-11 min-w-0 flex-1 rounded-control border border-line bg-surface px-4 text-body-sm text-ink placeholder:text-ink-soft focus:border-brand-deep focus:outline-none"
+          />
+          <Button type="submit" variant="secondary" className="min-h-11 shrink-0 px-4 text-body-sm">
+            찾기
+          </Button>
+        </form>
+        {filter.q && (
+          <Link
+            href={hrefWith(filter, { q: undefined })}
+            scroll={false}
+            className="inline-flex min-h-11 items-center gap-1 rounded-full bg-brand-soft px-3 text-body-sm font-bold text-brand-deep"
+            aria-label={`'${filter.q}' 검색 지우기`}
+          >
+            “{filter.q}” 검색 결과 ✕
+          </Link>
+        )}
         <ul className="-mx-5 flex gap-1.5 overflow-x-auto px-5 pb-1 md:mx-0 md:flex-wrap md:px-0">
           {[{ key: undefined, label: "전체 병동" }, ...NOTE_CATEGORIES].map((c) => {
             const active = filter.category === c.key;
