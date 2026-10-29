@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { loginHref } from "@/lib/safe-next";
 import { useActionState, useCallback, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { motion } from "motion/react";
@@ -38,6 +39,7 @@ export default function NotesMarket({
   nextCursor,
   filter,
   credits,
+  viewer,
   canWrite,
   rewardAvailable,
   startWriting,
@@ -45,8 +47,10 @@ export default function NotesMarket({
   items: NoteCardData[];
   nextCursor: string | null;
   filter: NoteFilter;
-  /** null이면 로그인 전(또는 교수) */
+  /** 학생만 숫자, 손님·교수는 null */
   credits: number | null;
+  /** 보는 사람: 손님은 로그인 안내, 교수는 읽기 전용 안내 */
+  viewer: "guest" | "student" | "professor";
   /** 학생만 족보를 올린다 */
   canWrite: boolean;
   rewardAvailable: boolean;
@@ -54,7 +58,7 @@ export default function NotesMarket({
   startWriting: boolean;
 }) {
   const router = useRouter();
-  const loggedIn = credits !== null;
+  const loggedIn = viewer === "student" && credits !== null;
   const tap = useTapEffect();
   const [shopOpen, setShopOpen] = useState(false);
   const [state, action, pending] = useActionState<NoteFormState, FormData>(createNoteAction, {});
@@ -95,8 +99,8 @@ export default function NotesMarket({
               ✍️ 내 실습 족보 팔고 +{UPLOAD_REWARD} C
             </Button>
           ) : (
-            !loggedIn && (
-              <Link href="/login" className={`${buttonClass("secondary")} px-4 text-body-sm`}>
+            viewer === "guest" && (
+              <Link href={loginHref("/notes")} className={`${buttonClass("secondary")} px-4 text-body-sm`}>
                 로그인하고 300 C 받기
               </Link>
             )
@@ -169,7 +173,7 @@ export default function NotesMarket({
           items={items}
           nextCursor={nextCursor}
           filter={filter}
-          loggedIn={loggedIn}
+          viewer={viewer}
           onInsufficient={openShop}
         />
       )}
@@ -194,13 +198,13 @@ function NotePages({
   items,
   nextCursor,
   filter,
-  loggedIn,
+  viewer,
   onInsufficient,
 }: {
   items: NoteCardData[];
   nextCursor: string | null;
   filter: NoteFilter;
-  loggedIn: boolean;
+  viewer: "guest" | "student" | "professor";
   onInsufficient: () => void;
 }) {
   const [more, setMore] = useState<NoteCardData[]>([]);
@@ -233,7 +237,7 @@ function NotePages({
             animate="show"
             transition={{ ...SPRING_SOFT, delay: Math.min(i < items.length ? i : i - items.length, 8) * STAGGER_STEP }}
           >
-            <NoteCard note={note} loggedIn={loggedIn} onInsufficient={onInsufficient} />
+            <NoteCard note={note} viewer={viewer} onInsufficient={onInsufficient} />
           </motion.div>
         ))}
       </div>

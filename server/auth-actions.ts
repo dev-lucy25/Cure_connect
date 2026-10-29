@@ -5,6 +5,7 @@ import { db } from "@/lib/db";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { siteOrigin } from "@/lib/site-origin";
 import { setPendingEmail } from "@/lib/pending-email";
+import { safeNext } from "@/lib/safe-next";
 import { emailForMember, inviteCodeMatches, memberNoTaken, orgExists, roomCodeInUse, roomExists } from "@/server/org-repo";
 import {
   loginSchema,
@@ -49,7 +50,8 @@ export async function login(_prev: AuthFormState, formData: FormData): Promise<A
     return { status: "error", message: WRONG_LOGIN, values };
   }
 
-  redirect("/");
+  // 로그인이 필요한 화면에서 왔으면 그 화면으로 돌아간다
+  redirect(safeNext(String(formData.get("next") ?? "")));
 }
 
 /** Supabase 가입 오류 코드 → 사용자 안내 */

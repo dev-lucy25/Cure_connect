@@ -46,6 +46,7 @@ async function NotesContent({ searchParams }: Pick<PageProps<"/notes">, "searchP
           nextCursor={page.nextCursor}
           filter={filter}
           credits={credits}
+          viewer={user ? (student ? "student" : "professor") : "guest"}
           canWrite={student}
           rewardAvailable={rewardAvailable}
           startWriting={one(sp.write) === "1"}

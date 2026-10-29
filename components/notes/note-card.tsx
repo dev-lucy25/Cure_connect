@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { loginHref } from "@/lib/safe-next";
 import { useActionState, useEffect, useState } from "react";
 import { AnimatePresence, motion } from "motion/react";
 import { deleteNoteAction, rateNoteAction, unlockNoteAction, updateNoteAction, type NoteFormState, type UnlockState } from "@/server/notes-actions";
@@ -22,11 +23,12 @@ const FAKE_LINES = ["w-11/12", "w-4/5", "w-3/5", "w-5/6"];
 
 export default function NoteCard({
   note,
-  loggedIn,
+  viewer,
   onInsufficient,
 }: {
   note: NoteCardData;
-  loggedIn: boolean;
+  /** 손님은 로그인 안내, 교수는 "학생만 열 수 있어요" */
+  viewer: "guest" | "student" | "professor";
   /** 크레딧이 모자라 못 열었을 때 (충전소 열기) */
   onInsufficient: () => void;
 }) {
@@ -111,17 +113,19 @@ export default function NoteCard({
               </div>
               <div className="absolute inset-0 flex flex-col items-center justify-center gap-2 bg-surface/40 text-center">
                 <p className="text-body-sm font-bold text-ink">🔒 선배가 남긴 시크릿 질문 & 꿀팁</p>
-                {loggedIn ? (
+                {viewer === "student" ? (
                   <form action={unlockAction}>
                     <input type="hidden" name="id" value={note.id} />
                     <Button type="submit" disabled={unlocking} className="min-h-11 px-4 text-body-sm">
                       {unlocking ? "여는 중..." : `💎 ${note.price} 크레딧으로 잠금 해제`}
                     </Button>
                   </form>
-                ) : (
-                  <Link href="/login" className={`${buttonClass("primary")} min-h-11 px-4 text-body-sm`}>
+                ) : viewer === "guest" ? (
+                  <Link href={loginHref("/notes")} className={`${buttonClass("primary")} min-h-11 px-4 text-body-sm`}>
                     로그인하고 열기
                   </Link>
+                ) : (
+                  <p className="rounded-full bg-surface px-3 py-1.5 text-caption font-bold text-ink-soft">학생 계정만 크레딧으로 열 수 있어요</p>
                 )}
               </div>
             </motion.div>
@@ -138,7 +142,7 @@ export default function NoteCard({
           <RowActions id={note.id} onEdit={() => setEditOpenAt(Date.now())} deleteAction={delAction} deleting={deleting} />
         </div>
       ) : (
-        note.open && loggedIn && <RatingStars noteId={note.id} myRating={note.myRating} />
+        note.open && viewer === "student" && <RatingStars noteId={note.id} myRating={note.myRating} />
       )}
 
       {note.mine && note.secret && (

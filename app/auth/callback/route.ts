@@ -1,5 +1,6 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
+import { safeNext } from "@/lib/safe-next";
 
 // Supabase 메일 링크(가입 인증·비밀번호 재설정)가 돌아오는 곳.
 // 주소의 code를 로그인 세션(쿠키)으로 바꾼 뒤 next로 보낸다.
@@ -18,7 +19,3 @@ export async function GET(request: NextRequest) {
   return NextResponse.redirect(new URL(failed, origin));
 }
 
-/** 다른 사이트로 튕겨 내는 데 쓰이지 않게 이 사이트 안의 경로만 허용한다 */
-function safeNext(next: string | null) {
-  return next && next.startsWith("/") && !next.startsWith("//") && !next.startsWith("/\\") ? next : "/";
-}

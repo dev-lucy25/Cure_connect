@@ -5,6 +5,7 @@ import { getCredits, listLedger } from "@/server/notes-repo";
 import { listPayments } from "@/server/payment-repo";
 import PaymentHistory from "@/components/credits/payment-history";
 import LoginPrompt from "@/components/home/login-prompt";
+import RoleNotice from "@/components/home/role-notice";
 import { Stagger, StaggerItem } from "@/components/motion/stagger";
 import AnimatedNumber from "@/components/motion/animated-number";
 import Card from "@/components/ui/card";
@@ -27,7 +28,7 @@ export default function CreditsPage() {
 async function CreditsContent() {
   const user = await getOptionalUser();
   if (!user) return <LoginPrompt title="로그인하고 크레딧을 확인해요" body="가입하면 300 크레딧을 드려요" />;
-  if (user.role !== "student") return <LoginPrompt title="학생 계정 전용 화면이에요" body="크레딧은 족보를 열람하는 학생이 써요" />;
+  if (user.role !== "student") return <RoleNotice title="학생 계정 전용 화면이에요" body="크레딧은 족보를 열람하는 학생이 써요" />;
   const [credits, ledger, payments] = await Promise.all([getCredits(user.id), listLedger(user.id), listPayments(user.id)]);
 
   return (

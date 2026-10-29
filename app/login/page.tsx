@@ -1,5 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import { Suspense } from "react";
+import { Bone } from "@/components/ui/skeleton";
 import AuthForm from "@/app/login/auth-form";
 import ThemeToggle from "@/components/theme/theme-toggle";
 import { listOrganizations } from "@/server/org-repo";
@@ -45,10 +47,27 @@ export default async function LoginPage() {
           </ul>
         </section>
         <div>
-          <AuthForm orgs={orgs} />
+          {/* 주소의 next(돌아갈 화면)를 읽는 부분만 기다린다 */}
+          <Suspense fallback={<AuthFormBones />}>
+            <AuthForm orgs={orgs} />
+          </Suspense>
           <p className="mt-6 text-center text-body-sm text-ink-soft">환자 식별 정보는 입력하지 마세요</p>
         </div>
       </div>
     </main>
+  );
+}
+
+function AuthFormBones() {
+  return (
+    <div role="status" aria-busy aria-label="불러오는 중" className="space-y-3">
+      <Bone className="h-12 w-full" />
+      <div className="space-y-4 rounded-card border border-line bg-surface p-5">
+        <div aria-hidden className="skeleton mx-auto size-28 rounded-full" />
+        <Bone className="h-12 w-full rounded-control" />
+        <Bone className="h-12 w-full rounded-control" />
+        <Bone className="h-12 w-full rounded-control" />
+      </div>
+    </div>
   );
 }
