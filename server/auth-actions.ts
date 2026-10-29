@@ -5,7 +5,7 @@ import { db } from "@/lib/db";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { siteOrigin } from "@/lib/site-origin";
 import { setPendingEmail } from "@/lib/pending-email";
-import { emailForMember, inviteCodeMatches, memberNoTaken, orgExists, roomExists, roomTakenByOtherProfessor } from "@/server/org-repo";
+import { emailForMember, inviteCodeMatches, memberNoTaken, orgExists, roomCodeInUse, roomExists } from "@/server/org-repo";
 import {
   loginSchema,
   memberLoginSchema,
@@ -97,8 +97,8 @@ export async function signup(_prev: AuthFormState, formData: FormData): Promise<
   if (input.roomCode && input.role === "student" && !(await roomExists(input.roomCode))) {
     return { fieldErrors: { roomCode: "없는 방 코드예요. 교수님께 받은 코드를 확인해 주세요" }, values };
   }
-  if (input.roomCode && input.role === "professor" && (await roomTakenByOtherProfessor(input.roomCode))) {
-    return { fieldErrors: { roomCode: "다른 교수님이 쓰는 방 코드예요. 다른 코드를 정해 주세요" }, values };
+  if (input.roomCode && input.role === "professor" && (await roomCodeInUse(input.roomCode))) {
+    return { fieldErrors: { roomCode: "이미 쓰이고 있는 방 코드예요. 다른 코드를 정해 주세요" }, values };
   }
 
   const supabase = await createSupabaseServerClient();

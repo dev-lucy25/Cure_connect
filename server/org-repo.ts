@@ -33,9 +33,9 @@ export async function roomExists(roomCode: string) {
   return (await db.profile.count({ where: { roomCode, role: "professor" } })) > 0;
 }
 
-/** 다른 교수가 이미 쓰는 방 코드인가 */
-export async function roomTakenByOtherProfessor(roomCode: string, exceptUserId?: string) {
-  const found = await db.profile.findFirst({ where: { roomCode, role: "professor", ...(exceptUserId ? { NOT: { id: exceptUserId } } : {}) }, select: { id: true } });
+/** 이미 누군가(교수·학생) 쓰고 있는 방 코드인가. 교수가 새 방을 만들 때 남의 반을 가져가지 않게 */
+export async function roomCodeInUse(roomCode: string, exceptUserId?: string) {
+  const found = await db.profile.findFirst({ where: { roomCode, ...(exceptUserId ? { NOT: { id: exceptUserId } } : {}) }, select: { id: true } });
   return found !== null;
 }
 

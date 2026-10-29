@@ -4,21 +4,21 @@ import type { ScheduleItem } from "@/server/practice-repo";
 import { subjectLabel } from "@/lib/subjects";
 import Card from "@/components/ui/card";
 import Chip from "@/components/ui/chip";
+import { STATUS_TEXT, practiceStatus } from "@/lib/practice-status";
 
 // 학생 홈 맨 위: 이름 · 학년반 · 학번 · 이수 상태 · 학교 · 현재 로테이션(오늘이 기간 안인 실습 일정)
+// 이수 상태는 교수 현황판과 같은 기준(졸업 1,000시간, 500시간 미만 위험) — lib/practice-status.ts
 export default function ProfileBanner({
   user,
   totalMinutes,
-  goalHours,
   current,
 }: {
   user: CurrentUser;
   totalMinutes: number;
-  goalHours: number;
   current?: ScheduleItem;
 }) {
   const rotation = current && `${current.subject ? `${subjectLabel(current.subject)}실습 · ` : ""}${current.ward}`;
-  const done = totalMinutes >= goalHours * 60;
+  const status = STATUS_TEXT[practiceStatus(totalMinutes / 60)];
   const classLabel = [user.grade && `${user.grade}학년`, user.classGroup && `${user.classGroup}반`].filter(Boolean).join(" ");
   const idLine = [classLabel, user.memberNo].filter(Boolean).join(" · ");
 
@@ -29,7 +29,7 @@ export default function ProfileBanner({
           <h2 className="text-title font-bold text-ink">
             {user.name} 학생{idLine && <span className="ml-1 text-body-sm font-medium text-ink-soft">({idLine})</span>}
           </h2>
-          {done ? <Chip tone="pink">🎓 {goalHours.toLocaleString()}시간 달성</Chip> : <Chip>실습 정상 이수중</Chip>}
+          <Chip tone={status.tone}>{status.label}</Chip>
           {user.roomCode && (
             <Chip tone="neutral" className="text-caption">
               🔑 방 코드: {user.roomCode}

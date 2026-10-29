@@ -21,8 +21,9 @@ export async function setRoomCodeAction(_prev: FormState<"roomCode">, formData: 
   } catch {
     return { message: "저장하지 못했어요. 잠시 후 다시 시도해 주세요", values };
   }
-  if (result === "taken") return { fieldErrors: { roomCode: "다른 교수님이 쓰는 방 코드예요" }, values };
-  updateTag(`profile:${user.id}`);
+  if (result.status === "taken") return { fieldErrors: { roomCode: "이미 쓰였던 방 코드예요. 다른 코드를 정해 주세요" }, values };
+  // 함께 옮긴 학생들의 로그인 정보(방 코드) 캐시도 새로
+  for (const id of [user.id, ...result.movedStudentIds]) updateTag(`profile:${id}`);
   refresh();
   return { savedAt: Date.now() };
 }

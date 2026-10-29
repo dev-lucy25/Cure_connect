@@ -45,6 +45,26 @@ export function weekdaysFrom(start: string, count: number): string[] {
   return result;
 }
 
+/** from~to(포함) 사이 평일 수. to가 from보다 앞이면 0 (예정 실습 시간 계산용) */
+export function weekdaysBetween(from: string, to: string): number {
+  let count = 0;
+  const d = toDbDate(from);
+  const end = toDbDate(to).getTime();
+  while (d.getTime() <= end) {
+    const day = d.getUTCDay();
+    if (day !== 0 && day !== 6) count++;
+    d.setUTCDate(d.getUTCDate() + 1);
+  }
+  return count;
+}
+
+/** 하루 뒤 날짜 */
+export function nextDay(isoDate: string): string {
+  const d = toDbDate(isoDate);
+  d.setUTCDate(d.getUTCDate() + 1);
+  return fromDbDate(d);
+}
+
 /** "방금 전", "10분 전", "3시간 전", "2일 전", 그보다 오래되면 "10/29 (수)" */
 export function timeAgo(iso: string, nowMs: number): string {
   const sec = Math.max(0, Math.round((nowMs - new Date(iso).getTime()) / 1000));

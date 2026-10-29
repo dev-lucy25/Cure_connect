@@ -2,9 +2,10 @@
 
 import { useState, useTransition } from "react";
 import { AnimatePresence, motion } from "motion/react";
-import type { RosterFilter, RosterRow, StudentStatus } from "@/server/professor-repo";
+import type { RosterFilter, RosterRow } from "@/server/professor-repo";
 import { nudgeAction } from "@/server/professor-actions";
 import { SPRING_SNAPPY, SPRING_SOFT } from "@/lib/motion";
+import { GRADUATION_HOURS, STATUS_TEXT } from "@/lib/practice-status";
 import AnimatedNumber from "@/components/motion/animated-number";
 import ProgressBar from "@/components/motion/progress-bar";
 import { useTapEffect } from "@/components/motion/use-motion-prefs";
@@ -16,19 +17,22 @@ import FormStatus from "@/components/ui/form-status";
 const FILTERS: { key: RosterFilter; label: string }[] = [
   { key: "ALL", label: "전체" },
   { key: "RISK", label: "위험군" },
+  { key: "SHORT", label: "보충 검토" },
   { key: "ROOM", label: "같은 방 코드만" },
 ];
 
-const STATUS: Record<StudentStatus, { label: string; tone: "pink" | "warn" | "brand" }> = {
-  DONE: { label: "🎓 이수 완료", tone: "pink" },
-  RISK: { label: "⚠️ 미달 위험", tone: "warn" },
-  NORMAL: { label: "정상 이수중", tone: "brand" },
-};
-
 function matches(row: RosterRow, filter: RosterFilter) {
   if (filter === "RISK") return row.status === "RISK";
+  if (filter === "SHORT") return row.shortfall > 0;
   if (filter === "ROOM") return row.sameRoom;
   return true;
+}
+
+/** 이름·학번 일부로 찾기 (띄어쓰기·대소문자 무시) */
+function found(row: RosterRow, q: string) {
+  const norm = (v: string) => v.replace(/s+/g, "").toLowerCase();
+  const query = norm(q);
+  return !query || norm(row.name).includes(query) || norm(row.memberNo ?? "").includes(query);
 }
 
 const subline = (r: RosterRow) => [r.memberNo, r.classLabel, r.orgName].filter(Boolean).join(" · ");
@@ -37,10 +41,11 @@ type NudgeState = { message?: string; sentAt?: number; notice?: string };
 
 // 학생 현황판: 필터(선택 알약이 미끄러짐) + CSV 내려받기 + 독려 알림(학생당 하루 1번).
 // md 이상은 표, 모바일은 카드 목록. 필터를 바꾸면 줄이 부드럽게 빠지고 들어온다.
-export default function Roster({ rows, hasRoom }: { rows: RosterRow[]; hasRoom: boolean }) {
+export default function Roster({ rows, hasRoom, hasOrg }: { rows: RosterRow[]; hasRoom: boolean; hasOrg: boolean }) {
   const tap = useTapEffect();
   const [filter, setFilter] = useState<RosterFilter>("ALL");
-  const shown = rows.filter((r) => matches(r, filter));
+  const [query, setQuery] = useState("");
+  const shown = rows.filter((r) => matches(r, filter) && found(r, query));
   const filters = hasRoom ? FILTERS : FILTERS.filter((f) => f.key !== "ROOM");
   const [nudge, setNudge] = useState<NudgeState>({});
   const [sending, setSending] = useState<string | null>(null);
@@ -105,6 +110,22 @@ export default function Roster({ rows, hasRoom }: { rows: RosterRow[]; hasRoom: 
         })}
       </div>
 
+      {rows.length > 0 && (
+        <div className="px-5 pb-3">
+          <label className="sr-only" htmlFor="roster-search">
+            학생 이름·학번 검색
+          </label>
+          <input
+            id="roster-search"
+            type="search"
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+            placeholder="🔍 이름·학번으로 찾기"
+            className="min-h-11 w-full rounded-control border border-line bg-canvas px-4 text-body-sm text-ink placeholder:text-ink-soft focus:border-brand-deep focus:outline-none md:w-72"
+          />
+        </div>
+      )}
+
       {shown.length > 0 && (
         <div className="space-y-2 px-5 pb-3">
           <motion.button
@@ -133,7 +154,15 @@ export default function Roster({ rows, hasRoom }: { rows: RosterRow[]; hasRoom: 
         <div className="flex flex-col items-center px-5 pt-2 pb-8 text-center">
           <NurseTurtle stage={2} size={80} decorative />
           <p className="mt-2 font-bold text-ink">{rows.length === 0 ? "아직 연결된 학생이 없어요" : "이 조건에 맞는 학생이 없어요"}</p>
-          {rows.length === 0 && <p className="mt-1 text-body-sm text-ink-soft">학생에게 방 코드를 알려 주면 여기에 나타나요</p>}
+          {rows.length === 0 && (
+            <p className="mt-1 text-body-sm text-ink-soft">
+              {hasRoom
+                ? "학생에게 방 코드를 알려 주면 가입하거나 내 정보에서 입력할 때 여기에 나타나요"
+                : hasOrg
+                  ? "같은 학교 학생이 가입하면 여기에 나타나요. 위에서 방 코드를 만들어 실습반을 따로 모을 수도 있어요"
+                  : "위에서 실습반 방 코드를 만들고 학생들에게 알려 주세요"}
+            </p>
+          )}
         </div>
       ) : (
         <>
@@ -159,15 +188,18 @@ export default function Roster({ rows, hasRoom }: { rows: RosterRow[]; hasRoom: 
                       </p>
                       <p className="text-caption text-ink-soft">{subline(r)}</p>
                     </div>
-                    <Chip tone={STATUS[r.status].tone} className="shrink-0 text-caption">
-                      {STATUS[r.status].label}
+                    <Chip tone={STATUS_TEXT[r.status].tone} className="shrink-0 text-caption">
+                      {STATUS_TEXT[r.status].label}
                     </Chip>
                   </div>
                   <p className="mt-2 text-body-sm text-ink-soft">
                     {r.place ?? "실습 기록 없음"} · 인증 <AnimatedNumber value={r.approvedHours} suffix="h" />
                   </p>
                   <Progress row={r} />
-                  <div className="mt-3 flex justify-end">{nudgeButton(r)}</div>
+                  <div className="mt-3 flex items-center justify-between gap-2">
+                    <Shortfall row={r} />
+                    {nudgeButton(r)}
+                  </div>
                 </motion.li>
               ))}
             </AnimatePresence>
@@ -214,9 +246,10 @@ export default function Roster({ rows, hasRoom }: { rows: RosterRow[]; hasRoom: 
                         <AnimatedNumber value={r.approvedHours} suffix="h" />
                       </td>
                       <td className="px-3 py-3">
-                        <Chip tone={STATUS[r.status].tone} className="text-caption whitespace-nowrap">
-                          {STATUS[r.status].label}
+                        <Chip tone={STATUS_TEXT[r.status].tone} className="text-caption whitespace-nowrap">
+                          {STATUS_TEXT[r.status].label}
                         </Chip>
+                        <Shortfall row={r} />
                       </td>
                       <td className="px-5 py-3 text-right">{nudgeButton(r)}</td>
                     </motion.tr>
@@ -231,12 +264,22 @@ export default function Roster({ rows, hasRoom }: { rows: RosterRow[]; hasRoom: 
   );
 }
 
+/** 보충실습 검토: 앞으로 잡힌 일정을 다 해도 모자라는 시간 */
+function Shortfall({ row }: { row: RosterRow }) {
+  if (row.shortfall <= 0) return null;
+  return (
+    <span className="mt-1 block text-caption font-bold text-warn-ink" data-shortfall={row.shortfall}>
+      예정 일정 다 해도 {row.shortfall.toLocaleString("ko-KR")}시간 부족
+    </span>
+  );
+}
+
 function Progress({ row }: { row: RosterRow }) {
   return (
     <div className="mt-2 md:mt-0">
       <p className="flex items-baseline justify-between gap-2 text-caption text-ink-soft">
         <span className="whitespace-nowrap">
-          <AnimatedNumber value={row.hours} className="font-bold text-ink" /> / {row.goalHours.toLocaleString("ko-KR")}h
+          <AnimatedNumber value={row.hours} className="font-bold text-ink" /> / {GRADUATION_HOURS.toLocaleString("ko-KR")}h
         </span>
         <AnimatedNumber value={row.percent} suffix="%" />
       </p>

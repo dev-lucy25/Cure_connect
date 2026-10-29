@@ -34,7 +34,7 @@ export default async function TrackerHome({ user }: { user: CurrentUser }) {
     <Stagger className="space-y-3">
       <PageHeader title="실습 시간" description={`${user.name}님의 실습 기록`} />
       <StaggerItem className="pt-2">
-        <ProfileBanner user={user} totalMinutes={progress.totalMinutes} goalHours={progress.goalHours} current={current} />
+        <ProfileBanner user={user} totalMinutes={progress.totalMinutes} current={current} />
       </StaggerItem>
       <div className="flex flex-col gap-4 md:grid md:grid-cols-12 md:items-start">
         <StaggerItem className="md:col-span-7">

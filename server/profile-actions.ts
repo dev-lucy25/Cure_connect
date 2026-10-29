@@ -99,6 +99,8 @@ export async function becomeProfessor(_prev: FormState<ProfileField>, formData: 
         staffTitle: input.staffTitle,
         grade: null,
         classGroup: null,
+        // 학생으로 들어가 있던 방은 나간다. 교수 방 코드는 교수 홈에서 새로 만든다
+        roomCode: null,
       },
       select: { id: true },
     });

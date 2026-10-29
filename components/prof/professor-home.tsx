@@ -1,5 +1,6 @@
 import type { CurrentUser } from "@/server/auth";
-import { listRoster, professorKpis, RISK_HOURS } from "@/server/professor-repo";
+import { listRoster, professorKpis } from "@/server/professor-repo";
+import { RISK_HOURS } from "@/lib/practice-status";
 import Card from "@/components/ui/card";
 import Chip from "@/components/ui/chip";
 import PageHeader from "@/components/ui/page-header";
@@ -11,16 +12,24 @@ import Roster from "@/components/prof/roster";
 // 교수 홈(학생 현황): 교수 정보 + 방 코드 → KPI 4개 → 학생 현황판(필터·CSV)
 // 보이는 학생 = 같은 학교 또는 내 방 코드로 들어온 학생
 export default async function ProfessorHome({ user }: { user: CurrentUser }) {
-  const [kpis, roster] = await Promise.all([professorKpis(user), listRoster(user, "ALL")]);
+  const roster = await listRoster(user, "ALL");
+  const kpis = await professorKpis(user, roster);
   const kpiItems = [
-    { label: "매칭된 학생", value: kpis.matched, suffix: "명", tone: "text-ink" },
-    { label: "평균 1,000시간 달성률", value: kpis.avgPercent, suffix: "%", tone: "text-brand-deep" },
-    { label: `위험군 (${RISK_HOURS}시간 미만)`, value: kpis.risk, suffix: "명", tone: kpis.risk > 0 ? "text-warn-ink" : "text-ink" },
+    { label: "매칭된 학생", value: kpis.matched, suffix: "명", tone: "text-ink", sub: `1,000시간 완주 ${kpis.done}명` },
+    { label: "평균 1,000시간 달성률", value: kpis.avgPercent, suffix: "%", tone: "text-brand-deep", sub: "누적 기록 기준" },
+    {
+      label: `위험군 (${RISK_HOURS}시간 미만)`,
+      value: kpis.risk,
+      suffix: "명",
+      tone: kpis.risk > 0 ? "text-warn-ink" : "text-ink",
+      sub: `보충실습 검토 ${kpis.short}명`,
+    },
     {
       label: "채점 대기 과제",
       value: kpis.pendingSubmissions,
       suffix: "건",
       tone: kpis.pendingSubmissions > 0 ? "text-pink-deep" : "text-ink",
+      sub: "같은 학교·방 학생 제출",
     },
   ];
 
@@ -51,13 +60,14 @@ export default async function ProfessorHome({ user }: { user: CurrentUser }) {
               <p className="mt-1 font-display text-display leading-none">
                 <AnimatedNumber value={k.value} suffix={k.suffix} className={k.tone} />
               </p>
+              <p className="mt-1.5 text-caption text-ink-soft">{k.sub}</p>
             </li>
           ))}
         </ul>
       </StaggerItem>
 
       <StaggerItem>
-        <Roster rows={roster} hasRoom={Boolean(user.roomCode)} />
+        <Roster rows={roster} hasRoom={Boolean(user.roomCode)} hasOrg={Boolean(user.orgId)} />
       </StaggerItem>
     </Stagger>
   );
