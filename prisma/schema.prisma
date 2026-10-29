@@ -37,6 +37,8 @@ model Profile {
   checklistSeeded Boolean  @default(false)
   // 교수 익명 통계(병동·술기 난이도)에서 내 일지를 뺀다
   statsOptOut     Boolean  @default(false)
+  // 족보 댓글을 닉네임으로 쓸 때 마지막에 쓴 닉네임 (다음에 기본값으로)
+  nickname        String?  @db.VarChar(12)
   createdAt       DateTime @default(now())
   updatedAt       DateTime @updatedAt
 
@@ -56,6 +58,9 @@ model Profile {
   creditLedger      CreditLedger[]
   preceptorAttempts PreceptorAttempt[]
   dailyJournals     DailyJournal[]
+  noteComments      NoteComment[]
+  noteCommentLikes  NoteCommentLike[]
+  avatar            ProfileAvatar?
 
   @@unique([orgId, memberNo])
   @@index([role])
@@ -329,9 +334,10 @@ model WardNote {
   createdAt   DateTime     @default(now())
   updatedAt   DateTime     @updatedAt
 
-  author  Profile          @relation(fields: [authorId], references: [id], onDelete: Cascade)
-  unlocks WardNoteUnlock[]
-  ratings WardNoteRating[]
+  author   Profile          @relation(fields: [authorId], references: [id], onDelete: Cascade)
+  unlocks  WardNoteUnlock[]
+  ratings  WardNoteRating[]
+  comments NoteComment[]
 
   // 최신순 목록, 분류·병동 필터, 인기순, 내 족보
   @@index([status, createdAt(sort: Desc), id(sort: Desc)])
@@ -367,6 +373,62 @@ model WardNoteRating {
 
   @@id([userId, noteId])
   @@index([noteId])
+}
+
+// 프로필 사진 (없으면 기본 거북이). 브라우저에서 정사각형 WebP로 줄여 올린 작은 이미지를 DB에 둔다(Storage·비밀 키 불필요).
+// 주소는 /api/avatar/{id} — id는 올릴 때마다 새로 만들어 영구 캐시해도 바뀐 사진이 바로 보이고, 사용자 id는 드러나지 않는다.
+model ProfileAvatar {
+  id          String   @id @default(cuid())
+  userId      String   @unique @db.Uuid
+  data        Bytes
+  contentType String   @db.VarChar(20)
+  createdAt   DateTime @default(now())
+
+  user Profile @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+// 족보 댓글. 2단: 원댓글(parentId null) + 답글(parentId = 원댓글). 답글의 답글도 같은 원댓글 아래에 두고 replyToId로 @멘션한다.
+// 익명이면 족보마다 "익명 N"으로, 닉네임이면 nickname으로 보인다. 실명·userId는 화면으로 보내지 않는다.
+// 답글이 달린 원댓글을 지우면 deletedAt만 채워 자리를 남기고, 그 밖에는 행을 지운다.
+model NoteComment {
+  id         String    @id @default(cuid())
+  noteId     String
+  userId     String    @db.Uuid
+  parentId   String?
+  replyToId  String?
+  body       String    @db.VarChar(500)
+  anonymous  Boolean
+  nickname   String?   @db.VarChar(12)
+  likeCount  Int       @default(0)
+  // 원댓글에 달린 답글 수 (지운 답글 제외)
+  replyCount Int       @default(0)
+  editedAt   DateTime?
+  deletedAt  DateTime?
+  createdAt  DateTime  @default(now())
+
+  note    WardNote          @relation(fields: [noteId], references: [id], onDelete: Cascade)
+  user    Profile           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  parent  NoteComment?      @relation("CommentReplies", fields: [parentId], references: [id], onDelete: Cascade)
+  replies NoteComment[]     @relation("CommentReplies")
+  likes   NoteCommentLike[]
+
+  // 족보의 원댓글·답글을 시간순으로, 내 최근 댓글(도배 방지)
+  @@index([noteId, parentId, createdAt])
+  @@index([parentId, createdAt])
+  @@index([userId, createdAt(sort: Desc)])
+}
+
+// 댓글 좋아요. (사용자, 댓글) 하나 — 다시 누르면 취소
+model NoteCommentLike {
+  userId    String   @db.Uuid
+  commentId String
+  createdAt DateTime @default(now())
+
+  user    Profile     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  comment NoteComment @relation(fields: [commentId], references: [id], onDelete: Cascade)
+
+  @@id([userId, commentId])
+  @@index([commentId])
 }
 
 enum CreditReason {
