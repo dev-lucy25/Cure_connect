@@ -46,10 +46,10 @@ export default function ProgressHero({
           <p className="mt-2 text-body-sm text-ink-soft">
             {remaining > 0 ? (
               <>
-                목표까지 <b className="text-ink">{formatHours(remaining)}시간</b> 남음
+                졸업 기준까지 <b className="text-ink">{formatHours(remaining)}시간</b> 남음
               </>
             ) : (
-              "목표 달성"
+              "졸업 기준 달성"
             )}
           </p>
         </div>

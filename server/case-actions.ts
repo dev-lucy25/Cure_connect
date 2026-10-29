@@ -4,9 +4,9 @@ import { refresh } from "next/cache";
 import { redirect } from "next/navigation";
 import { getCurrentUser } from "@/server/auth";
 import * as repo from "@/server/case-repo";
-import { organizeCase } from "@/server/case-organize";
+import { askCase, organizeCase } from "@/server/case-chat";
 import { fieldErrorsOf, idSchema, type FormState } from "@/lib/validation/form";
-import { caseSchema, type CaseField } from "@/lib/validation/case";
+import { caseSchema, chatQuestionSchema, type CaseField } from "@/lib/validation/case";
 
 // 모든 처리는 첫 줄에서 로그인을 서버에서 다시 확인하고, 그 사용자 것만 바꾼다.
 
@@ -71,6 +71,23 @@ export async function organizeCaseAction(_prev: FormState<never>, formData: Form
     if (!outcome.ok) return { message: outcome.message };
   } catch {
     return { message: "AI 정리에 실패했어요. 잠시 후 다시 시도해 주세요" };
+  }
+  refresh();
+  return { savedAt: Date.now() };
+}
+
+export async function askCaseAction(_prev: FormState<"question">, formData: FormData): Promise<FormState<"question">> {
+  const user = await getCurrentUser();
+  const values = { question: String(formData.get("question") ?? "") };
+  const id = idSchema.safeParse(formData.get("id"));
+  if (!id.success) return { message: NOT_FOUND, values };
+  const parsed = chatQuestionSchema.safeParse(values);
+  if (!parsed.success) return { fieldErrors: fieldErrorsOf<"question">(parsed.error), values };
+  try {
+    const outcome = await askCase(user.id, id.data, parsed.data.question);
+    if (!outcome.ok) return { message: outcome.message, values };
+  } catch {
+    return { message: "AI 응답에 실패했어요. 잠시 후 다시 시도해 주세요", values };
   }
   refresh();
   return { savedAt: Date.now() };

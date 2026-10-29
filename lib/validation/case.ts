@@ -26,6 +26,22 @@ export const caseSchema = z.object({
 
 export type CaseField = keyof z.infer<typeof caseSchema>;
 
+export const QUESTION_MAX = 500;
+export const ANSWER_MAX = 4000;
+
+/** 케이스 챗봇에 보내는 질문 */
+export const chatQuestionSchema = z.object({
+  question: z
+    .string()
+    .trim()
+    .min(1, { error: "질문을 입력해 주세요" })
+    .max(QUESTION_MAX, { error: `질문은 ${QUESTION_MAX}자 이하로 입력해 주세요` })
+    .superRefine(noPii),
+});
+
+/** AI 답변. 비었거나 너무 길면 저장하지 않는다 */
+export const chatAnswerSchema = z.string().trim().min(1).max(ANSWER_MAX);
+
 export const AI_SECTIONS = ["S", "O", "A", "P", "I", "E"] as const;
 
 // AI에 알려주는 응답 형식 (구조만). 개수·길이 상한은 아래 caseAiResultSchema로 받은 뒤 검사한다.

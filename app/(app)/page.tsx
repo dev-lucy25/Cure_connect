@@ -18,7 +18,7 @@ export default function Home() {
   );
 }
 
-// 오픈형: 로그인 전엔 소개, 학생은 트래커, 교수는 (준비 중) 안내
+// 오픈형: 로그인 전엔 소개, 학생은 실습 시간 화면, 교수는 (준비 중) 안내
 async function HomeContent() {
   const user = await getOptionalUser();
   if (!user) return <GuestHome />;

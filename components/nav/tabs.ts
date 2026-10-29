@@ -10,7 +10,7 @@ export type Tab = {
 };
 
 const STUDENT_TABS: Tab[] = [
-  { label: "트래커", icon: "clock", href: "/" },
+  { label: "실습", icon: "clock", href: "/" },
   { label: "케이스", icon: "note", href: "/cases" },
   { label: "족보", icon: "book", href: null },
 ];

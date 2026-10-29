@@ -116,6 +116,34 @@ export async function refundAiUse(userId: string) {
     WHERE "userId" = ${userId}::uuid AND "day" = ${toDbDate(todayKst())}::date AND "count" > 0`;
 }
 
+export type ChatMessage = { id: string; role: "user" | "ai"; content: string };
+
+/** 내 케이스의 대화 기록(시간순). 케이스 소유자 조건을 함께 건다 */
+export async function listChat(userId: string, caseId: string): Promise<ChatMessage[]> {
+  return db.caseChatMessage.findMany({
+    where: { caseId, caseNote: { userId } },
+    orderBy: [{ createdAt: "asc" }, { id: "asc" }],
+    take: 200,
+    select: { id: true, role: true, content: true },
+  });
+}
+
+/** 질문과 답을 한 번에 저장한다 (둘 중 하나만 남지 않게). 케이스가 이미 없으면 false */
+export async function saveChatTurn(userId: string, caseId: string, question: string, answer: string) {
+  return db.$transaction(async (tx) => {
+    const owned = await tx.caseNote.findFirst({ where: { id: caseId, userId }, select: { id: true } });
+    if (!owned) return false;
+    const now = Date.now();
+    await tx.caseChatMessage.createMany({
+      data: [
+        { caseId, role: "user", content: question, createdAt: new Date(now) },
+        { caseId, role: "ai", content: answer, createdAt: new Date(now + 1) },
+      ],
+    });
+    return true;
+  });
+}
+
 export async function getAiUsedToday(userId: string) {
   const row = await db.aiUsage.findUnique({
     where: { userId_day: { userId, day: toDbDate(todayKst()) } },

@@ -46,10 +46,30 @@ model CaseNote {
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
 
-  user Profile @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user     Profile           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  messages CaseChatMessage[]
 
   // 내 케이스를 최근 수정순으로 나눠 읽는다
   @@index([userId, updatedAt(sort: Desc), id(sort: Desc)])
+}
+
+enum ChatRole {
+  user
+  ai
+}
+
+// 케이스별 AI 대화 기록. 케이스를 지우면 함께 지워진다
+model CaseChatMessage {
+  id        String   @id @default(cuid())
+  caseId    String
+  role      ChatRole
+  content   String   @db.VarChar(4000)
+  createdAt DateTime @default(now())
+
+  caseNote CaseNote @relation(fields: [caseId], references: [id], onDelete: Cascade)
+
+  // 한 케이스의 대화를 시간순으로 읽는다
+  @@index([caseId, createdAt])
 }
 
 // AI 정리 하루 사용 횟수 (1인 하루 20회). day는 한국 날짜

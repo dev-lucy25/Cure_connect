@@ -16,13 +16,13 @@ export default function GoalEditor({ goalHours }: { goalHours: number }) {
   if (!open) {
     return (
       <div className="mt-4 flex items-center justify-between gap-2 border-t border-line/70 pt-2">
-        <FormStatus savedAt={state.savedAt} savedText="목표를 바꿨어요" />
+        <FormStatus savedAt={state.savedAt} savedText="기준을 바꿨어요 🐢" />
         <button
           type="button"
           onClick={() => setOpenedAt(Date.now())}
           className="ml-auto min-h-11 whitespace-nowrap text-body-sm font-bold text-brand-deep hover:underline"
         >
-          목표 시간 바꾸기
+          졸업 기준 시간 바꾸기
         </button>
       </div>
     );
@@ -32,7 +32,7 @@ export default function GoalEditor({ goalHours }: { goalHours: number }) {
     <form action={action} noValidate className="mt-4 space-y-3 border-t border-line/70 pt-4">
       <Field
         name="goalHours"
-        label="목표 실습 시간 (100~3000시간)"
+        label="졸업 기준 실습 시간 (학교 기준, 100~3000시간)"
         type="number"
         inputMode="numeric"
         min={100}

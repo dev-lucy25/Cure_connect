@@ -23,7 +23,7 @@ const SECTION: Record<Section, { label: string; className: string }> = {
   E: { label: "평가", className: "bg-e-bg text-e-ink" },
 };
 
-// AI 정리 카드. 기다리는 동안 이 카드 안에서만 거북이가 걷는다 (화면의 다른 곳은 그대로 쓸 수 있다)
+// SOAPIE 정리 카드(빠른 버튼). 기다리는 동안 이 카드 안에서만 거북이가 걷는다 (화면의 다른 곳은 그대로 쓸 수 있다)
 export default function CaseAiPanel({
   caseId,
   ai,
@@ -44,7 +44,7 @@ export default function CaseAiPanel({
     <Card aria-busy={pending} aria-labelledby="ai-title">
       <div className="flex items-center justify-between gap-2">
         <h2 id="ai-title" className="text-title font-bold">
-          AI 케이스 정리
+          SOAPIE 초안
         </h2>
         <Chip tone="neutral">
           오늘 {left}/{limit}회 남음
@@ -76,7 +76,7 @@ export default function CaseAiPanel({
         <FormStatus message={state.message} />
         <FormStatus savedAt={state.savedAt} savedText="정리했어요 🐢" />
         <Button type="submit" block disabled={pending || left === 0}>
-          {pending ? "정리하는 중..." : left === 0 ? "오늘은 다 썼어요" : ai ? "AI로 다시 정리" : "AI로 정리"}
+          {pending ? "정리하는 중..." : left === 0 ? "오늘은 다 썼어요" : ai ? "SOAPIE로 다시 정리" : "SOAPIE로 정리"}
         </Button>
       </form>
     </Card>

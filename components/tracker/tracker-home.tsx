@@ -10,7 +10,7 @@ import LogSection from "@/components/tracker/log-section";
 import ProgressHero from "@/components/tracker/progress-hero";
 import SchedulePanel from "@/components/tracker/schedule-panel";
 
-// 학생 트래커: 큰 제목 → 설명 → 히어로 카드 → 목록 카드(일지 타임라인, 실습 일정)
+// 학생 실습 시간 화면: 큰 제목 → 설명 → 히어로 카드 → 목록 카드(일지 타임라인, 실습 일정)
 export default async function TrackerHome({ user }: { user: CurrentUser }) {
   const today = todayKst();
   const [progress, logs, schedules] = await Promise.all([
@@ -21,7 +21,7 @@ export default async function TrackerHome({ user }: { user: CurrentUser }) {
 
   return (
     <div className="space-y-3">
-      <PageHeader title="트래커" description={`${user.name}님의 실습 기록`} />
+      <PageHeader title="실습 시간" description={`${user.name}님의 실습 기록`} />
       <div className="pt-2">
         <ProgressHero
           totalMinutes={progress.totalMinutes}

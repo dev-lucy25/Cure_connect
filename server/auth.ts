@@ -21,19 +21,21 @@ export const getOptionalUser = cache(async (): Promise<CurrentUser | null> => {
   // Supabase가 토큰 만료를 현재 시각으로 확인하므로, 미리 그리기(prefetch) 단계가 아니라 실제 요청 때만 실행한다
   await connection();
   const supabase = await createSupabaseServerClient();
-  // getUser()는 Supabase 서버에 토큰을 검증받는다 (쿠키 값만 믿지 않음).
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user?.email) return null;
+  // getClaims()는 로그인 토큰의 서명(ES256)을 Supabase 공개키로 서버에서 직접 검증한다 (쿠키 값만 믿지 않음).
+  // getUser()처럼 매 요청 Supabase 서버를 다녀오지 않아 빠르다. 서명이 틀리거나 만료된 토큰은 거부된다.
+  const { data, error } = await supabase.auth.getClaims();
+  const claims = error ? null : data?.claims;
+  if (!claims?.sub || !claims.email) return null;
+  const userId = claims.sub;
+  const email = claims.email;
 
   const select = { id: true, email: true, name: true, role: true } as const;
-  const profile = await db.profile.findUnique({ where: { id: user.id }, select });
+  const profile = await db.profile.findUnique({ where: { id: userId }, select });
   if (profile) return profile;
 
   // 가입 직후 프로필 저장이 실패했던 경우에 대비. 역할은 항상 student로만 만든다.
   return db.profile.create({
-    data: { id: user.id, email: user.email, name: user.email.split("@")[0].slice(0, 30), role: "student" },
+    data: { id: userId, email, name: email.split("@")[0].slice(0, 30), role: "student" },
     select,
   });
 });

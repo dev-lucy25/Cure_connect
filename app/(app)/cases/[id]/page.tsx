@@ -3,9 +3,10 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { Suspense } from "react";
 import { getCurrentUser } from "@/server/auth";
-import { AI_DAILY_LIMIT, getAiUsedToday, getCase } from "@/server/case-repo";
+import { AI_DAILY_LIMIT, getAiUsedToday, getCase, listChat } from "@/server/case-repo";
 import { idSchema } from "@/lib/validation/form";
 import CaseAiPanel from "@/components/cases/case-ai-panel";
+import CaseChat from "@/components/cases/case-chat";
 import CaseEditor from "@/components/cases/case-editor";
 import { SkeletonCard, WalkingTurtle } from "@/components/ui/skeleton";
 
@@ -30,13 +31,18 @@ async function CaseDetail({ params }: { params: Promise<{ id: string }> }) {
   const user = await getCurrentUser();
   const parsed = idSchema.safeParse(id);
   if (!parsed.success) notFound();
-  const [found, usedToday] = await Promise.all([getCase(user.id, parsed.data), getAiUsedToday(user.id)]);
+  const [found, usedToday, messages] = await Promise.all([
+    getCase(user.id, parsed.data),
+    getAiUsedToday(user.id),
+    listChat(user.id, parsed.data),
+  ]);
   if (!found) notFound();
 
   return (
     <div className="space-y-3">
       <CaseEditor initial={{ id: found.id, title: found.title, ward: found.ward, memo: found.memo }} />
       <CaseAiPanel caseId={found.id} ai={found.ai} stale={found.stale} usedToday={usedToday} limit={AI_DAILY_LIMIT} />
+      <CaseChat caseId={found.id} messages={messages} usedToday={usedToday} limit={AI_DAILY_LIMIT} />
     </div>
   );
 }
