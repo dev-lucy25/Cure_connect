@@ -149,27 +149,6 @@ body {
   transform: scale(0.97);
 }
 
-/* 하단 토스트 "저장했어요 🐢" */
-@keyframes toast {
-  0% {
-    opacity: 0;
-    transform: translate(-50%, 12px);
-  }
-  12%,
-  80% {
-    opacity: 1;
-    transform: translate(-50%, 0);
-  }
-  100% {
-    opacity: 0;
-    transform: translate(-50%, 6px);
-    visibility: hidden;
-  }
-}
-.animate-toast {
-  animation: toast 2.4s ease forwards;
-}
-
 /* 진행 바가 부드럽게 차오름 */
 @keyframes bar-fill {
   from {
@@ -328,9 +307,5 @@ body {
   *::after {
     animation: none !important;
     transition: none !important;
-  }
-  /* 토스트는 움직이지 않되, 잠깐 보였다 사라지는 기능은 남긴다 */
-  .animate-toast {
-    animation: toast 2.4s steps(1, end) forwards !important;
   }
 }

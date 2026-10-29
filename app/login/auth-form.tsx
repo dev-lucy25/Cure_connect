@@ -1,7 +1,10 @@
 "use client";
 
-import { useActionState, useState } from "react";
+import { useActionState, useId, useState } from "react";
 import Link from "next/link";
+import { AnimatePresence, motion } from "motion/react";
+import { SPRING_SNAPPY, SPRING_SOFT } from "@/lib/motion";
+import Collapse from "@/components/motion/collapse";
 import { login, signup } from "@/server/auth-actions";
 import type { AuthFormState } from "@/lib/validation/auth";
 import type { OrgOption } from "@/server/org-repo";
@@ -27,16 +30,34 @@ export default function AuthForm({ orgs }: { orgs: OrgOption[] }) {
             type="button"
             aria-selected={mode === m}
             onClick={() => setMode(m)}
-            className={`min-h-(--size-touch) rounded-full text-body-sm font-bold transition ${
-              mode === m ? "bg-brand text-ink" : "text-ink-soft"
+            className={`relative isolate min-h-(--size-touch) rounded-full text-body-sm font-bold transition-colors ${
+              mode === m ? "text-ink" : "text-ink-soft"
             }`}
           >
+            {mode === m && (
+              <motion.span
+                layoutId="auth-mode-pill"
+                transition={SPRING_SNAPPY}
+                aria-hidden
+                className="absolute inset-0 -z-10 rounded-full bg-brand"
+              />
+            )}
             {m === "login" ? "로그인" : "회원가입"}
           </button>
         ))}
       </div>
-      {/* key로 모드마다 폼 상태를 새로 시작한다 */}
-      {mode === "login" ? <LoginForm key="login" orgs={orgs} /> : <SignupForm key="signup" orgs={orgs} />}
+      {/* key로 모드마다 폼 상태를 새로 시작한다. 바뀔 때 이전 폼이 사라진 뒤 새 폼이 떠오른다 */}
+      <AnimatePresence mode="wait" initial={false}>
+        <motion.div
+          key={mode}
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          exit={{ opacity: 0, y: -6 }}
+          transition={SPRING_SOFT}
+        >
+          {mode === "login" ? <LoginForm orgs={orgs} /> : <SignupForm orgs={orgs} />}
+        </motion.div>
+      </AnimatePresence>
     </>
   );
 }
@@ -61,14 +82,18 @@ function FormHeader({ state, pending, subtitle }: { state: AuthFormState; pendin
 function Message({ state }: { state: AuthFormState }) {
   if (!state.message) return null;
   return (
-    <p
+    <motion.p
+      key={state.message}
+      initial={{ opacity: 0, y: -4 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={SPRING_SNAPPY}
       role={state.status === "error" ? "alert" : "status"}
       className={`rounded-control px-4 py-3 text-body-sm font-medium ${
         state.status === "error" ? "bg-danger-soft text-danger" : "bg-brand-soft text-brand-deep"
       }`}
     >
       {state.message}
-    </p>
+    </motion.p>
   );
 }
 
@@ -88,6 +113,8 @@ function Segmented<T extends string>({
   onChange: (value: T) => void;
   error?: string;
 }) {
+  // 같은 화면에 고르기 묶음이 여러 개일 수 있어 묶음마다 다른 layoutId를 쓴다
+  const pillId = useId();
   return (
     <fieldset>
       <legend className="mb-1.5 block text-body-sm font-bold text-ink">{legend}</legend>
@@ -95,10 +122,18 @@ function Segmented<T extends string>({
         {options.map((o) => (
           <label
             key={o.value}
-            className={`flex min-h-11 cursor-pointer items-center justify-center rounded-[10px] px-2 text-center text-body-sm font-bold transition has-focus-visible:outline-3 has-focus-visible:outline-brand-deep ${
-              value === o.value ? "bg-surface text-brand-deep shadow-soft" : "text-ink-soft"
+            className={`relative isolate flex min-h-11 cursor-pointer items-center justify-center rounded-[10px] px-2 text-center text-body-sm font-bold transition-colors has-focus-visible:outline-3 has-focus-visible:outline-brand-deep ${
+              value === o.value ? "text-brand-deep" : "text-ink-soft"
             }`}
           >
+            {value === o.value && (
+              <motion.span
+                layoutId={pillId}
+                transition={SPRING_SNAPPY}
+                aria-hidden
+                className="absolute inset-0 -z-10 rounded-[10px] bg-surface shadow-soft"
+              />
+            )}
             <input
               type="radio"
               name={name}
@@ -170,8 +205,9 @@ function LoginForm({ orgs }: { orgs: OrgOption[] }) {
           ]}
         />
 
-        {method === "member" ? (
-          <>
+        {/* 로그인 방법을 바꾸면 해당 칸이 부드럽게 접히고 펼쳐진다 */}
+        <Collapse open={method === "member"} className="-mx-1 px-1">
+          <div className="space-y-4 py-1">
             <Segmented name="role" legend="나는" value={role} onChange={setRole} options={ROLE_OPTIONS} />
             <OrgSelect orgs={orgs} value={orgId} onChange={setOrgId} error={errors.orgId} noneLabel="학교를 골라 주세요" />
             <Field
@@ -182,18 +218,21 @@ function LoginForm({ orgs }: { orgs: OrgOption[] }) {
               defaultValue={state.values?.memberNo}
               error={errors.memberNo}
             />
-          </>
-        ) : (
-          <Field
-            name="email"
-            label="이메일"
-            type="email"
-            inputMode="email"
-            autoComplete="email"
-            defaultValue={state.values?.email}
-            error={errors.email}
-          />
-        )}
+          </div>
+        </Collapse>
+        <Collapse open={method === "email"} className="-mx-1 px-1">
+          <div className="py-1">
+            <Field
+              name="email"
+              label="이메일"
+              type="email"
+              inputMode="email"
+              autoComplete="email"
+              defaultValue={state.values?.email}
+              error={errors.email}
+            />
+          </div>
+        </Collapse>
         <Field name="password" label="비밀번호" type="password" autoComplete="current-password" error={errors.password} />
 
         <Message state={state} />
@@ -246,19 +285,27 @@ function SignupForm({ orgs }: { orgs: OrgOption[] }) {
           noneLabel={professor ? "학교를 골라 주세요" : "학교 없이 개인으로 쓸게요"}
         />
 
-        {orgId && (
-          <Field
-            name="memberNo"
-            label={professor ? "교번" : "학번"}
-            autoComplete="username"
-            defaultValue={values.memberNo}
-            error={errors.memberNo}
-          />
-        )}
+        <Collapse open={Boolean(orgId)} className="-mx-1 px-1">
+          <div className="py-1">
+            <Field
+              name="memberNo"
+              label={professor ? "교번" : "학번"}
+              autoComplete="username"
+              defaultValue={values.memberNo}
+              error={errors.memberNo}
+            />
+          </div>
+        </Collapse>
 
-        {professor ? (
-          <>
-            <Field name="staffTitle" label="직책 (선택)" placeholder="예: 실습과장, 조교" defaultValue={values.staffTitle} error={errors.staffTitle} />
+        <Collapse open={professor} className="-mx-1 px-1">
+          <div className="space-y-4 py-1">
+            <Field
+              name="staffTitle"
+              label="직책 (선택)"
+              placeholder="예: 실습과장, 조교"
+              defaultValue={values.staffTitle}
+              error={errors.staffTitle}
+            />
             <Field
               name="inviteCode"
               label="학교 초대 코드"
@@ -268,22 +315,21 @@ function SignupForm({ orgs }: { orgs: OrgOption[] }) {
               defaultValue={values.inviteCode}
               error={errors.inviteCode}
             />
-          </>
-        ) : (
-          orgId && (
-            <div className="grid grid-cols-2 gap-3">
-              <SelectField name="grade" label="학년" defaultValue={values.grade ?? ""} error={errors.grade}>
-                <option value="">선택</option>
-                {[1, 2, 3, 4].map((g) => (
-                  <option key={g} value={g}>
-                    {g}학년
-                  </option>
-                ))}
-              </SelectField>
-              <Field name="classGroup" label="반 (선택)" placeholder="예: B" defaultValue={values.classGroup} error={errors.classGroup} />
-            </div>
-          )
-        )}
+          </div>
+        </Collapse>
+        <Collapse open={!professor && Boolean(orgId)} className="-mx-1 px-1">
+          <div className="grid grid-cols-2 gap-3 py-1">
+            <SelectField name="grade" label="학년" defaultValue={values.grade ?? ""} error={errors.grade}>
+              <option value="">선택</option>
+              {[1, 2, 3, 4].map((g) => (
+                <option key={g} value={g}>
+                  {g}학년
+                </option>
+              ))}
+            </SelectField>
+            <Field name="classGroup" label="반 (선택)" placeholder="예: B" defaultValue={values.classGroup} error={errors.classGroup} />
+          </div>
+        </Collapse>
 
         <Message state={state} />
 

@@ -1,7 +1,7 @@
 import Link from "next/link";
 import Card from "@/components/ui/card";
 import Chip from "@/components/ui/chip";
-import { buttonClass } from "@/components/ui/button";
+import { buttonClass } from "@/components/ui/button-class";
 import { IconCalendar, IconClock, IconNote } from "@/components/ui/icons";
 import PageHeader from "@/components/ui/page-header";
 import ProgressHero from "@/components/tracker/progress-hero";

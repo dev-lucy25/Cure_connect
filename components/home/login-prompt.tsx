@@ -1,6 +1,6 @@
 import Link from "next/link";
 import NurseTurtle from "@/components/mascot/nurse-turtle";
-import { buttonClass } from "@/components/ui/button";
+import { buttonClass } from "@/components/ui/button-class";
 import Card from "@/components/ui/card";
 
 // 오픈형: 로그인이 필요한 화면에 비로그인으로 들어왔을 때

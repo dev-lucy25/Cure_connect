@@ -2,7 +2,7 @@ import Link from "next/link";
 import type { ScheduleItem } from "@/server/practice-repo";
 import { dDayLabel, daysBetween, shortDate } from "@/lib/dates";
 import { shiftLabel, subjectLabel } from "@/lib/subjects";
-import { buttonClass } from "@/components/ui/button";
+import { buttonClass } from "@/components/ui/button-class";
 import Card from "@/components/ui/card";
 import Chip from "@/components/ui/chip";
 
