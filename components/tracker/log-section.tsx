@@ -5,6 +5,7 @@ import { loadMoreLogs, removeLog, saveLog } from "@/server/practice-actions";
 import type { FormState, LogField } from "@/lib/validation/practice";
 import type { LogItem } from "@/server/practice-repo";
 import { WEEKDAY, toDbDate } from "@/lib/dates";
+import { shiftLabel, subjectLabel } from "@/lib/subjects";
 import NurseTurtle from "@/components/mascot/nurse-turtle";
 import Button from "@/components/ui/button";
 import Chip from "@/components/ui/chip";
@@ -154,10 +155,19 @@ function LogCard({ log, today }: { log: LogItem; today: string }) {
     <li className="rounded-card border border-line bg-surface p-5 pb-2 shadow-soft">
       <div className="flex items-start justify-between gap-2">
         <div className="min-w-0">
-          <p className="truncate text-title font-bold">{log.ward}</p>
+          <p className="truncate text-title font-bold">
+            {log.ward}
+            {log.shift && <span className="ml-1.5 text-body-sm font-medium text-ink-soft">{shiftLabel(log.shift)}</span>}
+          </p>
           <p className="truncate text-body-sm text-ink-soft">{log.hospital}</p>
         </div>
-        <Chip>{log.hours}시간</Chip>
+        <Chip>+{log.hours}시간</Chip>
+      </div>
+      <div className="mt-2 flex flex-wrap gap-1.5">
+        <Chip tone="neutral" className="text-caption">
+          {subjectLabel(log.subject)}
+        </Chip>
+        <StatusChip status={log.status} />
       </div>
       <p className={`mt-3 whitespace-pre-line break-words text-body ${long && !expanded ? "line-clamp-3" : ""}`}>{log.activities}</p>
       <div className="mt-1 flex flex-wrap items-center justify-end gap-1">
@@ -171,5 +181,16 @@ function LogCard({ log, today }: { log: LogItem; today: string }) {
         <RowActions id={log.id} onEdit={() => setEditAt(Date.now())} deleteAction={delAction} deleting={deleting} />
       </div>
     </li>
+  );
+}
+
+// 지도교수 인증 상태. 일지를 고치면 다시 "인증 대기"가 된다
+function StatusChip({ status }: { status: LogItem["status"] }) {
+  if (status === "approved") return <Chip className="text-caption">✓ 인증 완료</Chip>;
+  if (status === "rejected") return <Chip tone="pink" className="text-caption">반려됨 · 수정 필요</Chip>;
+  return (
+    <Chip tone="warn" className="text-caption">
+      인증 대기
+    </Chip>
   );
 }

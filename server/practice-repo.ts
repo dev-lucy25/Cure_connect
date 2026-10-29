@@ -1,6 +1,7 @@
 import "server-only";
 import { db } from "@/lib/db";
 import { fromDbDate, toDbDate } from "@/lib/dates";
+import type { LogStatus, Shift, Subject } from "@/generated/prisma/client";
 
 // 실습 일지·일정 DB 처리. 모든 함수는 userId를 첫 인자로 받고, 그 사용자 것만 읽고 바꾼다.
 // userId는 반드시 서버에서 확인한 로그인 사용자(getCurrentUser)의 id여야 한다.
@@ -10,6 +11,9 @@ export const LOG_PAGE_SIZE = 20;
 export type LogItem = {
   id: string;
   date: string;
+  subject: Subject;
+  shift: Shift | null;
+  status: LogStatus;
   hospital: string;
   ward: string;
   hours: number;
@@ -23,18 +27,32 @@ export type ScheduleItem = {
   startDate: string;
 };
 
-type LogInput = { date: string; hospital: string; ward: string; hours: number; activities: string };
+type LogInput = { date: string; subject: Subject; shift: Shift | null; hospital: string; ward: string; hours: number; activities: string };
 type ScheduleInput = { hospital: string; ward: string; startDate: string };
 
-const logSelect = { id: true, date: true, hospital: true, ward: true, minutes: true, activities: true } as const;
+const logSelect = {
+  id: true,
+  date: true,
+  subject: true,
+  shift: true,
+  status: true,
+  hospital: true,
+  ward: true,
+  minutes: true,
+  activities: true,
+} as const;
 
-function toLogItem(row: { id: string; date: Date; hospital: string; ward: string; minutes: number; activities: string }): LogItem {
-  return { id: row.id, date: fromDbDate(row.date), hospital: row.hospital, ward: row.ward, hours: row.minutes / 60, activities: row.activities };
+type LogRow = Omit<LogItem, "date" | "hours"> & { date: Date; minutes: number };
+
+function toLogItem({ date, minutes, ...rest }: LogRow): LogItem {
+  return { ...rest, date: fromDbDate(date), hours: minutes / 60 };
 }
 
 function toLogData(input: LogInput) {
   return {
     date: toDbDate(input.date),
+    subject: input.subject,
+    shift: input.shift,
     hospital: input.hospital,
     ward: input.ward,
     minutes: Math.round(input.hours * 60),
@@ -58,6 +76,14 @@ export async function getProgress(userId: string) {
   };
 }
 
+/** 과목별 누적 분. 일지에 없는 과목은 0 */
+export async function getSubjectMinutes(userId: string): Promise<Record<Subject, number>> {
+  const rows = await db.practiceLog.groupBy({ by: ["subject"], where: { userId }, _sum: { minutes: true } });
+  const result = { adult: 0, maternal: 0, child: 0, community: 0, psych: 0, management: 0 } satisfies Record<Subject, number>;
+  for (const row of rows) result[row.subject] = row._sum.minutes ?? 0;
+  return result;
+}
+
 /** 최신 날짜순 20개씩. cursor는 직전 페이지 마지막 일지 id */
 export async function listLogs(userId: string, cursor?: string) {
   const rows = await db.practiceLog.findMany({
@@ -76,9 +102,12 @@ export async function createLog(userId: string, input: LogInput) {
   await db.practiceLog.create({ data: { userId, ...toLogData(input) } });
 }
 
-/** 내 일지가 아니면 0건이 바뀌고 false */
+/** 내 일지가 아니면 0건이 바뀌고 false. 고치면 지도교수 인증을 다시 받아야 하므로 대기 상태로 돌린다 */
 export async function updateLog(userId: string, id: string, input: LogInput) {
-  const { count } = await db.practiceLog.updateMany({ where: { id, userId }, data: toLogData(input) });
+  const { count } = await db.practiceLog.updateMany({
+    where: { id, userId },
+    data: { ...toLogData(input), status: "pending", reviewedBy: null, reviewedAt: null },
+  });
   return count === 1;
 }
 

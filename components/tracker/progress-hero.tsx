@@ -3,6 +3,7 @@ import NurseTurtle, { turtleStage } from "@/components/mascot/nurse-turtle";
 import Card from "@/components/ui/card";
 import MilestoneConfetti from "@/components/ui/confetti";
 import GoalEditor from "@/components/tracker/goal-editor";
+import { DUTY_HOURS } from "@/lib/subjects";
 
 const MILESTONE = 100;
 
@@ -46,7 +47,8 @@ export default function ProgressHero({
           <p className="mt-2 text-body-sm text-ink-soft">
             {remaining > 0 ? (
               <>
-                졸업 기준까지 <b className="text-ink">{formatHours(remaining)}시간</b> 남음
+                졸업 기준까지 <b className="text-ink">{formatHours(remaining)}시간</b> (약 {Math.ceil(remaining / DUTY_HOURS)}일 듀티)
+                남음
               </>
             ) : (
               "졸업 기준 달성"

@@ -1,6 +1,7 @@
 import { z } from "zod";
 import { todayKst } from "@/lib/dates";
 import { detectPii, piiMessage } from "@/lib/validation/pii";
+import { SHIFT_KEYS, SUBJECT_KEYS } from "@/lib/subjects";
 
 // label은 조사까지 붙인 형태: { 을: "병원을", 은: "병원은" }
 const text = (label: { 을: string; 은: string }, max: number) =>
@@ -16,8 +17,14 @@ const ACTIVITIES = { 을: "한 일을", 은: "한 일은" };
 
 const isoDate = z.iso.date({ error: "날짜를 골라 주세요" });
 
+const subject = z.enum(SUBJECT_KEYS, { error: "실습 과목을 골라 주세요" });
+/** 듀티는 선택. 빈 칸 = null */
+const shift = z.preprocess((v) => (v === "" ? null : v), z.enum(SHIFT_KEYS, { error: "듀티를 다시 골라 주세요" }).nullable());
+
 export const logSchema = z.object({
   date: isoDate.refine((d) => d <= todayKst(), { error: "앞으로의 날짜는 일지로 쓸 수 없어요" }),
+  subject,
+  shift,
   hospital: text(HOSPITAL, 60),
   ward: text(WARD, 60),
   hours: z

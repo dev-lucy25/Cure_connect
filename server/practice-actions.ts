@@ -31,7 +31,7 @@ function pick<F extends string>(formData: FormData, fields: readonly F[]) {
   return Object.fromEntries(fields.map((f) => [f, String(formData.get(f) ?? "")])) as Record<F, string>;
 }
 
-const LOG_FIELDS = ["date", "hospital", "ward", "hours", "activities"] as const;
+const LOG_FIELDS = ["date", "subject", "shift", "hospital", "ward", "hours", "activities"] as const;
 const SCHEDULE_FIELDS = ["hospital", "ward", "startDate"] as const;
 
 export async function saveLog(_prev: FormState<LogField>, formData: FormData): Promise<FormState<LogField>> {
