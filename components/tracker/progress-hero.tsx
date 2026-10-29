@@ -14,11 +14,14 @@ function formatHours(hours: number) {
 // 히어로 카드: 거북이 + "312 / 1,000시간" 큰 숫자 + 두꺼운 진행 바 + 100시간마다 마일스톤 점 + (아래) D-Day 칩
 export default function ProgressHero({
   totalMinutes,
+  approvedMinutes,
   goalHours,
   dday,
   editable = true,
 }: {
   totalMinutes: number;
+  /** 지도교수 인증 완료 시간(분). 없으면(예시 화면) 표시하지 않는다 */
+  approvedMinutes?: number;
   goalHours: number;
   /** 히어로 아래쪽에 붙는 D-Day 칩 */
   dday?: ReactNode;
@@ -54,6 +57,11 @@ export default function ProgressHero({
               "졸업 기준 달성"
             )}
           </p>
+          {approvedMinutes !== undefined && (
+            <p className="mt-0.5 text-body-sm text-ink-soft">
+              교수 인증 완료 <b className="text-brand-deep">{formatHours(approvedMinutes / 60)}시간</b>
+            </p>
+          )}
         </div>
       </div>
 

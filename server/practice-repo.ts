@@ -78,12 +78,15 @@ function toLogData(input: LogInput) {
  * logsVersion은 일지가 추가·수정·삭제될 때마다 바뀌는 값 (더 불러온 목록을 새로 시작할 때 씀)
  */
 export async function getProgress(userId: string) {
-  const [agg, profile] = await Promise.all([
+  const [agg, approved, profile] = await Promise.all([
     db.practiceLog.aggregate({ where: { userId }, _sum: { minutes: true }, _count: true, _max: { updatedAt: true } }),
+    db.practiceLog.aggregate({ where: { userId, status: "approved" }, _sum: { minutes: true } }),
     db.profile.findUniqueOrThrow({ where: { id: userId }, select: { goalHours: true } }),
   ]);
   return {
     totalMinutes: agg._sum.minutes ?? 0,
+    // 누적은 전체 기준, 지도교수가 인증한 시간은 따로 보여 준다
+    approvedMinutes: approved._sum.minutes ?? 0,
     goalHours: profile.goalHours,
     logsVersion: `${agg._count}-${agg._max.updatedAt?.getTime() ?? 0}`,
   };

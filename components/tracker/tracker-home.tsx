@@ -38,6 +38,7 @@ export default async function TrackerHome({ user }: { user: CurrentUser }) {
         <div className="md:col-span-7">
           <ProgressHero
             totalMinutes={progress.totalMinutes}
+            approvedMinutes={progress.approvedMinutes}
             goalHours={progress.goalHours}
             dday={<DDayChip next={schedules[0]} today={today} />}
           />
