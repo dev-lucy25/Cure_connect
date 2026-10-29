@@ -4,6 +4,8 @@ import { notFound } from "next/navigation";
 import { Suspense } from "react";
 import { getCurrentUser } from "@/server/auth";
 import { AI_DAILY_LIMIT, getAiUsedToday, getCase, listChat } from "@/server/case-repo";
+import { latestSubmissionForCase } from "@/server/submission-repo";
+import { timeAgoFromNow } from "@/lib/dates";
 import { idSchema } from "@/lib/validation/form";
 import CaseAiPanel from "@/components/cases/case-ai-panel";
 import CaseChat from "@/components/cases/case-chat";
@@ -32,12 +34,14 @@ async function CaseDetail({ params }: { params: Promise<{ id: string }> }) {
   const user = await getCurrentUser();
   const parsed = idSchema.safeParse(id);
   if (!parsed.success) notFound();
-  const [found, usedToday, messages] = await Promise.all([
+  const [found, usedToday, messages, submission] = await Promise.all([
     getCase(user.id, parsed.data),
     getAiUsedToday(user.id),
     listChat(user.id, parsed.data),
+    latestSubmissionForCase(user.id, parsed.data),
   ]);
   if (!found) notFound();
+  const submittedAgo = submission ? timeAgoFromNow(submission.submittedAt) : null;
 
   return (
     <Stagger className="space-y-3">
@@ -45,7 +49,17 @@ async function CaseDetail({ params }: { params: Promise<{ id: string }> }) {
         <CaseEditor initial={{ id: found.id, title: found.title, ward: found.ward, memo: found.memo }} />
       </StaggerItem>
       <StaggerItem>
-        <CaseAiPanel caseId={found.id} caseTitle={found.title} ai={found.ai} stale={found.stale} usedToday={usedToday} limit={AI_DAILY_LIMIT} />
+        <CaseAiPanel
+          caseId={found.id}
+          caseTitle={found.title}
+          canSubmit={user.role === "student" && user.orgId !== null}
+          submission={submission}
+          submittedAgo={submittedAgo}
+          ai={found.ai}
+          stale={found.stale}
+          usedToday={usedToday}
+          limit={AI_DAILY_LIMIT}
+        />
       </StaggerItem>
       <StaggerItem>
         <CaseChat caseId={found.id} messages={messages} usedToday={usedToday} limit={AI_DAILY_LIMIT} />

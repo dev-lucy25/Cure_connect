@@ -15,14 +15,14 @@ enum Role {
 // Supabase Auth 사용자(auth.users)와 1:1. id는 Supabase 사용자 id를 그대로 쓴다.
 // 역할은 서버만 정한다: 가입 시 항상 student, professor는 시드 스크립트로만 생성.
 model Profile {
-  id        String   @id @db.Uuid
-  email     String   @unique
-  name      String   @db.VarChar(30)
-  role      Role     @default(student)
+  id         String   @id @db.Uuid
+  email      String   @unique
+  name       String   @db.VarChar(30)
+  role       Role     @default(student)
   // 졸업 목표 실습 시간 (사용자가 바꿀 수 있음)
-  goalHours Int      @default(1000)
+  goalHours  Int      @default(1000)
   // 족보 열람용 크레딧. 가입 3, 족보 올리면 +2, 남의 족보 열람 -1 (0 미만 금지는 DB CHECK)
-  credits   Int      @default(3)
+  credits    Int      @default(3)
   // 소속 학교. 학교 없이 개인으로 쓰는 학생은 null
   orgId      String?
   // 학번(학생) 또는 교번(교수). 같은 학교 안에서만 고유 → 학교 + 학번으로 로그인
@@ -31,14 +31,15 @@ model Profile {
   classGroup String?  @db.VarChar(10)
   // 교수 직책 (예: 실습과장, 조교)
   staffTitle String?  @db.VarChar(30)
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
 
   org Organization? @relation(fields: [orgId], references: [id], onDelete: SetNull)
 
   practiceLogs      PracticeLog[]
   practiceSchedules PracticeSchedule[]
   checklistItems    ChecklistItem[]
+  submissions       CaseSubmission[]
   caseNotes         CaseNote[]
   aiUsages          AiUsage[]
   wardNotes         WardNote[]
@@ -67,7 +68,8 @@ model Organization {
   inviteCode   String    @unique @db.VarChar(20)
   createdAt    DateTime  @default(now())
 
-  members Profile[]
+  members     Profile[]
+  submissions CaseSubmission[]
 }
 
 // 케이스 메모와 AI 정리 결과(SOAPIE·간호진단·빠진 사정 항목).
@@ -84,11 +86,48 @@ model CaseNote {
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
 
-  user     Profile           @relation(fields: [userId], references: [id], onDelete: Cascade)
-  messages CaseChatMessage[]
+  user        Profile           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  messages    CaseChatMessage[]
+  submissions CaseSubmission[]
 
   // 내 케이스를 최근 수정순으로 나눠 읽는다
   @@index([userId, updatedAt(sort: Desc), id(sort: Desc)])
+}
+
+// 과제 제출: 학생 → 같은 학교 교수. 제출 순간의 메모·AI 결과를 복사해 고정한다(이후 케이스를 고쳐도 제출본은 그대로)
+enum SubmissionStatus {
+  submitted
+  graded
+  revision
+}
+
+// ⚠️ 마이그레이션 20261029070000에 스키마로 표현 못 하는 부분 고유 인덱스 "CaseSubmission_one_pending_per_case"가 있다
+//   (같은 케이스는 채점 대기 제출이 하나만). 다음 migrate diff에 이 인덱스 DROP 줄이 생기면 지울 것.
+model CaseSubmission {
+  id          String           @id @default(cuid())
+  // 원본 케이스. 케이스를 지워도 제출본은 남는다(null)
+  caseId      String?
+  studentId   String           @db.Uuid
+  orgId       String
+  title       String           @db.VarChar(60)
+  ward        String           @db.VarChar(60)
+  memo        String           @db.VarChar(2000)
+  aiResult    Json
+  status      SubmissionStatus @default(submitted)
+  grade       String?          @db.VarChar(10)
+  feedback    String?          @db.VarChar(2000)
+  gradedBy    String?          @db.Uuid
+  submittedAt DateTime         @default(now())
+  gradedAt    DateTime?
+
+  student  Profile      @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  org      Organization @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  caseNote CaseNote?    @relation(fields: [caseId], references: [id], onDelete: SetNull)
+
+  // 교수: 우리 학교 채점 대기 최신순 / 학생: 내 제출 최신순 / 케이스별 최근 제출
+  @@index([orgId, status, submittedAt(sort: Desc)])
+  @@index([studentId, submittedAt(sort: Desc)])
+  @@index([caseId, submittedAt(sort: Desc)])
 }
 
 enum ChatRole {
@@ -112,9 +151,9 @@ model CaseChatMessage {
 
 // AI 정리 하루 사용 횟수 (1인 하루 20회). day는 한국 날짜
 model AiUsage {
-  userId String @db.Uuid
+  userId String   @db.Uuid
   day    DateTime @db.Date
-  count  Int    @default(0)
+  count  Int      @default(0)
 
   user Profile @relation(fields: [userId], references: [id], onDelete: Cascade)
 

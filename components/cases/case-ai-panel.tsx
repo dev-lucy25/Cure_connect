@@ -2,6 +2,8 @@
 
 import { useActionState, useState } from "react";
 import { formatCaseDraft } from "@/lib/case-copy";
+import type { SubmissionSummary } from "@/server/submission-repo";
+import SubmitPanel from "@/components/cases/submit-panel";
 import { AnimatePresence, motion } from "motion/react";
 import { SPRING_SNAPPY, SPRING_SOFT } from "@/lib/motion";
 import Collapse from "@/components/motion/collapse";
@@ -36,9 +38,15 @@ export default function CaseAiPanel({
   stale,
   usedToday,
   limit,
+  canSubmit,
+  submission,
+  submittedAgo,
 }: {
   caseId: string;
   caseTitle: string;
+  canSubmit: boolean;
+  submission: SubmissionSummary | null;
+  submittedAgo: string | null;
   ai: CaseAiResult | null;
   stale: boolean;
   usedToday: number;
@@ -89,7 +97,13 @@ export default function CaseAiPanel({
         </motion.div>
       </AnimatePresence>
 
-      {ai && !pending && <CopyDraftButton text={formatCaseDraft(caseTitle, ai)} />}
+      {ai && !pending && (
+        <>
+          <CopyDraftButton text={formatCaseDraft(caseTitle, ai)} />
+          {/* 메모가 바뀐 뒤(stale)에는 서버가 제출을 막고 안내한다 */}
+          <SubmitPanel caseId={caseId} canSubmit={canSubmit} submission={submission} submittedAgo={submittedAgo} />
+        </>
+      )}
 
       <form action={action} className="mt-4 space-y-2">
         <input type="hidden" name="id" value={caseId} />
