@@ -219,7 +219,7 @@ model Organization {                           // ★ 학교/기관 (B3, I1)
 
 model Profile {
   + orgId       String?                        // 소속 학교
-  + studentNo   String?   @db.VarChar(20)      // 학번/교번. @@unique([orgId, studentNo])
+  + memberNo   String?   @db.VarChar(20)      // 학번/교번. @@unique([orgId, memberNo])
   + grade       Int?                           // 학년 3·4
   + classGroup  String?   @db.VarChar(10)      // 반 "B"
   + staffTitle  String?   @db.VarChar(30)      // 교수 직책 "실습과장", "조교"
@@ -230,7 +230,7 @@ model Profile {
 
 **역할 정책**: 가입 화면에서 "지도교수/조교"를 고를 수 있지만(B6), **학교 초대 코드가 맞아야만** professor로 만든다. 코드 없이 고르면 student로 가입 + "교수 인증 대기" 상태. (스스로 교수 권한을 얻는 것을 막음)
 
-**학번 로그인(B4)**: Supabase Auth는 이메일 기반이므로, 로그인 폼에서 "학교 + 학번"을 받으면 서버가 `Profile(orgId, studentNo)`로 이메일을 찾아 `signInWithPassword`에 넘긴다. 이메일 로그인도 그대로 지원. (존재 여부가 드러나지 않게 오류 메시지는 동일하게)
+**학번 로그인(B4)**: Supabase Auth는 이메일 기반이므로, 로그인 폼에서 "학교 + 학번"을 받으면 서버가 `Profile(orgId, memberNo)`로 이메일을 찾아 `signInWithPassword`에 넘긴다. 이메일 로그인도 그대로 지원. (존재 여부가 드러나지 않게 오류 메시지는 동일하게)
 
 ### 3-2. 실습 시간
 

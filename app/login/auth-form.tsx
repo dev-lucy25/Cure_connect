@@ -1,16 +1,20 @@
 "use client";
 
 import { useActionState, useState } from "react";
+import Link from "next/link";
 import { login, signup } from "@/server/auth-actions";
 import type { AuthFormState } from "@/lib/validation/auth";
+import type { OrgOption } from "@/server/org-repo";
 import NurseTurtle, { type TurtleMood } from "@/components/mascot/nurse-turtle";
 import Button from "@/components/ui/button";
 import Card from "@/components/ui/card";
 import Field from "@/components/ui/field";
+import SelectField from "@/components/ui/select-field";
 
 type Mode = "login" | "signup";
+type Role = "student" | "professor";
 
-export default function AuthForm() {
+export default function AuthForm({ orgs }: { orgs: OrgOption[] }) {
   const [mode, setMode] = useState<Mode>("login");
 
   return (
@@ -32,7 +36,7 @@ export default function AuthForm() {
         ))}
       </div>
       {/* key로 모드마다 폼 상태를 새로 시작한다 */}
-      {mode === "login" ? <Form key="login" mode="login" /> : <Form key="signup" mode="signup" />}
+      {mode === "login" ? <LoginForm key="login" orgs={orgs} /> : <SignupForm key="signup" orgs={orgs} />}
     </>
   );
 }
@@ -44,55 +48,247 @@ function moodOf(state: AuthFormState, pending: boolean): TurtleMood {
   return "default";
 }
 
-function Form({ mode }: { mode: Mode }) {
-  const [state, action, pending] = useActionState<AuthFormState, FormData>(mode === "login" ? login : signup, {});
+function FormHeader({ state, pending, subtitle }: { state: AuthFormState; pending: boolean; subtitle: string }) {
+  return (
+    <div className="flex flex-col items-center text-center">
+      <NurseTurtle stage={2} mood={moodOf(state, pending)} size={112} decorative />
+      <h1 className="mt-1 font-display text-headline text-ink">NursePass</h1>
+      <p className="mt-1 text-body-sm text-ink-soft">{subtitle}</p>
+    </div>
+  );
+}
+
+function Message({ state }: { state: AuthFormState }) {
+  if (!state.message) return null;
+  return (
+    <p
+      role={state.status === "error" ? "alert" : "status"}
+      className={`rounded-control px-4 py-3 text-body-sm font-medium ${
+        state.status === "error" ? "bg-danger-soft text-danger" : "bg-brand-soft text-brand-deep"
+      }`}
+    >
+      {state.message}
+    </p>
+  );
+}
+
+/** 두세 개 중 하나를 고르는 알약 버튼 (라디오라서 폼 값으로 그대로 전송된다) */
+function Segmented<T extends string>({
+  name,
+  legend,
+  options,
+  value,
+  onChange,
+  error,
+}: {
+  name: string;
+  legend: string;
+  options: { value: T; label: string }[];
+  value: T;
+  onChange: (value: T) => void;
+  error?: string;
+}) {
+  return (
+    <fieldset>
+      <legend className="mb-1.5 block text-body-sm font-bold text-ink">{legend}</legend>
+      <div className="grid grid-cols-2 gap-1 rounded-control bg-subtle p-1">
+        {options.map((o) => (
+          <label
+            key={o.value}
+            className={`flex min-h-11 cursor-pointer items-center justify-center rounded-[10px] px-2 text-center text-body-sm font-bold transition has-focus-visible:outline-3 has-focus-visible:outline-brand-deep ${
+              value === o.value ? "bg-surface text-brand-deep shadow-soft" : "text-ink-soft"
+            }`}
+          >
+            <input
+              type="radio"
+              name={name}
+              value={o.value}
+              checked={value === o.value}
+              onChange={() => onChange(o.value)}
+              className="sr-only"
+            />
+            {o.label}
+          </label>
+        ))}
+      </div>
+      {error && <p className="mt-1.5 text-body-sm font-medium text-danger">{error}</p>}
+    </fieldset>
+  );
+}
+
+const ROLE_OPTIONS: { value: Role; label: string }[] = [
+  { value: "student", label: "간호학과 학생" },
+  { value: "professor", label: "실습 지도교수 / 조교" },
+];
+
+function OrgSelect({
+  orgs,
+  value,
+  onChange,
+  error,
+  noneLabel,
+}: {
+  orgs: OrgOption[];
+  value: string;
+  onChange: (value: string) => void;
+  error?: string;
+  noneLabel: string;
+}) {
+  return (
+    <SelectField name="orgId" label="소속 학교 / 기관" value={value} onChange={(e) => onChange(e.target.value)} error={error}>
+      <option value="">{noneLabel}</option>
+      {orgs.map((o) => (
+        <option key={o.id} value={o.id}>
+          {o.name} ({o.shortName})
+        </option>
+      ))}
+    </SelectField>
+  );
+}
+
+function LoginForm({ orgs }: { orgs: OrgOption[] }) {
+  const [state, action, pending] = useActionState<AuthFormState, FormData>(login, {});
+  const [method, setMethod] = useState<"email" | "member">("email");
+  const [role, setRole] = useState<Role>("student");
+  const [orgId, setOrgId] = useState("");
   const errors = state.fieldErrors ?? {};
+  const noLabel = role === "professor" ? "교번" : "학번";
 
   return (
     <Card>
-      <div className="flex flex-col items-center text-center">
-        <NurseTurtle stage={2} mood={moodOf(state, pending)} size={112} decorative />
-        <h1 className="mt-1 font-display text-headline text-ink">NursePass</h1>
-        <p className="mt-1 text-body-sm text-ink-soft">
-          {mode === "login" ? "간호학과 임상실습 기록" : "계정을 만들고 기록을 시작하세요"}
-        </p>
-      </div>
+      <FormHeader state={state} pending={pending} subtitle="학번 또는 이메일로 로그인하세요" />
 
       <form action={action} noValidate className="mt-6 space-y-4">
-        {mode === "signup" && (
-          <Field name="name" label="이름" autoComplete="name" defaultValue={state.values?.name} error={errors.name} />
+        <Segmented
+          name="method"
+          legend="로그인 방법"
+          value={method}
+          onChange={setMethod}
+          options={[
+            { value: "email", label: "이메일" },
+            { value: "member", label: "학번 / 교번" },
+          ]}
+        />
+
+        {method === "member" ? (
+          <>
+            <Segmented name="role" legend="나는" value={role} onChange={setRole} options={ROLE_OPTIONS} />
+            <OrgSelect orgs={orgs} value={orgId} onChange={setOrgId} error={errors.orgId} noneLabel="학교를 골라 주세요" />
+            <Field
+              name="memberNo"
+              label={noLabel}
+              autoComplete="username"
+              placeholder={`${noLabel} 입력`}
+              defaultValue={state.values?.memberNo}
+              error={errors.memberNo}
+            />
+          </>
+        ) : (
+          <Field
+            name="email"
+            label="이메일"
+            type="email"
+            inputMode="email"
+            autoComplete="email"
+            defaultValue={state.values?.email}
+            error={errors.email}
+          />
         )}
+        <Field name="password" label="비밀번호" type="password" autoComplete="current-password" error={errors.password} />
+
+        <Message state={state} />
+
+        {/* pending 동안 비활성화해서 연타해도 한 번만 전송된다 */}
+        <Button type="submit" block disabled={pending}>
+          {pending ? "잠시만요..." : "로그인"}
+        </Button>
+        <p className="text-center">
+          <Link href="/reset-password" className="inline-flex min-h-11 items-center text-body-sm font-bold text-ink-soft hover:text-ink">
+            비밀번호를 잊었어요
+          </Link>
+        </p>
+      </form>
+    </Card>
+  );
+}
+
+function SignupForm({ orgs }: { orgs: OrgOption[] }) {
+  const [state, action, pending] = useActionState<AuthFormState, FormData>(signup, {});
+  const [role, setRole] = useState<Role>("student");
+  const [orgId, setOrgId] = useState("");
+  const errors = state.fieldErrors ?? {};
+  const values = state.values ?? {};
+  const professor = role === "professor";
+
+  return (
+    <Card>
+      <FormHeader state={state} pending={pending} subtitle="계정을 만들고 기록을 시작하세요" />
+
+      <form action={action} noValidate className="mt-6 space-y-4">
+        <Segmented name="role" legend="나는" value={role} onChange={setRole} options={ROLE_OPTIONS} error={errors.role} />
+        <Field name="name" label="이름" autoComplete="name" defaultValue={values.name} error={errors.name} />
         <Field
           name="email"
           label="이메일"
           type="email"
           inputMode="email"
           autoComplete="email"
-          defaultValue={state.values?.email}
+          defaultValue={values.email}
           error={errors.email}
         />
-        <Field
-          name="password"
-          label="비밀번호"
-          type="password"
-          autoComplete={mode === "login" ? "current-password" : "new-password"}
-          error={errors.password}
+        <Field name="password" label="비밀번호 (8자 이상)" type="password" autoComplete="new-password" error={errors.password} />
+
+        <OrgSelect
+          orgs={orgs}
+          value={orgId}
+          onChange={setOrgId}
+          error={errors.orgId}
+          noneLabel={professor ? "학교를 골라 주세요" : "학교 없이 개인으로 쓸게요"}
         />
 
-        {state.message && (
-          <p
-            role={state.status === "error" ? "alert" : "status"}
-            className={`rounded-control px-4 py-3 text-body-sm font-medium ${
-              state.status === "error" ? "bg-danger-soft text-danger" : "bg-brand-soft text-brand-deep"
-            }`}
-          >
-            {state.message}
-          </p>
+        {orgId && (
+          <Field
+            name="memberNo"
+            label={professor ? "교번" : "학번"}
+            autoComplete="username"
+            defaultValue={values.memberNo}
+            error={errors.memberNo}
+          />
         )}
 
-        {/* pending 동안 비활성화해서 연타해도 한 번만 전송된다 */}
+        {professor ? (
+          <>
+            <Field name="staffTitle" label="직책 (선택)" placeholder="예: 실습과장, 조교" defaultValue={values.staffTitle} error={errors.staffTitle} />
+            <Field
+              name="inviteCode"
+              label="학교 초대 코드"
+              autoComplete="off"
+              autoCapitalize="characters"
+              placeholder="학과 사무실에서 받은 코드"
+              defaultValue={values.inviteCode}
+              error={errors.inviteCode}
+            />
+          </>
+        ) : (
+          orgId && (
+            <div className="grid grid-cols-2 gap-3">
+              <SelectField name="grade" label="학년" defaultValue={values.grade ?? ""} error={errors.grade}>
+                <option value="">선택</option>
+                {[1, 2, 3, 4].map((g) => (
+                  <option key={g} value={g}>
+                    {g}학년
+                  </option>
+                ))}
+              </SelectField>
+              <Field name="classGroup" label="반 (선택)" placeholder="예: B" defaultValue={values.classGroup} error={errors.classGroup} />
+            </div>
+          )
+        )}
+
+        <Message state={state} />
+
         <Button type="submit" block disabled={pending}>
-          {pending ? "잠시만요..." : mode === "login" ? "로그인" : "가입하기"}
+          {pending ? "잠시만요..." : "가입하기"}
         </Button>
       </form>
     </Card>

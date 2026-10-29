@@ -12,6 +12,12 @@ export type CurrentUser = {
   email: string;
   name: string;
   role: Role;
+  orgId: string | null;
+  orgName: string | null;
+  memberNo: string | null;
+  grade: number | null;
+  classGroup: string | null;
+  staffTitle: string | null;
 };
 
 /**
@@ -34,15 +40,33 @@ export const getOptionalUser = cache(async (): Promise<CurrentUser | null> => {
   if (profile) return profile;
 
   // 가입 직후 프로필 저장이 실패했던 경우에 대비. 역할은 항상 student로만 만든다. (여러 번 와도 안전하게 upsert)
-  return db.profile.upsert({
+  const created = await db.profile.upsert({
     where: { id: userId },
     create: { id: userId, email, name: email.split("@")[0].slice(0, 30), role: "student" },
     update: {},
     select: PROFILE_SELECT,
   });
+  return toCurrentUser(created);
 });
 
-const PROFILE_SELECT = { id: true, email: true, name: true, role: true } as const;
+const PROFILE_SELECT = {
+  id: true,
+  email: true,
+  name: true,
+  role: true,
+  orgId: true,
+  memberNo: true,
+  grade: true,
+  classGroup: true,
+  staffTitle: true,
+  org: { select: { name: true } },
+} as const;
+
+type ProfileRow = Omit<CurrentUser, "orgName"> & { org: { name: string } | null };
+
+function toCurrentUser({ org, ...rest }: ProfileRow): CurrentUser {
+  return { ...rest, orgName: org?.name ?? null };
+}
 
 /**
  * 이름·역할은 거의 바뀌지 않으므로 사용자별로 서버에 캐시해 매 요청 DB 왕복(약 300ms)을 없앤다.
@@ -52,7 +76,8 @@ async function getProfile(userId: string): Promise<CurrentUser | null> {
   "use cache";
   cacheTag(`profile:${userId}`);
   cacheLife("hours");
-  return db.profile.findUnique({ where: { id: userId }, select: PROFILE_SELECT });
+  const row = await db.profile.findUnique({ where: { id: userId }, select: PROFILE_SELECT });
+  return row ? toCurrentUser(row) : null;
 }
 
 /** 로그인이 꼭 필요한 화면·서버 처리에서 쓴다. 없으면 /login으로 보낸다. */

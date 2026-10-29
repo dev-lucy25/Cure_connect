@@ -23,8 +23,18 @@ model Profile {
   goalHours Int      @default(1000)
   // 족보 열람용 크레딧. 가입 3, 족보 올리면 +2, 남의 족보 열람 -1 (0 미만 금지는 DB CHECK)
   credits   Int      @default(3)
+  // 소속 학교. 학교 없이 개인으로 쓰는 학생은 null
+  orgId      String?
+  // 학번(학생) 또는 교번(교수). 같은 학교 안에서만 고유 → 학교 + 학번으로 로그인
+  memberNo   String?  @db.VarChar(20)
+  grade      Int?
+  classGroup String?  @db.VarChar(10)
+  // 교수 직책 (예: 실습과장, 조교)
+  staffTitle String?  @db.VarChar(30)
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+
+  org Organization? @relation(fields: [orgId], references: [id], onDelete: SetNull)
 
   practiceLogs      PracticeLog[]
   practiceSchedules PracticeSchedule[]
@@ -35,7 +45,28 @@ model Profile {
   wardNoteLikes     WardNoteLike[]
   creditLedger      CreditLedger[]
 
+  @@unique([orgId, memberNo])
   @@index([role])
+  @@index([orgId, role])
+}
+
+enum OrgPlan {
+  free
+  pro
+}
+
+// 학교·기관. 교수 계정은 이 학교의 inviteCode를 알아야만 만들 수 있다.
+// 초대 코드는 마이그레이션에서 무작위로 만들어 DB에만 있다 (git에 남기지 않음).
+model Organization {
+  id           String    @id @default(cuid())
+  name         String    @unique @db.VarChar(60)
+  shortName    String    @db.VarChar(20)
+  plan         OrgPlan   @default(free)
+  licenseUntil DateTime?
+  inviteCode   String    @unique @db.VarChar(20)
+  createdAt    DateTime  @default(now())
+
+  members Profile[]
 }
 
 // 케이스 메모와 AI 정리 결과(SOAPIE·간호진단·빠진 사정 항목).
