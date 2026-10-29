@@ -1,6 +1,9 @@
 "use client";
 
-import { useActionState } from "react";
+import { useActionState, useState } from "react";
+import { formatCaseDraft } from "@/lib/case-copy";
+import type { SubmissionSummary } from "@/server/submission-repo";
+import SubmitPanel from "@/components/cases/submit-panel";
 import { AnimatePresence, motion } from "motion/react";
 import { SPRING_SNAPPY, SPRING_SOFT } from "@/lib/motion";
 import Collapse from "@/components/motion/collapse";
@@ -30,12 +33,20 @@ const SECTION: Record<Section, { label: string; className: string }> = {
 // SOAPIE 정리 카드(빠른 버튼). 기다리는 동안 이 카드 안에서만 거북이가 걷는다 (화면의 다른 곳은 그대로 쓸 수 있다)
 export default function CaseAiPanel({
   caseId,
+  caseTitle,
   ai,
   stale,
   usedToday,
   limit,
+  canSubmit,
+  submission,
+  submittedAgo,
 }: {
   caseId: string;
+  caseTitle: string;
+  canSubmit: boolean;
+  submission: SubmissionSummary | null;
+  submittedAgo: string | null;
   ai: CaseAiResult | null;
   stale: boolean;
   usedToday: number;
@@ -73,7 +84,7 @@ export default function CaseAiPanel({
           {pending ? (
             <div className="py-6 text-center">
               <WalkingTurtle label="정리하고 있어요" />
-              <p className="text-body-sm text-ink-soft">최대 15초 걸려요</p>
+              <p className="text-body-sm text-ink-soft">최대 25초 걸려요</p>
             </div>
           ) : ai ? (
             <AiResultView ai={ai} />
@@ -85,6 +96,14 @@ export default function CaseAiPanel({
           )}
         </motion.div>
       </AnimatePresence>
+
+      {ai && !pending && (
+        <>
+          <CopyDraftButton text={formatCaseDraft(caseTitle, ai)} />
+          {/* 메모가 바뀐 뒤(stale)에는 서버가 제출을 막고 안내한다 */}
+          <SubmitPanel caseId={caseId} canSubmit={canSubmit} submission={submission} submittedAgo={submittedAgo} />
+        </>
+      )}
 
       <form action={action} className="mt-4 space-y-2">
         <input type="hidden" name="id" value={caseId} />
@@ -98,29 +117,78 @@ export default function CaseAiPanel({
   );
 }
 
-// 결과: 안내 → 간호진단 → S·O·A·P·I·E → 빠진 항목 순으로 차례로 떠오른다. 진단 칩은 톡 튀며 나온다
+/** 초안 복사: 실습일지에 붙여 넣을 글로 복사. 클립보드 API가 막힌 환경은 예전 방식(execCommand)으로 */
+function CopyDraftButton({ text }: { text: string }) {
+  const [copiedAt, setCopiedAt] = useState<number | undefined>(undefined);
+  const [failed, setFailed] = useState(false);
+
+  async function copy() {
+    setFailed(false);
+    try {
+      await navigator.clipboard.writeText(text);
+    } catch {
+      const area = document.createElement("textarea");
+      area.value = text;
+      area.setAttribute("readonly", "");
+      area.style.position = "fixed";
+      area.style.opacity = "0";
+      document.body.appendChild(area);
+      area.select();
+      const ok = document.execCommand("copy");
+      area.remove();
+      if (!ok) {
+        setFailed(true);
+        return;
+      }
+    }
+    setCopiedAt(Date.now());
+  }
+
+  return (
+    <div className="mt-4 space-y-2">
+      <Button type="button" variant="secondary" block onClick={copy}>
+        📋 초안 복사
+      </Button>
+      <FormStatus message={failed ? "복사하지 못했어요. 글을 길게 눌러 직접 복사해 주세요" : undefined} savedAt={copiedAt} savedText="초안을 복사했어요 📋" />
+    </div>
+  );
+}
+
+// 결과: 안내·제목 → 우선순위 간호진단 → S·O·A·P·I·E → 빠진 항목 순으로 차례로 떠오른다. 진단 줄은 톡 튀며 나온다
 function AiResultView({ ai }: { ai: CaseAiResult }) {
   return (
     <Stagger className="mt-4 space-y-4">
-      <StaggerItem>
+      <StaggerItem className="space-y-2">
         <p className="rounded-control bg-pink-soft px-4 py-2.5 text-body-sm font-bold text-pink-deep">참고용 초안 — 직접 확인하세요</p>
+        {ai.title && (
+          <p className="text-title font-bold text-ink">
+            <span aria-hidden>📋 </span>
+            {ai.title}
+          </p>
+        )}
       </StaggerItem>
 
-      {ai.nursingDiagnoses.length > 0 && (
+      {ai.diagnoses.length > 0 && (
         <StaggerItem>
-          <h3 className="text-body-sm font-bold text-ink-soft">간호진단</h3>
-          <ul className="mt-2 flex flex-wrap gap-1.5">
-            {ai.nursingDiagnoses.map((d, i) => (
+          <h3 className="text-body-sm font-bold text-ink-soft">NANDA-I 우선순위 간호진단</h3>
+          <ol className="mt-2 space-y-2">
+            {ai.diagnoses.map((d, i) => (
               <motion.li
-                key={d}
-                initial={{ opacity: 0, scale: 0.85 }}
+                key={`${d.priority}-${d.name}`}
+                initial={{ opacity: 0, scale: 0.94 }}
                 animate={{ opacity: 1, scale: 1 }}
                 transition={{ ...SPRING_SNAPPY, delay: 0.1 + i * 0.05 }}
+                className="rounded-control border border-warn-line bg-warn-bg px-3 py-2.5"
               >
-                <Chip>{d}</Chip>
+                <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
+                  <span className="rounded-full bg-ink px-2 py-0.5 text-caption font-bold text-canvas">{d.priority}순위</span>
+                  <span className="font-bold break-words text-ink">{d.name}</span>
+                  {d.domain && <span className="ml-auto text-caption text-warn-ink">{d.domain}</span>}
+                </div>
+                {d.relatedTo && <p className="mt-1 text-body-sm break-words text-warn-ink">관련요인: {d.relatedTo}</p>}
               </motion.li>
             ))}
-          </ul>
+          </ol>
         </StaggerItem>
       )}
 

@@ -25,7 +25,15 @@ export default function CaseList({ items, nextCursor }: { items: CaseSummary[]; 
 
   return (
     <div className="space-y-3">
-      <PageHeader title="케이스" description="현장 메모를 SOAPIE 초안으로 정리해요" />
+      <PageHeader
+        title="케이스"
+        description="현장 메모를 SOAPIE 초안으로 정리해요"
+        action={
+          <Link href="/submissions" className="inline-flex min-h-11 shrink-0 items-center text-body-sm font-bold text-brand-deep hover:underline">
+            📤 내 제출
+          </Link>
+        }
+      />
 
       {/* 히어로: 새 케이스 쓰기. 저장에 성공하면 서버가 새 케이스 화면으로 보내므로 폼은 실패할 때만 다시 그려진다 */}
       <div className="pt-2">

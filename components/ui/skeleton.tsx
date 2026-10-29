@@ -268,3 +268,17 @@ export function MeSkeleton() {
     </SkeletonBox>
   );
 }
+
+/** 내 제출: 카드 목록 (md 이상 2열) */
+export function SubmissionsSkeleton() {
+  return (
+    <SkeletonBox label="제출 현황을 불러오는 중" className="space-y-3">
+      <HeaderBones />
+      <div className="grid gap-3 pt-2 md:grid-cols-2">
+        {Array.from({ length: 4 }, (_, i) => (
+          <CaseCardBones key={i} />
+        ))}
+      </div>
+    </SkeletonBox>
+  );
+}
