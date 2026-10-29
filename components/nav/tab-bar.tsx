@@ -5,6 +5,8 @@ import BottomTabs, { TopTabs } from "@/components/nav/tab-links";
 import NurseTurtle from "@/components/mascot/nurse-turtle";
 import ThemeToggle from "@/components/theme/theme-toggle";
 import { IconUser } from "@/components/ui/icons";
+import { getCredits } from "@/server/notes-repo";
+import CreditBadge from "@/components/credits/credit-badge";
 
 // 상단 앱 바와 하단 탭 바. 역할·로그인 여부는 서버에서 읽는다(같은 요청 안에서 한 번만 조회).
 // md 이상에서는 탭이 앱 바 가운데로 올라오고 하단 탭 바는 숨는다.
@@ -29,9 +31,12 @@ function AppBarShell({ nav, children }: { nav?: React.ReactNode; children?: Reac
 
 export async function AppBar() {
   const user = await getOptionalUser();
-  // 크레딧 배지는 족보 기능과 함께 붙인다. 로그인 전에는 그 자리에 로그인 버튼
+  // 학생은 크레딧 배지(충전소) + 내 정보, 교수는 내 정보만, 로그인 전에는 로그인 버튼.
+  // 크레딧은 자주 바뀌므로 캐시하지 않고 요청마다 읽는다
+  const credits = user?.role === "student" ? await getCredits(user.id) : null;
   return (
     <AppBarShell nav={<TopTabs tabs={TABS[user?.role ?? "guest"]} />}>
+      {credits !== null && <CreditBadge credits={credits} />}
       {user ? (
         <Link
           href="/me"

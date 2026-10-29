@@ -21,8 +21,8 @@ model Profile {
   role       Role     @default(student)
   // 졸업 목표 실습 시간 (사용자가 바꿀 수 있음)
   goalHours  Int      @default(1000)
-  // 족보 열람용 크레딧. 가입 3, 족보 올리면 +2, 남의 족보 열람 -1 (0 미만 금지는 DB CHECK)
-  credits    Int      @default(3)
+  // 족보 열람용 크레딧. 가입 300 · 족보 등록 +500(하루 1회·한 달 4회) · 열람 -가격(0/300/500) · 판매 시 가격의 80% 적립 (0 미만 금지는 DB CHECK)
+  credits    Int      @default(300)
   // 소속 학교. 학교 없이 개인으로 쓰는 학생은 null
   orgId      String?
   // 학번(학생) 또는 교번(교수). 같은 학교 안에서만 고유 → 학교 + 학번으로 로그인
@@ -44,7 +44,7 @@ model Profile {
   aiUsages          AiUsage[]
   wardNotes         WardNote[]
   wardNoteUnlocks   WardNoteUnlock[]
-  wardNoteLikes     WardNoteLike[]
+  wardNoteRatings   WardNoteRating[]
   creditLedger      CreditLedger[]
 
   @@unique([orgId, memberNo])
@@ -250,28 +250,52 @@ model ChecklistItem {
   @@index([userId, sortOrder])
 }
 
+// 족보 실습 과목 분류 (마켓 필터)
+enum NoteCategory {
+  adult
+  critical
+  maternal_child
+  psych_community
+}
+
+enum NoteStatus {
+  published
+  hidden
+}
+
 // 병동 족보: 자주 받은 질문 · 준비물 · 분위기 · 팁 (항목형)
+// 무료 맛보기(누구나): 제목·준비물·분위기 / 시크릿(열람한 사람·작성자만): 자주 받은 질문·팁
 model WardNote {
-  id         String   @id @default(cuid())
-  authorId   String   @db.Uuid
-  hospital   String   @db.VarChar(60)
-  ward       String   @db.VarChar(60)
-  title      String   @db.VarChar(80)
-  questions  String[]
-  supplies   String[]
-  atmosphere String   @default("") @db.VarChar(500)
-  tips       String[]
-  likeCount  Int      @default(0)
-  createdAt  DateTime @default(now())
-  updatedAt  DateTime @updatedAt
+  id          String       @id @default(cuid())
+  authorId    String       @db.Uuid
+  hospital    String       @db.VarChar(60)
+  ward        String       @db.VarChar(60)
+  title       String       @db.VarChar(80)
+  questions   String[]
+  supplies    String[]
+  atmosphere  String       @default("") @db.VarChar(500)
+  tips        String[]
+  category    NoteCategory
+  // 열람 가격(크레딧): 0(무료) · 300 · 500 (DB CHECK)
+  price       Int          @default(300)
+  // "N명 열람" (열람 기록 수, 작성자·무료 열람 제외)
+  salesCount  Int          @default(0)
+  // 평점 = ratingSum / ratingCount (열람한 사람만 1~5)
+  ratingSum   Int          @default(0)
+  ratingCount Int          @default(0)
+  status      NoteStatus   @default(published)
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
 
   author  Profile          @relation(fields: [authorId], references: [id], onDelete: Cascade)
   unlocks WardNoteUnlock[]
-  likes   WardNoteLike[]
+  ratings WardNoteRating[]
 
-  // 최신순 목록, 병동 칩 필터, 내 족보
-  @@index([createdAt(sort: Desc), id(sort: Desc)])
+  // 최신순 목록, 분류·병동 필터, 인기순, 내 족보
+  @@index([status, createdAt(sort: Desc), id(sort: Desc)])
+  @@index([category, createdAt(sort: Desc)])
   @@index([ward, createdAt(sort: Desc)])
+  @@index([salesCount(sort: Desc)])
   @@index([authorId])
 }
 
@@ -288,11 +312,13 @@ model WardNoteUnlock {
   @@index([noteId])
 }
 
-// 좋아요. (사용자, 족보) 기본 키
-model WardNoteLike {
+// 평점(1~5). 열람한 사람만, (사용자, 족보) 하나 — 다시 매기면 바뀐다
+model WardNoteRating {
   userId    String   @db.Uuid
   noteId    String
+  score     Int
   createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   user Profile  @relation(fields: [userId], references: [id], onDelete: Cascade)
   note WardNote @relation(fields: [noteId], references: [id], onDelete: Cascade)
@@ -306,6 +332,13 @@ enum CreditReason {
   upload
   unlock
   delete_note
+  // 내 족보가 열람돼 받은 판매 수익(가격의 80%)
+  sale
+  // 유료 충전(결제) · 결제 취소
+  purchase
+  refund
+  // 운영자 조정(예: 크레딧 단위 변경 환산)
+  admin_adjust
 }
 
 // 크레딧 변동 내역. 잔액(Profile.credits) = 이 사용자의 delta 합계여야 한다.
@@ -314,12 +347,14 @@ enum CreditReason {
 //   부분 고유 인덱스 "CreditLedger_once_per_note", Profile INSERT 트리거 "Profile_signup_credit".
 //   다음 마이그레이션을 `prisma migrate diff`로 만들 때 이 인덱스를 DROP하는 줄이 생기면 지울 것.
 model CreditLedger {
-  id        String       @id @default(cuid())
-  userId    String       @db.Uuid
-  delta     Int
-  reason    CreditReason
-  noteId    String?
-  createdAt DateTime     @default(now())
+  id             String       @id @default(cuid())
+  userId         String       @db.Uuid
+  delta          Int
+  reason         CreditReason
+  noteId         String?
+  // sale: 산 사람 / unlock: 판 사람(작성자)
+  counterpartyId String?      @db.Uuid
+  createdAt      DateTime     @default(now())
 
   user Profile @relation(fields: [userId], references: [id], onDelete: Cascade)
 

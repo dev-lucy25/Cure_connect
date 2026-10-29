@@ -134,6 +134,28 @@ body {
   background: var(--color-canvas);
 }
 
+/*
+ * 커서: Tailwind v4는 버튼 기본 커서가 화살표라, 누를 수 있는 것은 모두 손가락 모양으로 맞춘다.
+ * (링크 a[href]는 브라우저 기본이 손가락) 막힌 것은 금지 모양.
+ */
+@layer base {
+  button:not(:disabled),
+  [role="button"]:not([aria-disabled="true"]),
+  [role="tab"],
+  [role="checkbox"],
+  select:not(:disabled),
+  summary,
+  label:has(> input[type="radio"]:not(:disabled)),
+  label:has(> input[type="checkbox"]:not(:disabled)) {
+    cursor: pointer;
+  }
+  button:disabled,
+  select:disabled,
+  [aria-disabled="true"] {
+    cursor: not-allowed;
+  }
+}
+
 :focus-visible {
   outline: 3px solid var(--color-brand-deep);
   outline-offset: 2px;
