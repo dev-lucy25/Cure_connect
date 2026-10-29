@@ -102,6 +102,11 @@ export async function createLog(userId: string, input: LogInput) {
   await db.practiceLog.create({ data: { userId, ...toLogData(input) } });
 }
 
+/** 여러 날 일지를 한 번에 (1주 일괄). 전부 들어가거나 하나도 안 들어간다 */
+export async function createLogs(userId: string, inputs: LogInput[]) {
+  await db.practiceLog.createMany({ data: inputs.map((input) => ({ userId, ...toLogData(input) })) });
+}
+
 /** 내 일지가 아니면 0건이 바뀌고 false. 고치면 지도교수 인증을 다시 받아야 하므로 대기 상태로 돌린다 */
 export async function updateLog(userId: string, id: string, input: LogInput) {
   const { count } = await db.practiceLog.updateMany({

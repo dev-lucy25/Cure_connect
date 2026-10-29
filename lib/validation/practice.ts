@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { todayKst } from "@/lib/dates";
+import { todayKst, weekdaysFrom } from "@/lib/dates";
 import { detectPii, piiMessage } from "@/lib/validation/pii";
 import { SHIFT_KEYS, SUBJECT_KEYS } from "@/lib/subjects";
 
@@ -44,6 +44,20 @@ export const logSchema = z.object({
     if (kinds.length > 0) ctx.addIssue({ code: "custom", message: piiMessage(kinds) });
   }),
 });
+
+/** 1주 일괄: 시작일부터 평일 5일 × 8시간 */
+export const WEEK_DAYS = 5;
+export const WEEK_DAY_HOURS = 8;
+
+export const weekLogSchema = logSchema
+  .omit({ hours: true })
+  .extend({ date: isoDate })
+  .superRefine((v, ctx) => {
+    const last = weekdaysFrom(v.date, WEEK_DAYS).at(-1)!;
+    if (last > todayKst()) {
+      ctx.addIssue({ code: "custom", path: ["date"], message: "마지막 날이 오늘 이후예요. 이미 지난 주의 첫날을 골라 주세요" });
+    }
+  });
 
 export const scheduleSchema = z.object({
   hospital: text(HOSPITAL, 60),

@@ -32,3 +32,15 @@ export function dDayLabel(days: number): string {
   if (days === 0) return "D-DAY";
   return days > 0 ? `D-${days}` : `D+${-days}`;
 }
+
+/** start부터 주말(토·일)을 건너뛰고 평일 count일 ("1주 일괄 기록"용) */
+export function weekdaysFrom(start: string, count: number): string[] {
+  const result: string[] = [];
+  const d = toDbDate(start);
+  while (result.length < count) {
+    const day = d.getUTCDay();
+    if (day !== 0 && day !== 6) result.push(fromDbDate(d));
+    d.setUTCDate(d.getUTCDate() + 1);
+  }
+  return result;
+}

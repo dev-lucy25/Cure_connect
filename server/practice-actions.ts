@@ -4,11 +4,15 @@ import { refresh } from "next/cache";
 import { getCurrentUser } from "@/server/auth";
 import * as repo from "@/server/practice-repo";
 import { fieldErrorsOf } from "@/lib/validation/form";
+import { weekdaysFrom } from "@/lib/dates";
 import {
   goalSchema,
   idSchema,
   logSchema,
   scheduleSchema,
+  weekLogSchema,
+  WEEK_DAY_HOURS,
+  WEEK_DAYS,
   type FormState,
   type LogField,
   type ScheduleField,
@@ -39,6 +43,23 @@ export async function saveLog(_prev: FormState<LogField>, formData: FormData): P
   const values = pick(formData, LOG_FIELDS);
   const target = optionalId(formData);
   if (!target.ok) return { message: NOT_FOUND, values };
+
+  // 1주 일괄: 시작일부터 평일 5일에 8시간씩 (새로 쓸 때만)
+  if (!target.id && formData.get("bulk") === "week") {
+    const parsed = weekLogSchema.safeParse(values);
+    if (!parsed.success) return { fieldErrors: fieldErrorsOf<LogField>(parsed.error), values };
+    const { date, ...rest } = parsed.data;
+    try {
+      await repo.createLogs(
+        user.id,
+        weekdaysFrom(date, WEEK_DAYS).map((day) => ({ ...rest, date: day, hours: WEEK_DAY_HOURS })),
+      );
+    } catch {
+      return { message: SAVE_FAILED, values };
+    }
+    refresh();
+    return { savedAt: Date.now() };
+  }
 
   const parsed = logSchema.safeParse(values);
   if (!parsed.success) return { fieldErrors: fieldErrorsOf<LogField>(parsed.error), values };
