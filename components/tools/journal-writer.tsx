@@ -1,6 +1,6 @@
 "use client";
 
-import { useActionState, useEffect, useState } from "react";
+import { useActionState, useEffect, useEffectEvent, useState } from "react";
 import { AnimatePresence, motion } from "motion/react";
 import { deleteJournalAction, draftJournalAction, saveJournalAction, type JournalDraftState } from "@/server/learning-actions";
 import type { JournalItem } from "@/server/learning-repo";
@@ -16,12 +16,23 @@ import TextareaField from "@/components/ui/textarea-field";
 import RowActions from "@/components/tracker/row-actions";
 import { WalkingTurtle } from "@/components/ui/skeleton";
 
-// AI 실습일지: 날짜·병동·오늘 메모 → (AI 초안 만들기) → 아래 일지 칸에서 고쳐 저장. AI 없이 직접 써도 된다
+// AI 실습일지(나만 보는 성찰 일지): 날짜·병동·오늘 메모 → (AI 초안 만들기) → 아래 일지 칸에서 고쳐 저장. AI 없이 직접 써도 된다
+// 저장하면 입력 칸을 새로 비운다(같은 일지가 두 번 저장되지 않게). 저장 알림은 칸이 새로 그려져도 남도록 바깥에서 띄운다
 export default function JournalWriter({ items, today, left }: { items: JournalItem[]; today: string; left: number }) {
   const [editing, setEditing] = useState<JournalItem | null>(null);
+  const [round, setRound] = useState(0);
+  const [saved, setSaved] = useState<{ savedAt?: number; notice?: string }>({});
   return (
     <div className="space-y-4">
-      <Editor key={editing?.id ?? "new"} initial={editing} today={today} left={left} onDone={() => setEditing(null)} />
+      <Editor
+        key={editing?.id ?? `new-${round}`}
+        initial={editing}
+        today={today}
+        left={left}
+        onSaved={(r) => (setSaved(r), setEditing(null), setRound((n) => n + 1))}
+        onCancel={() => setEditing(null)}
+      />
+      <FormStatus savedAt={saved.savedAt} savedText={saved.notice} />
       <section aria-labelledby="journal-list" className="space-y-2">
         <h2 id="journal-list" className="text-title font-bold">
           저장한 실습일지 <span className="text-body-sm font-medium text-ink-soft">({items.length})</span>
@@ -44,7 +55,19 @@ export default function JournalWriter({ items, today, left }: { items: JournalIt
   );
 }
 
-function Editor({ initial, today, left, onDone }: { initial: JournalItem | null; today: string; left: number; onDone: () => void }) {
+function Editor({
+  initial,
+  today,
+  left,
+  onSaved,
+  onCancel,
+}: {
+  initial: JournalItem | null;
+  today: string;
+  left: number;
+  onSaved: (r: { savedAt?: number; notice?: string }) => void;
+  onCancel: () => void;
+}) {
   const [draftState, draftAction, drafting] = useActionState<JournalDraftState, FormData>(draftJournalAction, {});
   const [saveState, saveAction, saving] = useActionState<FormState<JournalField>, FormData>(saveJournalAction, {});
   const [content, setContent] = useState(initial?.content ?? "");
@@ -54,15 +77,20 @@ function Editor({ initial, today, left, onDone }: { initial: JournalItem | null;
     setLastDraft(draftState.draft);
     setContent(draftState.draft);
   }
+  const notifySaved = useEffectEvent(() => onSaved({ savedAt: saveState.savedAt, notice: saveState.notice }));
   useEffect(() => {
-    if (saveState.savedAt && initial) onDone();
-  }, [saveState.savedAt, initial, onDone]);
-  const v = saveState.values ?? draftState.values;
-  const errors = { ...draftState.fieldErrors, ...saveState.fieldErrors };
+    if (saveState.savedAt) notifySaved();
+  }, [saveState.savedAt]);
+  // 마지막으로 누른 버튼(초안/저장)의 결과만 보여준다 (앞 결과의 오류·값이 남지 않게)
+  const [last, setLast] = useState<"draft" | "save">("save");
+  const shown = last === "draft" ? draftState : saveState;
+  const v = shown.values;
+  const errors = shown.fieldErrors ?? {};
 
   return (
     <Card>
       <h2 className="text-title font-bold text-ink">{initial ? "실습일지 고치기" : "✍️ 오늘 실습일지"}</h2>
+      <p className="mt-1 text-body-sm text-ink-soft">나만 보는 성찰 일지예요. 교수님께 제출되는 실습 시간 기록과는 따로예요.</p>
       <form className="mt-3 space-y-3" action={saveAction}>
         {initial && <input type="hidden" name="id" value={initial.id} />}
         <div className="grid grid-cols-2 gap-3">
@@ -78,14 +106,28 @@ function Editor({ initial, today, left, onDone }: { initial: JournalItem | null;
         </div>
         <TextareaField
           name="memo"
-          label="오늘 관찰·수행한 간호 메모"
+          label="오늘 관찰·수행한 간호 메모 (AI 초안용)"
           rows={3}
           maxLength={1000}
           placeholder="예: 혈당 검사 관찰, 활력징후 측정함. 무균술 준비 중 손위생 시점을 놓칠 뻔함"
           defaultValue={v?.memo ?? initial?.memo ?? ""}
           error={errors.memo}
         />
-        <Button type="submit" formAction={draftAction} variant="secondary" block disabled={drafting || left === 0}>
+        <Button
+          type="submit"
+          formAction={draftAction}
+          variant="secondary"
+          block
+          disabled={drafting || left === 0}
+          onClick={(e) => {
+            // 직접 쓰거나 고친 글이 있으면 덮어쓰기 전에 묻는다 (AI 횟수도 아낌)
+            if (content.trim() && content !== lastDraft && !window.confirm("지금 쓴 일지를 AI 초안으로 바꿀까요? 쓴 내용은 사라져요")) {
+              e.preventDefault();
+              return;
+            }
+            setLast("draft");
+          }}
+        >
           {drafting
             ? "초안 만드는 중..."
             : left === 0
@@ -93,7 +135,7 @@ function Editor({ initial, today, left, onDone }: { initial: JournalItem | null;
               : `🪄 AI로 일지 초안 만들기 (오늘 ${left}회 남음)`}
         </Button>
         {drafting && <WalkingTurtle label="일지 초안을 쓰고 있어요" />}
-        <FormStatus message={draftState.message} />
+        {last === "draft" && <FormStatus message={draftState.message} />}
         <TextareaField
           name="content"
           label="실습일지 (직접 고쳐서 저장)"
@@ -104,13 +146,13 @@ function Editor({ initial, today, left, onDone }: { initial: JournalItem | null;
           error={errors.content}
           placeholder={"1. 오늘 실습 내용\n2. 새롭게 배운 점\n3. 어려웠던 점 · 개선할 점\n4. 다음 실습 목표"}
         />
-        <FormStatus message={saveState.message} savedAt={saveState.savedAt} savedText={saveState.notice} />
+        {last === "save" && <FormStatus message={saveState.message} />}
         <div className="flex gap-2">
-          <Button type="submit" disabled={saving} className="flex-1">
+          <Button type="submit" disabled={saving} className="flex-1" onClick={() => setLast("save")}>
             {saving ? "저장 중..." : "일지 저장"}
           </Button>
           {initial && (
-            <Button type="button" variant="ghost" onClick={onDone}>
+            <Button type="button" variant="ghost" onClick={onCancel}>
               취소
             </Button>
           )}

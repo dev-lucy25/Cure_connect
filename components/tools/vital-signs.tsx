@@ -14,7 +14,9 @@ export default function VitalSigns() {
         <table className="w-full border-collapse text-left text-body-sm">
           <thead>
             <tr className="bg-subtle text-ink-soft">
-              <th scope="col" className="rounded-l-control p-2.5">구분</th>
+              <th scope="col" className="rounded-l-control p-2.5">
+                구분
+              </th>
               {VITAL_COLUMNS.map((c, i) => (
                 <th key={c.key} scope="col" className={`p-2.5 ${i === VITAL_COLUMNS.length - 1 ? "rounded-r-control" : ""}`}>
                   {c.label} <span className="font-normal">({c.unit})</span>

@@ -17,8 +17,8 @@ import TextareaField from "@/components/ui/textarea-field";
 import { WalkingTurtle } from "@/components/ui/skeleton";
 
 // AI 프리셉터 모의 구술질문: 병동 고르기 → 질문 → 답변 → AI 평가(점수·잘한 점·보완점·모범 답안). 80점 미만은 오답노트
-export default function PreceptorQuiz({ missed, left }: { missed: AttemptItem[]; left: number }) {
-  const [ward, setWard] = useState<PreceptorWard>("internal");
+export default function PreceptorQuiz({ missed, left, initialWard }: { missed: AttemptItem[]; left: number; initialWard: PreceptorWard }) {
+  const [ward, setWard] = useState<PreceptorWard>(initialWard);
   const [index, setIndex] = useState(0);
   // 같은 질문을 다시 풀거나 질문을 바꾸면 답변 칸·결과를 새로 시작 (key)
   const [round, setRound] = useState(0);
@@ -122,6 +122,7 @@ function QuestionCard({
           placeholder="예: 먼저 환자 곁에서 의식과 맥박을 다시 확인하고, 바로 지도간호사 선생님께 보고하겠습니다…"
         />
         <FormStatus message={state.message} />
+        {state.notice && <p className="text-caption text-ink-soft">{state.notice}</p>}
         {pending ? (
           <WalkingTurtle label="프리셉터가 답변을 듣고 있어요" />
         ) : (

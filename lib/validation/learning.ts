@@ -37,7 +37,18 @@ export const journalMemoSchema = z.object({
   memo: noPii("메모", 5, 1000),
 });
 
-export const journalSchema = journalMemoSchema.extend({ content: noPii("일지", 10, 4000) });
+/** 저장: 메모는 선택(AI 없이 직접 써도 됨), 일지 본문은 필수 */
+export const journalSchema = journalMemoSchema.extend({
+  memo: z
+    .string()
+    .trim()
+    .max(1000, { error: "메모는 1,000자 이하로 써 주세요" })
+    .superRefine((v, ctx) => {
+      const kinds = detectPii(v);
+      if (kinds.length > 0) ctx.addIssue({ code: "custom", message: piiMessage(kinds) });
+    }),
+  content: noPii("일지", 10, 4000),
+});
 export type JournalField = "date" | "ward" | "memo" | "content";
 
 /** AI 일지 초안: 네 칸 */

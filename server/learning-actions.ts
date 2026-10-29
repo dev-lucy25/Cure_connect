@@ -48,9 +48,12 @@ export async function evaluateAnswerAction(_prev: PreceptorState, formData: Form
     await refundAiUse(user.id);
     return { message: AI_FAILURE_MESSAGE[result.reason], values };
   }
-  await saveAttempt(user.id, parsed.data.ward, q.key, parsed.data.answer, result.value);
+  const saved = await saveAttempt(user.id, parsed.data.ward, q.key, parsed.data.answer, result.value).then(
+    () => true,
+    () => false,
+  );
   refresh();
-  return { result: result.value, questionKey: q.key, values };
+  return { result: result.value, questionKey: q.key, values, ...(saved ? {} : { notice: "평가는 받았지만 기록은 남기지 못했어요" }) };
 }
 
 export type JournalDraftState = FormState<JournalField> & { draft?: string };
@@ -72,6 +75,7 @@ export async function draftJournalAction(_prev: JournalDraftState, formData: For
     await refundAiUse(user.id);
     return { message: AI_FAILURE_MESSAGE[result.reason], values };
   }
+  refresh();
   return { draft: journalText(result.value), values, savedAt: Date.now() };
 }
 

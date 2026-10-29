@@ -31,7 +31,9 @@ export default function IvCalculator() {
     <Card>
       <span className="inline-block rounded-md bg-o-bg px-2.5 py-1 text-caption font-bold text-o-ink">병동 액팅 필수 도구</span>
       <h2 className="mt-2 text-title font-bold text-ink">💧 수액 주입 속도 (gtt) 계산기</h2>
-      <p className="mt-1 text-body-sm text-ink-soft">처방된 총 수액량과 주입 시간을 넣으면 분당 방울 수와 몇 초마다 한 방울씩 떨어져야 하는지 바로 계산해요.</p>
+      <p className="mt-1 text-body-sm text-ink-soft">
+        처방된 총 수액량과 주입 시간을 넣으면 분당 방울 수와 몇 초마다 한 방울씩 떨어져야 하는지 바로 계산해요.
+      </p>
 
       <div className="mt-4 grid gap-3 sm:grid-cols-3">
         <Field
@@ -103,7 +105,8 @@ export default function IvCalculator() {
                 <span className="ml-1 font-sans text-body-sm text-canvas/70">(gtt/min)</span>
               </p>
               <p className="text-body-sm font-bold text-warn-bg">
-                ⏱️ 약 <AnimatedNumber value={result.secPerDrop} format={{ maximumFractionDigits: 1, minimumFractionDigits: 1 }} />초마다 1방울씩 떨어지게 조절하세요
+                ⏱️ 약 <AnimatedNumber value={result.secPerDrop} format={{ maximumFractionDigits: 1, minimumFractionDigits: 1 }} />
+                초마다 1방울씩 떨어지게 조절하세요
               </p>
             </div>
           )

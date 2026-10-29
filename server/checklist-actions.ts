@@ -85,7 +85,12 @@ export async function importWardChecklist(ward: string): Promise<{ message?: str
   if (!items) return { message: "병동을 다시 골라 주세요" };
   const result = await repo.addChecklistItems(user.id, items).catch(() => null);
   if (!result) return { message: "불러오지 못했어요. 잠시 후 다시 시도해 주세요" };
-  if (result.added === 0) return { message: "이미 다 들어 있거나 준비물 칸이 가득 찼어요" };
+  if (result.added === 0)
+    return { message: result.full ? "준비물 칸이 가득 찼어요. 끝난 항목을 지우고 다시 불러와 주세요" : "이미 다 들어 있어요" };
   refresh();
-  return { savedAt: Date.now(), notice: `${result.added}개를 불러왔어요${result.skipped ? ` (이미 있는 ${result.skipped}개 제외)` : ""}` };
+  const notes = [
+    result.duplicate && `이미 있는 ${result.duplicate}개 제외`,
+    result.full && `칸이 가득 차 ${result.full}개는 못 넣음`,
+  ].filter(Boolean);
+  return { savedAt: Date.now(), notice: `${result.added}개를 불러왔어요${notes.length ? ` (${notes.join(", ")})` : ""}` };
 }

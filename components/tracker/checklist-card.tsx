@@ -5,7 +5,9 @@ import { AnimatePresence, motion } from "motion/react";
 import { SPRING_SOFT, TWEEN_POP } from "@/lib/motion";
 import Collapse from "@/components/motion/collapse";
 import { addChecklistItem, deleteChecklistItem, importWardChecklist, resetChecklist, setChecklistDone } from "@/server/checklist-actions";
+import Link from "next/link";
 import { WARD_CHECKLISTS } from "@/lib/ward-checklists";
+import { PRECEPTOR_WARDS } from "@/lib/preceptor-questions";
 import { WARD_CATEGORIES } from "@/lib/skills";
 import ProgressBar from "@/components/motion/progress-bar";
 import SelectField from "@/components/ui/select-field";
@@ -74,7 +76,9 @@ export default function ChecklistCard({ items }: { items: ChecklistEntry[] }) {
         />
       )}
       {optimistic.length === 0 && (
-        <p className="mt-3 rounded-control bg-subtle px-4 py-3 text-body-sm text-ink-soft">비어 있어요. 아래에서 챙길 준비물을 추가해 보세요</p>
+        <p className="mt-3 rounded-control bg-subtle px-4 py-3 text-body-sm text-ink-soft">
+          비어 있어요. 아래에서 챙길 준비물을 추가해 보세요
+        </p>
       )}
       <ul className="mt-3 space-y-1">
         <AnimatePresence initial={false}>
@@ -166,7 +170,13 @@ function WardImport() {
     <div className="mt-4 border-t border-line/70 pt-3" data-ward-import>
       <div className="flex items-end gap-2">
         <div className="min-w-0 flex-1">
-          <SelectField id="ward-import" name="ward" label="병동별 준비 항목 불러오기" value={ward} onChange={(e) => setWard(e.target.value)}>
+          <SelectField
+            id="ward-import"
+            name="ward"
+            label="병동별 준비 항목 불러오기"
+            value={ward}
+            onChange={(e) => setWard(e.target.value)}
+          >
             {wards.map((w) => (
               <option key={w.key} value={w.key}>
                 {w.label}
@@ -187,6 +197,14 @@ function WardImport() {
       <div className="mt-2">
         <FormStatus message={result.message} savedAt={result.savedAt} savedText={result.notice} />
       </div>
+      {(PRECEPTOR_WARDS as readonly string[]).includes(ward) && (
+        <Link
+          href={`/tools/preceptor?ward=${ward}`}
+          className="mt-1 inline-flex min-h-11 items-center text-body-sm font-bold text-brand-deep hover:underline"
+        >
+          🩺 이 병동 프리셉터 질문 미리 연습하기 →
+        </Link>
+      )}
     </div>
   );
 }

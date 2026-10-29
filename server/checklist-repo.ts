@@ -72,9 +72,10 @@ export async function addChecklistItems(userId: string, texts: string[]) {
     const existing = await tx.checklistItem.findMany({ where: { userId }, select: { text: true, sortOrder: true } });
     const have = new Set(existing.map((e) => e.text));
     const room = Math.max(0, CHECKLIST_MAX - existing.length);
-    const add = texts.filter((t) => !have.has(t)).slice(0, room);
+    const fresh = texts.filter((t) => !have.has(t));
+    const add = fresh.slice(0, room);
     const start = existing.reduce((m, e) => Math.max(m, e.sortOrder), -1) + 1;
     if (add.length) await tx.checklistItem.createMany({ data: add.map((text, i) => ({ userId, text, sortOrder: start + i })) });
-    return { added: add.length, skipped: texts.length - add.length };
+    return { added: add.length, duplicate: texts.length - fresh.length, full: fresh.length - add.length };
   });
 }
