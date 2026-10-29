@@ -35,7 +35,7 @@ export function BarList({
         {items.map((it) => {
           const pct = it.cell ? Math.max(2, (it.cell.value / max) * 100) : 0;
           const tip = it.cell
-            ? `${it.label}: ${format(it.cell.value)} · 응답 학생 ${it.cell.students}명${it.extra ? ` · ${it.extra}` : ""}`
+            ? `${it.label}: ${format(it.cell.value)} · 응답 학생 ${it.cell.band}${it.extra ? ` · ${it.extra}` : ""}`
             : `${it.label}: ${HIDDEN_NOTE}`;
           return (
             <li
@@ -79,7 +79,7 @@ export function BarList({
       </ul>
       <TableView
         head={["항목", "값", "응답 학생"]}
-        rows={items.map((it) => [it.label, it.cell ? format(it.cell.value) : "숨김", it.cell ? `${it.cell.students}명` : "5명 미만"])}
+        rows={items.map((it) => [it.label, it.cell ? format(it.cell.value) : "숨김", it.cell ? `${it.cell.band}` : "5명 미만"])}
       />
     </figure>
   );
@@ -116,7 +116,7 @@ export function Heatmap({
                   const id = `${r.ward}-${skill}`;
                   const label = skills.find((s) => s.key === skill)?.label ?? skill;
                   const tip = cell
-                    ? `${r.label} · ${label}: 일지의 ${cell.value}% (학생 ${cell.students}명)`
+                    ? `${r.label} · ${label}: 일지의 ${cell.value}% (학생 ${cell.band})`
                     : `${r.label} · ${label}: ${HIDDEN_NOTE}`;
                   return (
                     <td
@@ -180,7 +180,7 @@ export function WeeklyLine({ points }: { points: { week: string; avg: Cell }[] }
     <figure>
       {/* 좁은 화면에선 글자가 너무 작아지지 않게 최소 너비를 두고 안쪽에서 가로 스크롤 */}
       <div className="-mx-5 overflow-x-auto px-5 md:mx-0 md:px-0">
-        <svg viewBox={`0 0 ${W} ${H}`} className="w-full min-w-[34rem]" role="img" aria-label="최근 8주 주별 평균 난이도">
+        <svg viewBox={`0 0 ${W} ${H}`} className="w-full min-w-[34rem]" role="img" aria-label={`최근 ${points.length}주 주별 평균 난이도`}>
           {[1, 2, 3, 4, 5].map((v) => (
             <g key={v}>
               <line x1={pad.l} x2={W - pad.r} y1={y(v)} y2={y(v)} stroke="var(--color-line)" strokeWidth={1} />
@@ -235,7 +235,7 @@ export function WeeklyLine({ points }: { points: { week: string; avg: Cell }[] }
               <line x1={x(hover)} x2={x(hover)} y1={pad.t} y2={H - pad.b} stroke="var(--color-ink-soft)" strokeDasharray="3 3" />
               <rect x={Math.min(W - 170, Math.max(0, x(hover) - 80))} y={2} width={160} height={24} rx={8} fill="var(--color-ink)" />
               <text x={Math.min(W - 90, Math.max(80, x(hover)))} y={18} textAnchor="middle" fontSize={12} fill="var(--color-canvas)">
-                {`${points[hover].week.slice(5).replace("-", "/")} 주 · 평균 ${points[hover].avg!.value} (${points[hover].avg!.students}명)`}
+                {`${points[hover].week.slice(5).replace("-", "/")} 주 · 평균 ${points[hover].avg!.value} (${points[hover].avg!.band})`}
               </text>
             </g>
           )}
@@ -243,7 +243,7 @@ export function WeeklyLine({ points }: { points: { week: string; avg: Cell }[] }
       </div>
       <TableView
         head={["주 시작일", "평균 난이도", "응답 학생"]}
-        rows={points.map((p) => [p.week, p.avg ? String(p.avg.value) : "숨김", p.avg ? `${p.avg.students}명` : "5명 미만"])}
+        rows={points.map((p) => [p.week, p.avg ? String(p.avg.value) : "숨김", p.avg ? p.avg.band : "5명 미만"])}
       />
     </figure>
   );

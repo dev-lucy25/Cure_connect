@@ -6,7 +6,6 @@ import { getInsights, K_MIN, type InsightPeriod, type InsightScope } from "@/ser
 import { SKILLS } from "@/lib/skills";
 import LoginPrompt from "@/components/home/login-prompt";
 import RoleNotice from "@/components/home/role-notice";
-import AnimatedNumber from "@/components/motion/animated-number";
 import { Stagger, StaggerItem } from "@/components/motion/stagger";
 import Card from "@/components/ui/card";
 import PageHeader from "@/components/ui/page-header";
@@ -21,8 +20,8 @@ const PERIODS: { key: InsightPeriod; label: string }[] = [
   { key: "all", label: "전체" },
 ];
 const SCOPES: { key: InsightScope; label: string }[] = [
-  { key: "all", label: "학교·방 전체" },
-  { key: "room", label: "내 방만" },
+  { key: "all", label: "학교·실습반 전체" },
+  { key: "room", label: "내 실습반만" },
 ];
 
 export default function InsightsPage({ searchParams }: PageProps<"/prof/insights">) {
@@ -42,16 +41,26 @@ async function InsightsContent({ searchParams }: Pick<PageProps<"/prof/insights"
     return <RoleNotice title="교수 계정 전용 화면이에요" body="내 기록은 실습 홈에서 볼 수 있어요" href="/" action="실습 홈으로" />;
   const sp = await searchParams;
   const period = (PERIODS.find((p) => p.key === sp.period)?.key ?? "term") as InsightPeriod;
-  const scope = (sp.scope === "room" && user.roomCode ? "room" : "all") as InsightScope;
-  const data = await getInsights(user, period, scope);
+  if (!user.orgId && !user.roomCode)
+    return (
+      <RoleNotice
+        title="연결된 학생이 아직 없어요"
+        body="학교를 연결하거나 실습반 방 코드를 학생들에게 알려 주면, 학생들의 익명 통계가 여기에 모여요"
+        href="/"
+        action="방 코드 확인하러 가기"
+      />
+    );
+  const data = await getInsights(user, period, sp.scope === "room" ? "room" : "all");
+  const scope = data.scope;
   const href = (change: { period?: string; scope?: string }) => {
     const q = new URLSearchParams({ period, scope, ...change });
     return `/prof/insights?${q}`;
   };
+  // 정확한 인원·건수는 빼기 계산으로 개인을 드러낼 수 있어 구간으로만 보여준다
   const tiles = [
-    { label: "통계 대상 학생", value: data.students, suffix: "명" },
-    { label: "난이도·술기를 남긴 학생", value: data.respondents, suffix: "명" },
-    { label: "통계에 쓴 일지", value: data.logs, suffix: "건" },
+    { label: "통계 대상 학생", value: data.students },
+    { label: "난이도·술기를 남긴 학생", value: data.respondents },
+    { label: "공개 기준", value: `${K_MIN}명 이상 칸만` },
   ];
 
   return (
@@ -61,7 +70,7 @@ async function InsightsContent({ searchParams }: Pick<PageProps<"/prof/insights"
       {/* 필터: 한 줄 (기간 · 범위) */}
       <StaggerItem className="flex flex-wrap gap-x-4 gap-y-2 pt-1">
         <Pills label="기간" items={PERIODS.map((p) => ({ label: p.label, href: href({ period: p.key }), active: p.key === period }))} />
-        {user.roomCode && (
+        {data.roomScopeOk && (
           <Pills label="범위" items={SCOPES.map((s) => ({ label: s.label, href: href({ scope: s.key }), active: s.key === scope }))} />
         )}
       </StaggerItem>
@@ -71,18 +80,13 @@ async function InsightsContent({ searchParams }: Pick<PageProps<"/prof/insights"
           {tiles.map((t) => (
             <li key={t.label} className="rounded-card border border-line bg-surface p-4 shadow-soft">
               <p className="text-caption font-bold text-ink-soft">{t.label}</p>
-              <AnimatedNumber
-                value={t.value}
-                suffix={t.suffix}
-                format={{ maximumFractionDigits: 0 }}
-                className="mt-1 block font-display text-headline text-ink"
-              />
+              <p className="mt-1 font-display text-title text-ink md:text-headline">{t.value}</p>
             </li>
           ))}
         </ul>
       </StaggerItem>
 
-      {data.respondents < K_MIN && (
+      {data.fewRespondents && (
         <StaggerItem>
           <p className="rounded-card border border-warn-line bg-warn-bg px-4 py-3 text-body-sm text-warn-ink">
             아직 난이도·술기를 남긴 학생이 {K_MIN}명 미만이라 대부분 숨겨져 있어요. 학생들이 일지의 &ldquo;오늘 어땠나요?&rdquo;를 남기면
@@ -100,7 +104,7 @@ async function InsightsContent({ searchParams }: Pick<PageProps<"/prof/insights"
               caption="병동별 평균 난이도"
               max={5}
               unit="level"
-              items={data.byWard.map((w) => ({ key: w.key, label: w.label, cell: w.avg, extra: `일지 ${w.logs}건` }))}
+              items={data.byWard.map((w) => ({ key: w.key, label: w.label, cell: w.avg }))}
             />
           </Card>
         </StaggerItem>
@@ -112,7 +116,7 @@ async function InsightsContent({ searchParams }: Pick<PageProps<"/prof/insights"
               caption="어려웠던 술기 비율"
               max={100}
               unit="percent"
-              items={data.skills.slice(0, 10).map((s) => ({ key: s.key, label: s.label, cell: s.share, extra: `일지 ${s.logs}건` }))}
+              items={data.skills.slice(0, 10).map((s) => ({ key: s.key, label: s.label, cell: s.share }))}
             />
           </Card>
         </StaggerItem>
@@ -132,7 +136,7 @@ async function InsightsContent({ searchParams }: Pick<PageProps<"/prof/insights"
 
       <StaggerItem>
         <Card>
-          <h2 className="text-title font-bold">주별 평균 난이도 (최근 8주)</h2>
+          <h2 className="text-title font-bold">주별 평균 난이도 (최근 {data.weekly.length}주)</h2>
           <WeeklyLine points={data.weekly} />
         </Card>
       </StaggerItem>
@@ -160,7 +164,7 @@ async function InsightsContent({ searchParams }: Pick<PageProps<"/prof/insights"
                     <span className="font-bold text-ink">
                       {i + 1}. 평균 {q.avg}점
                     </span>
-                    <span className="ml-1 text-caption text-ink-soft">({q.students}명)</span>
+                    <span className="ml-1 text-caption text-ink-soft">({q.band})</span>
                     <p className="mt-0.5 text-ink">{q.question}</p>
                   </li>
                 ))}
