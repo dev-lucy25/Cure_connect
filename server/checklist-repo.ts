@@ -64,3 +64,18 @@ export async function deleteChecklistItem(userId: string, id: string) {
 export async function resetChecklist(userId: string) {
   await db.checklistItem.updateMany({ where: { userId }, data: { done: false } });
 }
+
+/** 병동별 템플릿 항목 불러오기: 이미 있는 문구는 건너뛰고, 최대 개수까지만 넣는다. 넣은 개수를 돌려준다 */
+export async function addChecklistItems(userId: string, texts: string[]) {
+  return db.$transaction(async (tx) => {
+    await tx.$executeRaw`SELECT pg_advisory_xact_lock(hashtext(${`checklist:${userId}`}))`;
+    const existing = await tx.checklistItem.findMany({ where: { userId }, select: { text: true, sortOrder: true } });
+    const have = new Set(existing.map((e) => e.text));
+    const room = Math.max(0, CHECKLIST_MAX - existing.length);
+    const fresh = texts.filter((t) => !have.has(t));
+    const add = fresh.slice(0, room);
+    const start = existing.reduce((m, e) => Math.max(m, e.sortOrder), -1) + 1;
+    if (add.length) await tx.checklistItem.createMany({ data: add.map((text, i) => ({ userId, text, sortOrder: start + i })) });
+    return { added: add.length, duplicate: texts.length - fresh.length, full: fresh.length - add.length };
+  });
+}

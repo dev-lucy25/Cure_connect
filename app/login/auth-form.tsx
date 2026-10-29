@@ -1,6 +1,6 @@
 "use client";
 
-import { useActionState, useId, useState } from "react";
+import { useActionState, useState } from "react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { AnimatePresence, motion } from "motion/react";
@@ -13,7 +13,9 @@ import NurseTurtle, { type TurtleMood } from "@/components/mascot/nurse-turtle";
 import Button from "@/components/ui/button";
 import Card from "@/components/ui/card";
 import Field from "@/components/ui/field";
+import { GRADE_OPTIONS } from "@/lib/subjects";
 import SelectField from "@/components/ui/select-field";
+import Segmented from "@/components/ui/segmented";
 
 type Mode = "login" | "signup";
 type Role = "student" | "professor";
@@ -76,7 +78,7 @@ function FormHeader({ state, pending, subtitle }: { state: AuthFormState; pendin
   return (
     <div className="flex flex-col items-center text-center">
       <NurseTurtle stage={2} mood={moodOf(state, pending)} size={112} decorative />
-      <h1 className="mt-1 font-display text-headline text-ink">NursePass</h1>
+      <h1 className="mt-1 font-brand text-headline text-ink">NursePass</h1>
       <p className="mt-1 text-body-sm text-ink-soft">{subtitle}</p>
     </div>
   );
@@ -105,60 +107,6 @@ function Message({ state }: { state: AuthFormState }) {
   );
 }
 
-/** 두세 개 중 하나를 고르는 알약 버튼 (라디오라서 폼 값으로 그대로 전송된다) */
-function Segmented<T extends string>({
-  name,
-  legend,
-  options,
-  value,
-  onChange,
-  error,
-}: {
-  name: string;
-  legend: string;
-  options: { value: T; label: string }[];
-  value: T;
-  onChange: (value: T) => void;
-  error?: string;
-}) {
-  // 같은 화면에 고르기 묶음이 여러 개일 수 있어 묶음마다 다른 layoutId를 쓴다
-  const pillId = useId();
-  return (
-    <fieldset>
-      <legend className="mb-1.5 block text-body-sm font-bold text-ink">{legend}</legend>
-      <div className="grid grid-cols-2 gap-1 rounded-control bg-subtle p-1">
-        {options.map((o) => (
-          <label
-            key={o.value}
-            className={`relative isolate flex min-h-11 cursor-pointer items-center justify-center rounded-[10px] px-2 text-center text-body-sm font-bold transition-colors has-focus-visible:outline-3 has-focus-visible:outline-brand-deep ${
-              value === o.value ? "text-brand-deep" : "text-ink-soft"
-            }`}
-          >
-            {value === o.value && (
-              <motion.span
-                layoutId={pillId}
-                transition={SPRING_SNAPPY}
-                aria-hidden
-                className="absolute inset-0 -z-10 rounded-[10px] bg-surface shadow-soft"
-              />
-            )}
-            <input
-              type="radio"
-              name={name}
-              value={o.value}
-              checked={value === o.value}
-              onChange={() => onChange(o.value)}
-              className="sr-only"
-            />
-            {o.label}
-          </label>
-        ))}
-      </div>
-      {error && <p className="mt-1.5 text-body-sm font-medium text-danger">{error}</p>}
-    </fieldset>
-  );
-}
-
 const ROLE_OPTIONS: { value: Role; label: string }[] = [
   { value: "student", label: "간호학과 학생" },
   { value: "professor", label: "실습 지도교수 / 조교" },
@@ -178,14 +126,14 @@ function OrgSelect({
   noneLabel: string;
 }) {
   return (
-    <SelectField name="orgId" label="소속 학교 / 기관" value={value} onChange={(e) => onChange(e.target.value)} error={error}>
-      <option value="">{noneLabel}</option>
-      {orgs.map((o) => (
-        <option key={o.id} value={o.id}>
-          {o.name} ({o.shortName})
-        </option>
-      ))}
-    </SelectField>
+    <SelectField
+      name="orgId"
+      label="소속 학교 / 기관"
+      value={value}
+      onValueChange={onChange}
+      error={error}
+      options={[{ value: "", label: noneLabel }, ...orgs.map((o) => ({ value: o.id, label: `${o.name} (${o.shortName})` }))]}
+    />
   );
 }
 
@@ -329,14 +277,7 @@ function SignupForm({ orgs }: { orgs: OrgOption[] }) {
         </Collapse>
         <Collapse open={!professor && Boolean(orgId)} className="-mx-1 px-1">
           <div className="grid grid-cols-2 gap-3 py-1">
-            <SelectField name="grade" label="학년" defaultValue={values.grade ?? ""} error={errors.grade}>
-              <option value="">선택</option>
-              {[1, 2, 3, 4].map((g) => (
-                <option key={g} value={g}>
-                  {g}학년
-                </option>
-              ))}
-            </SelectField>
+            <SelectField name="grade" label="학년" defaultValue={values.grade ?? ""} error={errors.grade} options={GRADE_OPTIONS} />
             <Field name="classGroup" label="반 (선택)" placeholder="예: B" defaultValue={values.classGroup} error={errors.classGroup} />
           </div>
         </Collapse>

@@ -263,6 +263,60 @@ export function StudentDetailSkeleton() {
   );
 }
 
+/** AI 학습 도구 (프리셉터·실습일지) */
+export function LearningSkeleton() {
+  return (
+    <SkeletonBox label="불러오는 중" className="space-y-4">
+      <HeaderBones />
+      <CardShell className="space-y-3">
+        <Bone className="h-5 w-1/3" />
+        <div className="flex flex-wrap gap-2">
+          {Array.from({ length: 5 }, (_, i) => (
+            <Bone key={i} className="h-10 w-20" />
+          ))}
+        </div>
+      </CardShell>
+      <CardShell className="space-y-3">
+        <Bone className="h-6 w-4/5" />
+        <div aria-hidden className="skeleton h-28 rounded-control" />
+        <Bone className="h-12 w-full rounded-control" />
+      </CardShell>
+    </SkeletonBox>
+  );
+}
+
+/** 교수 익명 통계: 필터 + 숫자 3칸 + 차트 카드 */
+export function InsightsSkeleton() {
+  return (
+    <SkeletonBox label="통계를 불러오는 중" className="space-y-4">
+      <HeaderBones />
+      <div className="flex gap-2">
+        <Bone className="h-10 w-24" />
+        <Bone className="h-10 w-32" />
+        <Bone className="h-10 w-16" />
+      </div>
+      <div className="grid grid-cols-3 gap-3">
+        {Array.from({ length: 3 }, (_, i) => (
+          <CardShell key={i} className="p-4">
+            <Bone className="h-3 w-3/4" />
+            <Bone className="mt-3 h-7 w-1/2" />
+          </CardShell>
+        ))}
+      </div>
+      <div className="grid gap-4 md:grid-cols-2">
+        {Array.from({ length: 2 }, (_, i) => (
+          <CardShell key={i} className="space-y-3">
+            <Bone className="h-5 w-2/5" />
+            {Array.from({ length: 6 }, (_, j) => (
+              <Bone key={j} className="h-3" />
+            ))}
+          </CardShell>
+        ))}
+      </div>
+    </SkeletonBox>
+  );
+}
+
 export function LogsMoreSkeleton() {
   return (
     <SkeletonBox label="일지를 더 불러오는 중" className="space-y-3">

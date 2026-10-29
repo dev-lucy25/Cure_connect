@@ -9,6 +9,7 @@ import type { FormState } from "@/lib/validation/form";
 import Button from "@/components/ui/button";
 import Field from "@/components/ui/field";
 import FormStatus from "@/components/ui/form-status";
+import { GRADE_OPTIONS } from "@/lib/subjects";
 import SelectField from "@/components/ui/select-field";
 
 type State = FormState<ProfileField>;
@@ -31,14 +32,17 @@ export function ProfileForm({ user, orgs }: { user: CurrentUser; orgs: OrgOption
           <p className="rounded-control bg-subtle px-4 py-3 text-body text-ink">{user.orgName ?? "학교 미연결"}</p>
         </div>
       ) : (
-        <SelectField name="orgId" label="소속 학교 / 기관" value={orgId} onChange={(e) => setOrgId(e.target.value)} error={errors.orgId}>
-          <option value="">학교 없이 개인으로 사용</option>
-          {orgs.map((o) => (
-            <option key={o.id} value={o.id}>
-              {o.name} ({o.shortName})
-            </option>
-          ))}
-        </SelectField>
+        <SelectField
+          name="orgId"
+          label="소속 학교 / 기관"
+          value={orgId}
+          onValueChange={setOrgId}
+          error={errors.orgId}
+          options={[
+            { value: "", label: "학교 없이 개인으로 사용" },
+            ...orgs.map((o) => ({ value: o.id, label: `${o.name} (${o.shortName})` })),
+          ]}
+        />
       )}
 
       {(professor || orgId) && (
@@ -52,19 +56,24 @@ export function ProfileForm({ user, orgs }: { user: CurrentUser; orgs: OrgOption
       )}
 
       {professor ? (
-        <Field name="staffTitle" label="직책 (선택)" placeholder="예: 실습과장, 조교" defaultValue={v("staffTitle", user.staffTitle)} error={errors.staffTitle} />
+        <Field
+          name="staffTitle"
+          label="직책 (선택)"
+          placeholder="예: 실습과장, 조교"
+          defaultValue={v("staffTitle", user.staffTitle)}
+          error={errors.staffTitle}
+        />
       ) : (
         orgId && (
           <div className="grid grid-cols-2 gap-3">
-            <SelectField name="grade" label="학년" defaultValue={v("grade", user.grade)} error={errors.grade}>
-              <option value="">선택</option>
-              {[1, 2, 3, 4].map((g) => (
-                <option key={g} value={g}>
-                  {g}학년
-                </option>
-              ))}
-            </SelectField>
-            <Field name="classGroup" label="반 (선택)" placeholder="예: B" defaultValue={v("classGroup", user.classGroup)} error={errors.classGroup} />
+            <SelectField name="grade" label="학년" defaultValue={v("grade", user.grade)} error={errors.grade} options={GRADE_OPTIONS} />
+            <Field
+              name="classGroup"
+              label="반 (선택)"
+              placeholder="예: B"
+              defaultValue={v("classGroup", user.classGroup)}
+              error={errors.classGroup}
+            />
           </div>
         )
       )}
@@ -94,16 +103,24 @@ export function ProfessorUpgradeForm({ orgs }: { orgs: OrgOption[] }) {
 
   return (
     <form action={action} noValidate className="space-y-4">
-      <SelectField name="orgId" id="upgrade-orgId" label="소속 학교" defaultValue={values.orgId ?? ""} error={errors.orgId}>
-        <option value="">학교를 골라 주세요</option>
-        {orgs.map((o) => (
-          <option key={o.id} value={o.id}>
-            {o.name} ({o.shortName})
-          </option>
-        ))}
-      </SelectField>
+      <SelectField
+        name="orgId"
+        id="upgrade-orgId"
+        label="소속 학교"
+        placeholder="학교를 골라 주세요"
+        defaultValue={values.orgId ?? ""}
+        error={errors.orgId}
+        options={[...orgs.map((o) => ({ value: o.id, label: `${o.name} (${o.shortName})` }))]}
+      />
       <Field name="memberNo" id="upgrade-memberNo" label="교번" defaultValue={values.memberNo} error={errors.memberNo} />
-      <Field name="staffTitle" id="upgrade-staffTitle" label="직책 (선택)" placeholder="예: 실습과장, 조교" defaultValue={values.staffTitle} error={errors.staffTitle} />
+      <Field
+        name="staffTitle"
+        id="upgrade-staffTitle"
+        label="직책 (선택)"
+        placeholder="예: 실습과장, 조교"
+        defaultValue={values.staffTitle}
+        error={errors.staffTitle}
+      />
       <Field
         name="inviteCode"
         id="upgrade-inviteCode"

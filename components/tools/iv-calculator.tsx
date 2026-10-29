@@ -31,7 +31,9 @@ export default function IvCalculator() {
     <Card>
       <span className="inline-block rounded-md bg-o-bg px-2.5 py-1 text-caption font-bold text-o-ink">병동 액팅 필수 도구</span>
       <h2 className="mt-2 text-title font-bold text-ink">💧 수액 주입 속도 (gtt) 계산기</h2>
-      <p className="mt-1 text-body-sm text-ink-soft">처방된 총 수액량과 주입 시간을 넣으면 분당 방울 수와 몇 초마다 한 방울씩 떨어져야 하는지 바로 계산해요.</p>
+      <p className="mt-1 text-body-sm text-ink-soft">
+        처방된 총 수액량과 주입 시간을 넣으면 분당 방울 수와 몇 초마다 한 방울씩 떨어져야 하는지 바로 계산해요.
+      </p>
 
       <div className="mt-4 grid gap-3 sm:grid-cols-3">
         <Field
@@ -78,32 +80,34 @@ export default function IvCalculator() {
             ))}
           </div>
         </div>
-        <SelectField id={`${id}-factor`} name="factor" label="수액 세트" value={factor} onChange={(e) => setFactor(e.target.value)}>
-          {DROP_FACTORS.map((f) => (
-            <option key={f.value} value={f.value}>
-              {f.label}
-            </option>
-          ))}
-        </SelectField>
+        <SelectField
+          id={`${id}-factor`}
+          name="factor"
+          label="수액 세트"
+          value={factor}
+          onValueChange={setFactor}
+          options={DROP_FACTORS.map((f) => ({ value: String(f.value), label: f.label }))}
+        />
       </div>
 
-      <div aria-live="polite" className="mt-4 flex items-center justify-between gap-4 rounded-card bg-ink p-5 text-canvas">
+      <div aria-live="polite" className="mt-4 flex items-center justify-between gap-4 rounded-card bg-inverse p-5 text-on-inverse">
         {error ? (
-          <p role="alert" className="text-body-sm font-bold text-warn-bg">
+          <p role="alert" className="text-body-sm font-bold text-on-inverse-warn">
             {error}
           </p>
         ) : (
           typeof result === "object" && (
             <div className="min-w-0 space-y-1">
-              <p className="text-body-sm text-canvas/70">
-                처방 유속 <AnimatedNumber value={result.mlPerHr} suffix=" mL/hr" className="font-bold text-brand" />
+              <p className="text-body-sm text-on-inverse/70">
+                처방 유속 <AnimatedNumber value={result.mlPerHr} suffix=" mL/hr" className="font-bold text-on-inverse-brand" />
               </p>
-              <p className="font-display text-headline leading-tight text-brand md:text-display">
+              <p className="font-display text-headline leading-tight text-on-inverse-brand md:text-display">
                 분당 <AnimatedNumber value={Math.round(result.gttPerMin)} format={{ maximumFractionDigits: 0 }} /> 방울
-                <span className="ml-1 font-sans text-body-sm text-canvas/70">(gtt/min)</span>
+                <span className="ml-1 font-sans text-body-sm text-on-inverse/70">(gtt/min)</span>
               </p>
-              <p className="text-body-sm font-bold text-warn-bg">
-                ⏱️ 약 <AnimatedNumber value={result.secPerDrop} format={{ maximumFractionDigits: 1, minimumFractionDigits: 1 }} />초마다 1방울씩 떨어지게 조절하세요
+              <p className="text-body-sm font-bold text-on-inverse-warn">
+                ⏱️ 약 <AnimatedNumber value={result.secPerDrop} format={{ maximumFractionDigits: 1, minimumFractionDigits: 1 }} />
+                초마다 1방울씩 떨어지게 조절하세요
               </p>
             </div>
           )
@@ -121,20 +125,20 @@ function DripChamber({ secPerDrop }: { secPerDrop: number | null }) {
   const fall = interval === null ? 0 : Math.min(0.6, interval * 0.8);
   return (
     <div className="flex shrink-0 flex-col items-center" aria-hidden>
-      <div className="relative h-16 w-8 overflow-hidden rounded-b-full border-2 border-canvas/40">
+      <div className="relative h-16 w-8 overflow-hidden rounded-b-full border-2 border-on-inverse/40">
         {interval !== null && !reduce && (
           <motion.span
             key={interval}
             data-drip={interval.toFixed(2)}
-            className="absolute top-0 left-1/2 -ml-1 block size-2 rounded-full bg-brand"
+            className="absolute top-0 left-1/2 -ml-1 block size-2 rounded-full bg-on-inverse-brand"
             initial={{ y: -6, opacity: 0 }}
             animate={{ y: [-6, 44], opacity: [1, 1, 0] }}
             transition={{ duration: fall, ease: "easeIn", repeat: Infinity, repeatDelay: interval - fall }}
           />
         )}
-        <span className="absolute inset-x-0 bottom-0 h-3 bg-brand/50" />
+        <span className="absolute inset-x-0 bottom-0 h-3 bg-on-inverse-brand/50" />
       </div>
-      <span className="mt-1 text-[10px] text-canvas/60">점적 챔버</span>
+      <span className="mt-1 text-[10px] text-on-inverse/60">점적 챔버</span>
     </div>
   );
 }

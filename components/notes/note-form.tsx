@@ -8,6 +8,7 @@ import Field from "@/components/ui/field";
 import FormStatus from "@/components/ui/form-status";
 import SelectField from "@/components/ui/select-field";
 import TextareaField from "@/components/ui/textarea-field";
+import Segmented from "@/components/ui/segmented";
 
 export type NoteInitial = {
   id: string;
@@ -59,48 +60,79 @@ export default function NoteForm({
       )}
 
       <div className="grid gap-3 sm:grid-cols-2">
-        <Field id={`${p}hospital`} name="hospital" label="실습 병원" placeholder="예: 동의의료원" defaultValue={v?.hospital ?? initial?.hospital} error={errors.hospital} />
-        <Field id={`${p}ward`} name="ward" label="병동" placeholder="예: 61병동 (외과)" defaultValue={v?.ward ?? initial?.ward} error={errors.ward} />
+        <Field
+          id={`${p}hospital`}
+          name="hospital"
+          label="실습 병원"
+          placeholder="예: 동의의료원"
+          defaultValue={v?.hospital ?? initial?.hospital}
+          error={errors.hospital}
+        />
+        <Field
+          id={`${p}ward`}
+          name="ward"
+          label="병동"
+          placeholder="예: 61병동 (외과)"
+          defaultValue={v?.ward ?? initial?.ward}
+          error={errors.ward}
+        />
       </div>
       <div className="grid gap-3 sm:grid-cols-2">
-        <SelectField id={`${p}category`} name="category" label="실습 과목 분류" defaultValue={v?.category ?? initial?.category ?? ""} error={errors.category}>
-          <option value="" disabled>
-            분류 선택
-          </option>
-          {NOTE_CATEGORIES.map((c) => (
-            <option key={c.key} value={c.key}>
-              {c.label}
-            </option>
-          ))}
-        </SelectField>
-        <fieldset>
-          <legend className="mb-1.5 block text-body-sm font-bold text-ink">열람 가격</legend>
-          <div className="grid grid-cols-3 gap-1 rounded-control bg-subtle p-1">
-            {NOTE_PRICES.map((n) => (
-              <label
-                key={n}
-                className={`flex min-h-10 cursor-pointer items-center justify-center rounded-[10px] text-body-sm font-bold transition-colors has-focus-visible:outline-3 has-focus-visible:outline-brand-deep ${
-                  price === String(n) ? "bg-surface text-brand-deep shadow-soft" : "text-ink-soft"
-                }`}
-              >
-                <input type="radio" name="price" value={n} checked={price === String(n)} onChange={() => setPrice(String(n))} className="sr-only" />
-                {n === 0 ? "무료" : `${n} C`}
-              </label>
-            ))}
-          </div>
-          {errors.price && <p className="mt-1.5 text-body-sm font-medium text-danger">{errors.price}</p>}
-        </fieldset>
+        <SelectField
+          id={`${p}category`}
+          name="category"
+          label="실습 과목 분류"
+          placeholder="분류 선택"
+          defaultValue={v?.category ?? initial?.category ?? ""}
+          error={errors.category}
+          options={NOTE_CATEGORIES.map((c) => ({ value: c.key, label: c.label }))}
+        />
+        <Segmented
+          name="price"
+          legend="열람 가격"
+          value={price}
+          onChange={setPrice}
+          error={errors.price}
+          options={NOTE_PRICES.map((n) => ({ value: String(n), label: n === 0 ? "무료" : `${n} C` }))}
+        />
       </div>
 
       <section className="space-y-3 rounded-control border border-line p-3">
         <h3 className="text-body-sm font-bold text-ink">👀 무료 맛보기 (누구나 보여요)</h3>
-        <Field id={`${p}title`} name="title" label="한 줄 요약 제목" placeholder="예: 수술 전후 간호 핵심 루틴 & 수간호사님 단골 질문" maxLength={80} defaultValue={v?.title ?? initial?.title} error={errors.title} />
-        <TextareaField id={`${p}supplies`} name="supplies" label="필수 준비물 (한 줄에 하나씩)" rows={3} placeholder={"포셉\n3색 볼펜"} defaultValue={v?.supplies ?? lines(initial?.supplies)} error={errors.supplies} />
-        <TextareaField id={`${p}atmosphere`} name="atmosphere" label="병동 분위기" rows={2} placeholder="예: Day 출근 6시 40분까지 도착 권장, 조용한 분위기" maxLength={500} defaultValue={v?.atmosphere ?? initial?.atmosphere} error={errors.atmosphere} />
+        <Field
+          id={`${p}title`}
+          name="title"
+          label="한 줄 요약 제목"
+          placeholder="예: 수술 전후 간호 핵심 루틴 & 수간호사님 단골 질문"
+          maxLength={80}
+          defaultValue={v?.title ?? initial?.title}
+          error={errors.title}
+        />
+        <TextareaField
+          id={`${p}supplies`}
+          name="supplies"
+          label="필수 준비물 (한 줄에 하나씩)"
+          rows={3}
+          placeholder={"포셉\n3색 볼펜"}
+          defaultValue={v?.supplies ?? lines(initial?.supplies)}
+          error={errors.supplies}
+        />
+        <TextareaField
+          id={`${p}atmosphere`}
+          name="atmosphere"
+          label="병동 분위기"
+          rows={2}
+          placeholder="예: Day 출근 6시 40분까지 도착 권장, 조용한 분위기"
+          maxLength={500}
+          defaultValue={v?.atmosphere ?? initial?.atmosphere}
+          error={errors.atmosphere}
+        />
       </section>
 
       <section className="space-y-3 rounded-control border border-warn-line bg-warn-bg/40 p-3">
-        <h3 className="text-body-sm font-bold text-warn-ink">🔒 시크릿 족보 ({price === "0" ? "무료로 공개" : "크레딧으로 열람 시 공개"})</h3>
+        <h3 className="text-body-sm font-bold text-warn-ink">
+          🔒 시크릿 족보 ({price === "0" ? "무료로 공개" : "크레딧으로 열람 시 공개"})
+        </h3>
         <TextareaField
           id={`${p}questions`}
           name="questions"
@@ -110,7 +142,15 @@ export default function NoteForm({
           defaultValue={v?.questions ?? lines(initial?.questions)}
           error={errors.questions}
         />
-        <TextareaField id={`${p}tips`} name="tips" label="꿀팁 (한 줄에 하나씩)" rows={3} placeholder={"오후 2시 바이탈 때 혈당기 스트립 챙기기"} defaultValue={v?.tips ?? lines(initial?.tips)} error={errors.tips} />
+        <TextareaField
+          id={`${p}tips`}
+          name="tips"
+          label="꿀팁 (한 줄에 하나씩)"
+          rows={3}
+          placeholder={"오후 2시 바이탈 때 혈당기 스트립 챙기기"}
+          defaultValue={v?.tips ?? lines(initial?.tips)}
+          error={errors.tips}
+        />
       </section>
 
       <p className="text-caption text-ink-soft">환자 이름·등록번호 같은 식별 정보는 쓰지 마세요. 저장할 때 다시 확인해요.</p>

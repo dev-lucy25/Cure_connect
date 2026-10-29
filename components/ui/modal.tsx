@@ -18,7 +18,8 @@ const subscribeMd = (cb: () => void) => {
 };
 const noop = () => () => {};
 
-const FOCUSABLE = 'a[href], button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])';
+const FOCUSABLE =
+  'a[href], button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])';
 
 export default function Modal({
   open,
@@ -34,8 +35,16 @@ export default function Modal({
   children: React.ReactNode;
 }) {
   // 서버에는 document가 없으므로 브라우저에 붙은 뒤에만 그린다
-  const mounted = useSyncExternalStore(noop, () => true, () => false);
-  const desktop = useSyncExternalStore(subscribeMd, () => matchMedia(MD_QUERY).matches, () => false);
+  const mounted = useSyncExternalStore(
+    noop,
+    () => true,
+    () => false,
+  );
+  const desktop = useSyncExternalStore(
+    subscribeMd,
+    () => matchMedia(MD_QUERY).matches,
+    () => false,
+  );
   const reduce = useReducedMotion();
   const panelRef = useRef<HTMLDivElement>(null);
   const titleId = useId();
@@ -76,7 +85,8 @@ export default function Modal({
   useEffect(() => {
     if (!open) return;
     const onEscape = (e: KeyboardEvent) => {
-      if (e.key === "Escape") closeRef.current();
+      // 모달 안 드롭다운이 열려 있으면 Esc는 드롭다운만 닫는다
+      if (e.key === "Escape" && !document.querySelector('[role="listbox"]')) closeRef.current();
     };
     document.addEventListener("keydown", onEscape);
     return () => document.removeEventListener("keydown", onEscape);
@@ -111,7 +121,7 @@ export default function Modal({
         <div className="fixed inset-0 z-50 flex items-end justify-center md:items-center md:p-6" onKeyDown={onKeyDown}>
           <motion.div
             aria-hidden
-            className="absolute inset-0 bg-ink/45 backdrop-blur-[2px]"
+            className="absolute inset-0 bg-ink/40 backdrop-blur-sm"
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
@@ -125,7 +135,7 @@ export default function Modal({
             aria-labelledby={titleId}
             aria-describedby={description ? descId : undefined}
             tabIndex={-1}
-            className="relative flex max-h-[90dvh] w-full flex-col rounded-t-card bg-surface shadow-soft outline-none md:max-w-lg md:rounded-card"
+            className="relative flex max-h-[90dvh] w-full flex-col rounded-t-[28px] bg-surface shadow-pop outline-none md:max-w-lg md:rounded-card"
             initial={sheet ? { y: "100%" } : { opacity: 0, scale: 0.96, y: 8 }}
             animate={sheet ? { y: 0 } : { opacity: 1, scale: 1, y: 0 }}
             exit={sheet ? { y: "100%" } : { opacity: 0, scale: 0.97, y: 4 }}
@@ -155,7 +165,10 @@ export default function Modal({
               </IconButton>
             </div>
             {/* 내용이 길면 이 안에서만 스크롤 (끌어 닫기와 겹치지 않게 터치 스크롤은 내용이 받음) */}
-            <div className="overflow-y-auto overscroll-contain px-5 pt-1 pb-[calc(env(safe-area-inset-bottom)+20px)]" onPointerDownCapture={(e) => e.stopPropagation()}>
+            <div
+              className="overflow-y-auto overscroll-contain px-5 pt-1 pb-[calc(env(safe-area-inset-bottom)+20px)]"
+              onPointerDownCapture={(e) => e.stopPropagation()}
+            >
               {children}
             </div>
           </motion.div>

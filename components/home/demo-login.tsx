@@ -50,13 +50,13 @@ export function DemoRoleBar({ role }: { role: DemoRole }) {
   const [busy, startBusy] = useTransition();
   const other: DemoRole = role === "student" ? "professor" : "student";
   return (
-    <div className="flex items-center justify-center gap-2 bg-ink px-4 py-1.5 text-caption text-canvas" data-demo-bar>
+    <div className="flex items-center justify-center gap-2 bg-inverse px-4 py-1.5 text-caption text-on-inverse" data-demo-bar>
       <span>🎬 체험 모드 · {DEMO_ACCOUNTS[role].who}</span>
       <button
         type="button"
         disabled={busy}
         onClick={() => startBusy(async () => void (await demoLogin(other)))}
-        className="inline-flex min-h-8 items-center rounded-full bg-canvas/15 px-3 font-bold hover:bg-canvas/25 disabled:opacity-60"
+        className="inline-flex min-h-8 items-center rounded-full bg-on-inverse/15 px-3 font-bold hover:bg-on-inverse/25 disabled:opacity-60"
       >
         {busy ? "바꾸는 중..." : other === "professor" ? "교수 화면으로 →" : "학생 화면으로 →"}
       </button>

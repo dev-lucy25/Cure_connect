@@ -3,6 +3,7 @@ import { Stagger, StaggerItem } from "@/components/motion/stagger";
 import PageHeader from "@/components/ui/page-header";
 import IvCalculator from "@/components/tools/iv-calculator";
 import VitalSigns from "@/components/tools/vital-signs";
+import LearningLinks from "@/components/tools/learning-links";
 
 export const metadata: Metadata = { title: "실습 도구 · NursePass" };
 
@@ -10,7 +11,10 @@ export const metadata: Metadata = { title: "실습 도구 · NursePass" };
 export default function ToolsPage() {
   return (
     <Stagger className="space-y-3">
-      <PageHeader title="실습 도구" description="병동에서 바로 쓰는 계산기와 기준표" />
+      <PageHeader title="실습 도구" description="병동에서 바로 쓰는 계산기와 기준표, AI 학습 도구" />
+      <StaggerItem className="pt-2">
+        <LearningLinks />
+      </StaggerItem>
       <div className="grid gap-4 pt-2 md:grid-cols-2 md:items-start">
         <StaggerItem>
           <IvCalculator />

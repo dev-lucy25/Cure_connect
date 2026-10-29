@@ -20,6 +20,7 @@ import { NotesMoreSkeleton } from "@/components/ui/skeleton";
 import CreditShop from "@/components/credits/credit-shop";
 import NoteCard from "@/components/notes/note-card";
 import NoteForm from "@/components/notes/note-form";
+import SearchInput from "@/components/ui/search-input";
 
 const MotionLink = motion.create(Link);
 
@@ -80,19 +81,22 @@ export default function NotesMarket({
         initial="hidden"
         animate="show"
         transition={SPRING_SOFT}
-        className="flex flex-col gap-4 rounded-card bg-ink p-5 text-canvas md:flex-row md:items-center md:justify-between"
+        className="flex flex-col gap-4 rounded-card bg-inverse p-5 text-on-inverse md:flex-row md:items-center md:justify-between"
       >
         <div className="min-w-0">
           <div className="flex flex-wrap items-center gap-2">
             <span className="rounded bg-warn-bg px-2 py-0.5 text-caption font-bold text-warn-ink">C2C 지식 거래 마켓</span>
             {loggedIn && (
-              <span className="text-body-sm text-canvas/80">
-                내 보유 크레딧 <AnimatedNumber value={credits} format={{ maximumFractionDigits: 0 }} className="font-bold text-canvas" /> C
+              <span className="text-body-sm text-on-inverse/80">
+                내 보유 크레딧{" "}
+                <AnimatedNumber value={credits} format={{ maximumFractionDigits: 0 }} className="font-bold text-on-inverse" /> C
               </span>
             )}
           </div>
           <h2 className="mt-1.5 text-title font-bold">선배들의 병동별 시크릿 족보</h2>
-          <p className="mt-1 text-body-sm text-canvas/75">실습 나가기 전날, 그 병동을 먼저 다녀온 선배의 수간호사님 질문과 핵심 루틴을 크레딧으로 열어 보세요.</p>
+          <p className="mt-1 text-body-sm text-on-inverse/75">
+            실습 나가기 전날, 그 병동을 먼저 다녀온 선배의 수간호사님 질문과 핵심 루틴을 크레딧으로 열어 보세요.
+          </p>
         </div>
         <div className="flex shrink-0 flex-wrap gap-2">
           {canWrite ? (
@@ -107,7 +111,12 @@ export default function NotesMarket({
             )
           )}
           {loggedIn && (
-            <Button type="button" variant="ghost" onClick={openShop} className="bg-canvas/15 px-4 text-body-sm text-canvas hover:bg-canvas/25">
+            <Button
+              type="button"
+              variant="ghost"
+              onClick={openShop}
+              className="bg-on-inverse/15 px-4 text-body-sm text-on-inverse hover:bg-on-inverse/25"
+            >
               💎 크레딧 충전소
             </Button>
           )}
@@ -126,17 +135,14 @@ export default function NotesMarket({
           }}
           className="flex gap-2"
         >
-          <label htmlFor="note-search" className="sr-only">
-            족보 검색
-          </label>
-          <input
+          <SearchInput
             id="note-search"
+            label="족보 검색"
             name="q"
-            type="search"
             defaultValue={filter.q ?? ""}
             maxLength={40}
-            placeholder="🔍 병원·병동·제목으로 찾기"
-            className="min-h-11 min-w-0 flex-1 rounded-control border border-line bg-surface px-4 text-body-sm text-ink placeholder:text-ink-soft focus:border-brand-deep focus:outline-none"
+            placeholder="병원·병동·제목으로 찾기"
+            className="min-w-0 flex-1"
           />
           <Button type="submit" variant="secondary" className="min-h-11 shrink-0 px-4 text-body-sm">
             찾기
@@ -164,7 +170,14 @@ export default function NotesMarket({
                   scroll={false}
                   className={`relative isolate inline-flex min-h-11 items-center rounded-full px-3.5 text-body-sm font-bold transition-colors ${active ? "text-ink" : "text-ink-soft hover:text-ink"}`}
                 >
-                  {active && <motion.span layoutId="note-category-pill" transition={SPRING_SNAPPY} aria-hidden className="absolute inset-0 -z-10 rounded-full bg-brand" />}
+                  {active && (
+                    <motion.span
+                      layoutId="note-category-pill"
+                      transition={SPRING_SNAPPY}
+                      aria-hidden
+                      className="absolute inset-0 -z-10 rounded-full bg-brand"
+                    />
+                  )}
                   {c.label}
                 </MotionLink>
               </li>
@@ -200,7 +213,9 @@ export default function NotesMarket({
       {items.length === 0 ? (
         <div className="flex flex-col items-center rounded-card border border-dashed border-line px-5 py-10 text-center">
           <NurseTurtle stage={4} mood="empty" size={88} decorative />
-          <p className="mt-2 text-title font-bold">{filter.ward || filter.category ? "이 조건의 족보가 아직 없어요" : "아직 올라온 족보가 없어요"}</p>
+          <p className="mt-2 text-title font-bold">
+            {filter.ward || filter.category ? "이 조건의 족보가 아직 없어요" : "아직 올라온 족보가 없어요"}
+          </p>
           <p className="mt-1 text-body-sm text-ink-soft">지난 실습 병동의 꿀팁을 첫 번째로 남겨 보세요</p>
         </div>
       ) : (

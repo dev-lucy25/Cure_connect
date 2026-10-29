@@ -1,10 +1,13 @@
 @import "tailwindcss";
+/* 본문·제목 글꼴: Pretendard 가변 글꼴 (쓰는 글자 조각만 내려받음) */
+@import "pretendard/dist/web/variable/pretendardvariable-dynamic-subset.css";
 
 /* dark: 표기를 <html data-theme="dark">에 연결한다 (토글로 바꾼 값이 기기 설정보다 우선) */
 @custom-variant dark (&:where([data-theme="dark"], [data-theme="dark"] *));
 
 /*
- * NursePass 디자인 토큰 — 색·간격·글자 크기·모서리·그림자·움직임은 여기서만 정의한다.
+ * NursePass 디자인 토큰 (2026 개편) — 색·간격·글자 크기·모서리·그림자·움직임은 여기서만 정의한다.
+ * 방향: 따뜻한 크림 바탕 + 민트 브랜드, 큰 모서리, 떠 있는 정도에 따른 그림자 3단계, 유리 질감 앱 바·탭 바, Pretendard.
  * 이름은 색이 아니라 역할이다(canvas=배경, brand=민트 메인, pink=포인트, warn=경고).
  * 밝은 파스텔(brand, pink, *-bg)은 배경·장식 전용. 글자는 ink 또는 *-deep/*-ink 색만 쓴다(명암 대비 4.5:1 이상).
  * 어두운 화면은 아래 [data-theme="dark"]에서 같은 이름의 값만 바꾼다.
@@ -12,18 +15,25 @@
 /* static: 클래스에서 안 쓰여도 모든 토큰을 CSS 변수로 내보낸다 (SVG 마스코트가 var()로 직접 참조) */
 @theme static {
   /* 색 (밝게) */
-  --color-canvas: #fff9f1;
-  --color-subtle: #f6eee3;
+  --color-canvas: #fbf9f5;
+  --color-subtle: #f4f1eb;
   --color-surface: #ffffff;
-  --color-line: #efe4d6;
-  --color-brand: #a8e6cf;
-  --color-brand-soft: #e6f7ef;
-  --color-brand-deep: #23705a;
+  --color-line: #ece7de;
+  /* 입력 칸 테두리(마우스 올림)처럼 조금 더 보여야 하는 선 */
+  --color-line-strong: #d9d1c4;
+  --color-brand: #a3e4cc;
+  --color-brand-soft: #e7f6ef;
+  --color-brand-deep: #1d7559;
   --color-pink: #ffc8d6;
   --color-pink-soft: #fff0f4;
   --color-pink-deep: #b03a5e;
-  --color-ink: #3e2c22;
-  --color-ink-soft: #745e4f;
+  --color-ink: #2a201a;
+  --color-ink-soft: #6e6157;
+  /* 반전 면(체험 바·결과 상자·배너): 두 테마 모두 어두운 바탕 + 밝은 글자 */
+  --color-inverse: #2a201a;
+  --color-on-inverse: #fbf9f5;
+  --color-on-inverse-brand: #a3e4cc;
+  --color-on-inverse-warn: #ffe9a8;
   --color-danger: #b4232f;
   --color-danger-soft: #fdeceb;
   --color-warn-bg: #fff6d8;
@@ -66,16 +76,20 @@
   --text-caption: 12px;
   --text-caption--line-height: 1.4;
 
-  /* 모양: 카드 20 / 버튼·입력 14 / 칩은 rounded-full */
-  --radius-control: 14px;
-  --radius-card: 20px;
+  /* 모양: 카드 24 / 버튼·입력 16 / 드롭다운·팝업 20 / 칩은 rounded-full */
+  --radius-control: 16px;
+  --radius-card: 24px;
+  --radius-popup: 20px;
 
-  /* 아주 옅은 그림자 */
-  --shadow-soft: 0 1px 2px rgb(62 44 34 / 0.03), 0 6px 18px rgb(62 44 34 / 0.04);
+  /* 그림자 3단계: soft(카드) → lift(마우스 올림·떠 있는 탭 바) → pop(드롭다운·모달) */
+  --shadow-soft: 0 1px 2px rgb(42 32 26 / 0.04), 0 4px 16px -4px rgb(42 32 26 / 0.06);
+  --shadow-lift: 0 2px 4px rgb(42 32 26 / 0.04), 0 12px 32px -8px rgb(42 32 26 / 0.12);
+  --shadow-pop: 0 4px 12px rgb(42 32 26 / 0.08), 0 24px 48px -12px rgb(42 32 26 / 0.2);
 
-  /* 글꼴: 제목·숫자는 둥근 웹폰트(Jua), 본문은 시스템 고딕 */
-  --font-display: var(--font-jua), "Apple SD Gothic Neo", "Malgun Gothic", system-ui, sans-serif;
-  --font-sans: system-ui, -apple-system, "Apple SD Gothic Neo", "Malgun Gothic", "Noto Sans KR", sans-serif;
+  /* 글꼴: 본문·제목·숫자는 Pretendard, 로고 글자만 둥근 Jua(거북이 캐릭터와 짝) */
+  --font-sans: "Pretendard Variable", Pretendard, -apple-system, "Apple SD Gothic Neo", "Malgun Gothic", system-ui, sans-serif;
+  --font-display: var(--font-sans);
+  --font-brand: var(--font-jua), "Apple SD Gothic Neo", "Malgun Gothic", system-ui, sans-serif;
 
   /* 크기 기준 */
   --size-touch: 48px;
@@ -87,18 +101,20 @@
 }
 
 [data-theme="dark"] {
-  --color-canvas: #1d1a17;
-  --color-subtle: #2a2521;
-  --color-surface: #25211d;
-  --color-line: #3a332d;
+  --color-canvas: #151311;
+  --color-subtle: #221f1c;
+  --color-surface: #1c1a17;
+  --color-line: #302b27;
+  --color-line-strong: #453e38;
   --color-brand: #2b6352;
-  --color-brand-soft: #22362e;
+  --color-brand-soft: #1e332b;
   --color-brand-deep: #8fe0c3;
   --color-pink: #7a3b4e;
   --color-pink-soft: #3a242b;
   --color-pink-deep: #ffa6bf;
-  --color-ink: #f5ece3;
-  --color-ink-soft: #c4b4a5;
+  --color-ink: #f4ede6;
+  --color-ink-soft: #bcaea1;
+  --color-inverse: #2c2723;
   --color-danger: #ff9b95;
   --color-danger-soft: #3d2322;
   --color-warn-bg: #3a3218;
@@ -116,7 +132,9 @@
   --color-i-ink: #ffc49b;
   --color-e-bg: #393318;
   --color-e-ink: #f6dc86;
-  --shadow-soft: 0 1px 2px rgb(0 0 0 / 0.25);
+  --shadow-soft: 0 1px 2px rgb(0 0 0 / 0.3);
+  --shadow-lift: 0 2px 4px rgb(0 0 0 / 0.3), 0 12px 32px -8px rgb(0 0 0 / 0.5);
+  --shadow-pop: 0 4px 12px rgb(0 0 0 / 0.35), 0 24px 48px -12px rgb(0 0 0 / 0.6);
   color-scheme: dark;
 }
 
@@ -128,6 +146,30 @@ html {
   /* 한글은 단어 중간에서 줄을 바꾸지 않는다 (긴 영문·숫자는 넘치지 않게 끊음) */
   word-break: keep-all;
   overflow-wrap: break-word;
+  /* Pretendard는 살짝 좁힌 자간이 가장 또렷하다 */
+  letter-spacing: -0.011em;
+}
+
+/* 제목·큰 숫자: 굵고 촘촘하게 (font-bold 같은 굵기 클래스가 있으면 그쪽이 이긴다) */
+@layer base {
+  .font-display {
+    font-weight: 750;
+    letter-spacing: -0.025em;
+  }
+}
+
+/* 입력 칸 포커스 빛 (브랜드·오류) */
+@utility focus-glow {
+  box-shadow: 0 0 0 4px color-mix(in oklab, var(--color-brand-deep) 20%, transparent);
+}
+@utility danger-glow {
+  box-shadow: 0 0 0 4px color-mix(in oklab, var(--color-danger) 18%, transparent);
+}
+/* 유리 질감 (앱 바·하단 탭 바) */
+@utility glass {
+  background-color: color-mix(in oklab, var(--color-surface) 72%, transparent);
+  backdrop-filter: blur(20px) saturate(1.6);
+  -webkit-backdrop-filter: blur(20px) saturate(1.6);
 }
 
 body {
@@ -159,6 +201,11 @@ body {
 :focus-visible {
   outline: 3px solid var(--color-brand-deep);
   outline-offset: 2px;
+}
+
+::selection {
+  background: color-mix(in oklab, var(--color-brand) 70%, transparent);
+  color: var(--color-ink);
 }
 
 /* ───────── 움직임 (CSS만, JS 없음). 움직임 줄이기 설정이면 맨 아래에서 모두 끈다 ───────── */
@@ -194,7 +241,10 @@ body {
 
 /* 버튼 누름 */
 .press {
-  transition: transform 0.12s ease, filter 0.15s ease, background-color 0.15s ease;
+  transition:
+    transform 0.12s ease,
+    filter 0.15s ease,
+    background-color 0.15s ease;
 }
 .press:active:not(:disabled) {
   transform: scale(0.97);
@@ -357,4 +407,15 @@ body {
     animation: none !important;
     transition: none !important;
   }
+}
+
+/* 입력 칸 아래 오류 문구: 위에서 살짝 내려오며 나타남 */
+@keyframes field-in {
+  from {
+    opacity: 0;
+    transform: translateY(-4px);
+  }
+}
+.animate-field-in {
+  animation: field-in 0.22s cubic-bezier(0.22, 1, 0.36, 1);
 }

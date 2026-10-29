@@ -109,3 +109,35 @@ export const IconBell = (p: IconProps) => (
     <path d="M10 20.5a2 2 0 0 0 4 0" />
   </Icon>
 );
+
+export const IconPie = (p: IconProps) => (
+  <Icon {...p}>
+    <path d="M12 3.5v8.5h8.5A8.5 8.5 0 1 1 12 3.5z" />
+    <path d="M15 3.8A8.5 8.5 0 0 1 20.2 9H15z" />
+  </Icon>
+);
+
+export const IconCheck = (p: IconProps) => (
+  <Icon {...p}>
+    <path d="M5 12.5l4.5 4.5L19 7.5" />
+  </Icon>
+);
+
+export const IconChevronDown = (p: IconProps) => (
+  <Icon {...p}>
+    <path d="M6.5 9.5L12 15l5.5-5.5" />
+  </Icon>
+);
+
+export const IconSearch = (p: IconProps) => (
+  <Icon {...p}>
+    <circle cx="11" cy="11" r="6.5" />
+    <path d="M16 16l4 4" />
+  </Icon>
+);
+
+export const IconX = (p: IconProps) => (
+  <Icon {...p}>
+    <path d="M7 7l10 10M17 7L7 17" />
+  </Icon>
+);

@@ -22,7 +22,15 @@ const REASON: Record<CreditReason, string> = {
 };
 
 /** "10/29 (수) 14:05" — 서버가 넘긴 ISO 시각을 한국 시간으로 */
-const fmt = new Intl.DateTimeFormat("ko-KR", { timeZone: "Asia/Seoul", month: "numeric", day: "numeric", weekday: "short", hour: "2-digit", minute: "2-digit", hour12: false });
+const fmt = new Intl.DateTimeFormat("ko-KR", {
+  timeZone: "Asia/Seoul",
+  month: "numeric",
+  day: "numeric",
+  weekday: "short",
+  hour: "2-digit",
+  minute: "2-digit",
+  hour12: false,
+});
 
 // 크레딧 내역: 최신순, 들어온 것은 +, 나간 것은 −. 더 불러온 줄도 차례로 떠오른다
 export default function LedgerList({ items, nextCursor }: { items: LedgerEntry[]; nextCursor: string | null }) {

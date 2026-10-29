@@ -14,6 +14,7 @@ import Card from "@/components/ui/card";
 import Chip from "@/components/ui/chip";
 import FormStatus from "@/components/ui/form-status";
 import { WalkingTurtle } from "@/components/ui/skeleton";
+import { controlClass } from "@/components/ui/field-parts";
 
 const SUGGESTIONS = ["간호진단을 더 추천해 줘", "빠진 사정 항목은 어떻게 확인해?", "중재를 근거와 함께 설명해 줘"];
 
@@ -111,7 +112,7 @@ export default function CaseChat({
           placeholder="예: 이 환자에게 맞는 간호진단이 뭐가 있을까?"
           aria-invalid={Boolean(state.fieldErrors?.question)}
           aria-describedby="case-question-help"
-          className="w-full resize-none rounded-control border border-line bg-surface px-4 py-3 text-body text-ink outline-none placeholder:text-ink-soft/70 focus:border-brand-deep"
+          className={`${controlClass(Boolean(state.fieldErrors?.question))} resize-none px-4 py-3 [field-sizing:content] min-h-20 max-h-60`}
         />
         <div id="case-question-help" className="space-y-1">
           {pii.length > 0 && !state.fieldErrors?.question && (

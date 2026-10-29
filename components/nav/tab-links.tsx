@@ -4,7 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { motion } from "motion/react";
 import type { Tab, TabIcon } from "@/components/nav/tabs";
-import { IconBook, IconChart, IconCheckSquare, IconClock, IconNote, IconTool } from "@/components/ui/icons";
+import { IconBook, IconChart, IconCheckSquare, IconClock, IconNote, IconPie, IconTool } from "@/components/ui/icons";
 import { SPRING_SNAPPY } from "@/lib/motion";
 import { useTapEffect } from "@/components/motion/use-motion-prefs";
 
@@ -14,6 +14,7 @@ const ICONS: Record<TabIcon, typeof IconClock> = {
   book: IconBook,
   tool: IconTool,
   chart: IconChart,
+  pie: IconPie,
   check: IconCheckSquare,
 };
 
@@ -27,7 +28,9 @@ const MotionLink = motion.create(Link);
 
 /** 선택된 탭 뒤의 민트 알약. 같은 layoutId끼리 탭을 옮기면 미끄러지듯 따라간다 */
 function ActivePill({ layoutId }: { layoutId: string }) {
-  return <motion.span layoutId={layoutId} transition={SPRING_SNAPPY} aria-hidden className="absolute inset-0 -z-10 rounded-full bg-brand" />;
+  return (
+    <motion.span layoutId={layoutId} transition={SPRING_SNAPPY} aria-hidden className="absolute inset-0 -z-10 rounded-full bg-brand" />
+  );
 }
 
 function TabList({ tabs, variant }: { tabs: Tab[]; variant: "bottom" | "top" }) {
@@ -74,12 +77,12 @@ function TabList({ tabs, variant }: { tabs: Tab[]; variant: "bottom" | "top" }) 
   );
 }
 
-// 모바일 하단 탭 바: 아이콘 + 글자, 선택 탭은 민트 알약 배경. 앱 폭(480px) 가운데에 붙는다. md 이상에서는 숨김
+// 모바일 하단 탭 바: 화면 아래에 떠 있는 유리 질감 알약(2026 개편). 아이콘 + 글자, 선택 탭은 민트 알약 배경. md 이상에서는 숨김
 export default function BottomTabs({ tabs }: { tabs: Tab[] }) {
   return (
     <nav
       aria-label="주요 메뉴"
-      className="fixed inset-x-0 bottom-0 z-20 mx-auto max-w-(--width-app) border-t border-line bg-surface/95 px-3 pb-[env(safe-area-inset-bottom)] backdrop-blur md:hidden"
+      className="glass fixed inset-x-3 bottom-[calc(env(safe-area-inset-bottom)+10px)] z-20 mx-auto max-w-[calc(var(--width-app)-24px)] rounded-[28px] border border-line/70 px-1.5 shadow-lift md:hidden"
     >
       <TabList tabs={tabs} variant="bottom" />
     </nav>

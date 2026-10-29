@@ -47,7 +47,8 @@ function PracticeChip({ next, current, today }: { next: ScheduleItem | undefined
   return (
     <div className="flex flex-wrap items-center gap-2">
       <Chip>
-        <IconCalendar size={16} /> {next.ward} 실습 <span className="font-display text-title leading-none">{dDayLabel(daysBetween(today, next.startDate))}</span>
+        <IconCalendar size={16} /> {next.ward} 실습{" "}
+        <span className="font-display text-title leading-none">{dDayLabel(daysBetween(today, next.startDate))}</span>
       </Chip>
       <span className="text-body-sm text-ink-soft">
         {next.hospital} · {shortDate(next.startDate)}

@@ -4,7 +4,14 @@ import Link from "next/link";
 import { loginHref } from "@/lib/safe-next";
 import { useActionState, useEffect, useState } from "react";
 import { AnimatePresence, motion } from "motion/react";
-import { deleteNoteAction, rateNoteAction, unlockNoteAction, updateNoteAction, type NoteFormState, type UnlockState } from "@/server/notes-actions";
+import {
+  deleteNoteAction,
+  rateNoteAction,
+  unlockNoteAction,
+  updateNoteAction,
+  type NoteFormState,
+  type UnlockState,
+} from "@/server/notes-actions";
 import type { NoteCard as NoteCardData } from "@/server/notes-repo";
 import type { FormState } from "@/lib/validation/form";
 import { categoryLabel } from "@/lib/credits";
@@ -125,7 +132,9 @@ export default function NoteCard({
                     로그인하고 열기
                   </Link>
                 ) : (
-                  <p className="rounded-full bg-surface px-3 py-1.5 text-caption font-bold text-ink-soft">학생 계정만 크레딧으로 열 수 있어요</p>
+                  <p className="rounded-full bg-surface px-3 py-1.5 text-caption font-bold text-ink-soft">
+                    학생 계정만 크레딧으로 열 수 있어요
+                  </p>
                 )}
               </div>
             </motion.div>
@@ -151,7 +160,16 @@ export default function NoteCard({
             action={editAction}
             state={edit}
             pending={editing}
-            initial={{ id: note.id, category: note.category, price: note.price, hospital: note.hospital, ward: note.ward, title: note.title, ...note.public, ...note.secret }}
+            initial={{
+              id: note.id,
+              category: note.category,
+              price: note.price,
+              hospital: note.hospital,
+              ward: note.ward,
+              title: note.title,
+              ...note.public,
+              ...note.secret,
+            }}
             onCancel={() => setEditOpenAt(null)}
           />
         </Modal>

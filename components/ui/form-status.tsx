@@ -5,7 +5,15 @@ import { AnimatePresence, motion } from "motion/react";
 import { SPRING_SNAPPY, SPRING_SOFT, TWEEN_POP } from "@/lib/motion";
 
 // 폼 상태: 오류는 그 자리에 문구로(살짝 흔들리며 등장), 저장 성공은 화면 아래 토스트("저장했어요 🐢")로 보여준다.
-export default function FormStatus({ message, savedAt, savedText = "저장했어요 🐢" }: { message?: string; savedAt?: number; savedText?: string }) {
+export default function FormStatus({
+  message,
+  savedAt,
+  savedText = "저장했어요 🐢",
+}: {
+  message?: string;
+  savedAt?: number;
+  savedText?: string;
+}) {
   if (message) {
     return (
       <motion.p
@@ -43,7 +51,7 @@ function Toast({ text }: { text: string }) {
           animate={{ opacity: 1, y: 0, scale: 1, x: "-50%" }}
           exit={{ opacity: 0, y: 12, x: "-50%", transition: SPRING_SOFT }}
           transition={SPRING_SNAPPY}
-          className="pointer-events-none fixed bottom-[calc(var(--size-tab)+env(safe-area-inset-bottom)+12px)] left-1/2 z-30 rounded-full bg-ink px-5 py-2.5 text-body-sm font-bold whitespace-nowrap text-canvas shadow-soft md:bottom-8"
+          className="pointer-events-none fixed bottom-[calc(var(--size-tab)+env(safe-area-inset-bottom)+22px)] left-1/2 z-30 rounded-full bg-ink px-5 py-2.5 text-body-sm font-bold whitespace-nowrap text-canvas shadow-pop md:bottom-8"
         >
           {text}
         </motion.p>
