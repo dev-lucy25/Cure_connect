@@ -1,9 +1,10 @@
-// 시연용 가짜 계정 생성: `npm run db:seed`
+// 시연용 가짜 계정 + 케이스·족보 예시(seed-content.ts) 생성: `npm run db:seed`
 // professor 계정은 이 스크립트로만 만들어진다 (화면에서는 역할을 고를 수 없음).
 import "dotenv/config";
 import { createClient } from "@supabase/supabase-js";
 import { PrismaPg } from "@prisma/adapter-pg";
 import { PrismaClient, type Role } from "../generated/prisma/client";
+import { seedDemoContent } from "./seed-content";
 
 // 모두 동의과학대(org_dit, 마이그레이션 20261029050000에서 생성) 소속, 방 코드 DIT-2026. 학교 + 학번으로도 로그인할 수 있다
 type Account = { email: string; name: string; role: Role; memberNo: string; grade?: number; classGroup?: string; staffTitle?: string };
@@ -32,6 +33,7 @@ async function main() {
     const { data: existing, error: listError } = await supabase.auth.admin.listUsers({ perPage: 1000 });
     if (listError) throw listError;
 
+    const ids = new Map<string, string>();
     for (const account of accounts) {
       let id = existing.users.find((u) => u.email === account.email)?.id;
       if (!id) {
@@ -45,7 +47,10 @@ async function main() {
       }
       const fields = { ...account, orgId: ORG_ID, roomCode: ROOM_CODE };
       await db.profile.upsert({ where: { id }, create: { id, ...fields }, update: fields });
+      ids.set(account.email, id);
     }
+    // 케이스는 체험 학생(김하늘), 족보는 다른 학생(이서연)이 쓴 것으로 → 체험 계정이 크레딧으로 열어 볼 수 있다
+    await seedDemoContent(db, { caseOwner: ids.get("student1@nursepass.test")!, noteAuthor: ids.get("student2@nursepass.test")! });
   } finally {
     await db.$disconnect();
   }
