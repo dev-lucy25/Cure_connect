@@ -3,11 +3,14 @@
 import { useEffect, useState } from "react";
 import NumberFlow, { type Format } from "@number-flow/react";
 
-// 숫자가 바뀔 때 자릿수가 굴러가며 바뀐다. 처음 보일 때는 0에서 세어 올라간다.
-// (움직임 줄이기 설정이면 NumberFlow가 알아서 바로 바뀐 값만 보여 준다)
+const DEFAULT_FORMAT: Format = { maximumFractionDigits: 1 };
+
+// 숫자가 바뀔 때 자릿수가 굴러가며 바뀐다(토스 방식). 처음 보일 때는 0에서 세어 올라간다.
+// 움직임 줄이기 설정이면 NumberFlow가 알아서 바로 바뀐 값만 보여 준다.
+// 화면 읽기 프로그램에는 NumberFlow가 최종 값을 이름표로 알려 준다. data-value는 최종 값 글자(검증·복사용).
 export default function AnimatedNumber({
   value,
-  format,
+  format = DEFAULT_FORMAT,
   suffix,
   className,
 }: {
@@ -27,9 +30,10 @@ export default function AnimatedNumber({
     <NumberFlow
       value={shown}
       locales="ko-KR"
-      format={format ?? { maximumFractionDigits: 1 }}
+      format={format}
       suffix={suffix}
       className={className}
+      data-value={`${new Intl.NumberFormat("ko-KR", format).format(value)}${suffix ?? ""}`}
       willChange
       spinTiming={{ duration: 900, easing: "cubic-bezier(0.22, 1, 0.36, 1)" }}
     />

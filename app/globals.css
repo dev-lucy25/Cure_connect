@@ -149,17 +149,6 @@ body {
   transform: scale(0.97);
 }
 
-/* 진행 바가 부드럽게 차오름 */
-@keyframes bar-fill {
-  from {
-    transform: scaleX(0);
-  }
-}
-.animate-bar-fill {
-  transform-origin: left center;
-  animation: bar-fill 1.1s cubic-bezier(0.22, 1, 0.36, 1);
-}
-
 /* 100시간 달성 컨페티 (한 번) */
 @keyframes confetti {
   0% {
