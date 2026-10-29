@@ -21,6 +21,8 @@ model Profile {
   role      Role     @default(student)
   // 졸업 목표 실습 시간 (사용자가 바꿀 수 있음)
   goalHours Int      @default(1000)
+  // 족보 열람용 크레딧. 가입 3, 족보 올리면 +2, 남의 족보 열람 -1 (0 미만 금지는 DB CHECK)
+  credits   Int      @default(3)
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
@@ -28,6 +30,10 @@ model Profile {
   practiceSchedules PracticeSchedule[]
   caseNotes         CaseNote[]
   aiUsages          AiUsage[]
+  wardNotes         WardNote[]
+  wardNoteUnlocks   WardNoteUnlock[]
+  wardNoteLikes     WardNoteLike[]
+  creditLedger      CreditLedger[]
 
   @@index([role])
 }
@@ -115,4 +121,80 @@ model PracticeSchedule {
 
   // 다가오는 일정을 시작일순으로 찾는다
   @@index([userId, startDate])
+}
+
+// 병동 족보: 자주 받은 질문 · 준비물 · 분위기 · 팁 (항목형)
+model WardNote {
+  id         String   @id @default(cuid())
+  authorId   String   @db.Uuid
+  hospital   String   @db.VarChar(60)
+  ward       String   @db.VarChar(60)
+  title      String   @db.VarChar(80)
+  questions  String[]
+  supplies   String[]
+  atmosphere String   @default("") @db.VarChar(500)
+  tips       String[]
+  likeCount  Int      @default(0)
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  author  Profile          @relation(fields: [authorId], references: [id], onDelete: Cascade)
+  unlocks WardNoteUnlock[]
+  likes   WardNoteLike[]
+
+  // 최신순 목록, 병동 칩 필터, 내 족보
+  @@index([createdAt(sort: Desc), id(sort: Desc)])
+  @@index([ward, createdAt(sort: Desc)])
+  @@index([authorId])
+}
+
+// 열람 기록. (사용자, 족보)가 기본 키라 같은 족보는 한 번만 열린다(= 한 번만 차감)
+model WardNoteUnlock {
+  userId    String   @db.Uuid
+  noteId    String
+  createdAt DateTime @default(now())
+
+  user Profile  @relation(fields: [userId], references: [id], onDelete: Cascade)
+  note WardNote @relation(fields: [noteId], references: [id], onDelete: Cascade)
+
+  @@id([userId, noteId])
+  @@index([noteId])
+}
+
+// 좋아요. (사용자, 족보) 기본 키
+model WardNoteLike {
+  userId    String   @db.Uuid
+  noteId    String
+  createdAt DateTime @default(now())
+
+  user Profile  @relation(fields: [userId], references: [id], onDelete: Cascade)
+  note WardNote @relation(fields: [noteId], references: [id], onDelete: Cascade)
+
+  @@id([userId, noteId])
+  @@index([noteId])
+}
+
+enum CreditReason {
+  signup
+  upload
+  unlock
+  delete_note
+}
+
+// 크레딧 변동 내역. 잔액(Profile.credits) = 이 사용자의 delta 합계여야 한다.
+// noteId는 족보가 지워져도 내역을 남기려고 외래 키로 묶지 않는다.
+// ⚠️ 마이그레이션 20261029040000에 스키마로 표현 못 하는 것이 있다:
+//   부분 고유 인덱스 "CreditLedger_once_per_note", Profile INSERT 트리거 "Profile_signup_credit".
+//   다음 마이그레이션을 `prisma migrate diff`로 만들 때 이 인덱스를 DROP하는 줄이 생기면 지울 것.
+model CreditLedger {
+  id        String       @id @default(cuid())
+  userId    String       @db.Uuid
+  delta     Int
+  reason    CreditReason
+  noteId    String?
+  createdAt DateTime     @default(now())
+
+  user Profile @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, createdAt(sort: Desc)])
 }
