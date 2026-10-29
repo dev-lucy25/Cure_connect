@@ -1,5 +1,6 @@
 import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
+import { supabasePublicConfig } from "@/lib/env/public";
 
 // 오픈형: 로그인 없이도 화면은 열린다. 여기서는
 // 1) 만료된 Supabase 토큰을 갱신해 쿠키에 다시 쓰고
@@ -7,8 +8,9 @@ import { NextResponse, type NextRequest } from "next/server";
 // 기록 읽기·저장 같은 권한 확인은 서버 코드(server/auth.ts)에서 매번 한다.
 export async function proxy(request: NextRequest) {
   let response = NextResponse.next({ request });
+  const { url, anonKey } = supabasePublicConfig();
 
-  const supabase = createServerClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!, {
+  const supabase = createServerClient(url, anonKey, {
     cookies: {
       getAll() {
         return request.cookies.getAll();

@@ -1,10 +1,8 @@
 import type { CurrentUser } from "@/server/auth";
 import { getProgress, listLogs, listUpcomingSchedules } from "@/server/practice-repo";
-import { logout } from "@/server/auth-actions";
 import { todayKst } from "@/lib/dates";
-import Button from "@/components/ui/button";
-import { IconLogout } from "@/components/ui/icons";
 import PageHeader from "@/components/ui/page-header";
+import ProfileBanner from "@/components/home/profile-banner";
 import DDayChip from "@/components/tracker/dday-chip";
 import LogSection from "@/components/tracker/log-section";
 import ProgressHero from "@/components/tracker/progress-hero";
@@ -23,6 +21,9 @@ export default async function TrackerHome({ user }: { user: CurrentUser }) {
     <div className="space-y-3">
       <PageHeader title="실습 시간" description={`${user.name}님의 실습 기록`} />
       <div className="pt-2">
+        <ProfileBanner user={user} totalMinutes={progress.totalMinutes} goalHours={progress.goalHours} />
+      </div>
+      <div>
         <ProgressHero
           totalMinutes={progress.totalMinutes}
           goalHours={progress.goalHours}
@@ -33,11 +34,6 @@ export default async function TrackerHome({ user }: { user: CurrentUser }) {
         <LogSection items={logs.items} nextCursor={logs.nextCursor} version={progress.logsVersion} today={today} />
         <SchedulePanel schedules={schedules} today={today} />
       </div>
-      <form action={logout} className="flex justify-center pt-4">
-        <Button type="submit" variant="ghost" className="text-body-sm">
-          <IconLogout size={18} /> 로그아웃
-        </Button>
-      </form>
     </div>
   );
 }

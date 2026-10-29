@@ -8,12 +8,12 @@ export default function FormStatus({ message, savedAt, savedText = "저장했어
     );
   }
   if (savedAt) {
-    // key가 바뀌면 애니메이션이 처음부터 다시 돈다 (저장할 때마다 다시 보임). 탭 바 바로 위, 앱 폭 가운데
+    // key가 바뀌면 애니메이션이 처음부터 다시 돈다 (저장할 때마다 다시 보임). 모바일은 탭 바 바로 위, md 이상은 화면 아래
     return (
       <p
         key={savedAt}
         role="status"
-        className="animate-toast pointer-events-none fixed bottom-[calc(var(--size-tab)+env(safe-area-inset-bottom)+12px)] left-1/2 z-30 rounded-full bg-ink px-5 py-2.5 text-body-sm font-bold whitespace-nowrap text-canvas shadow-soft"
+        className="animate-toast pointer-events-none fixed bottom-[calc(var(--size-tab)+env(safe-area-inset-bottom)+12px)] left-1/2 z-30 md:bottom-8 rounded-full bg-ink px-5 py-2.5 text-body-sm font-bold whitespace-nowrap text-canvas shadow-soft"
       >
         {savedText}
       </p>

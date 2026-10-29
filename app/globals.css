@@ -82,6 +82,8 @@
   --size-tab: 64px;
   --size-appbar: 56px;
   --width-app: 480px;
+  /* 태블릿·PC(md 768px 이상) 본문 최대 폭 */
+  --width-wide: 1120px;
 }
 
 [data-theme="dark"] {
