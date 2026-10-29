@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { motion } from "motion/react";
 import { CREDIT_PACKAGES, UPLOAD_REWARD } from "@/lib/credits";
 import { SPRING_SOFT } from "@/lib/motion";
@@ -52,6 +53,11 @@ export default function CreditShop({ onWrite }: { onWrite: () => void }) {
         </span>
         <span className="shrink-0 rounded-control bg-warn-ink px-3 py-1.5 text-caption font-bold text-warn-bg">+{UPLOAD_REWARD} C</span>
       </motion.button>
+      <p className="pt-1 text-center">
+        <Link href="/credits" className="inline-flex min-h-11 items-center text-body-sm font-bold text-ink-soft underline-offset-2 hover:text-ink hover:underline">
+          크레딧 내역 보기 →
+        </Link>
+      </p>
     </div>
   );
 }

@@ -327,3 +327,50 @@ export function NotesSkeleton() {
     </SkeletonBox>
   );
 }
+
+function LedgerRowBones() {
+  return (
+    <div className="flex items-center justify-between gap-3 py-3">
+      <div className="flex-1 space-y-2">
+        <Bone className="h-4 w-1/3" />
+        <Bone className="h-3 w-1/2" />
+      </div>
+      <Bone className="h-6 w-20" />
+    </div>
+  );
+}
+
+/** 크레딧 내역 "더 보기" 중 */
+export function LedgerMoreSkeleton() {
+  return (
+    <SkeletonBox label="내역을 더 불러오는 중" className="divide-y divide-line/70">
+      <LedgerRowBones />
+      <LedgerRowBones />
+      <LedgerRowBones />
+    </SkeletonBox>
+  );
+}
+
+/** 크레딧 화면: (잔액·충전소 | 내역) */
+export function CreditsSkeleton() {
+  return (
+    <SkeletonBox label="크레딧을 불러오는 중" className="space-y-3">
+      <HeaderBones />
+      <div className="grid gap-4 pt-2 md:grid-cols-2 md:items-start">
+        <CardShell className="space-y-3">
+          <Bone className="h-10 w-1/2" />
+          <div aria-hidden className="skeleton h-16 rounded-control" />
+          <div aria-hidden className="skeleton h-16 rounded-control" />
+        </CardShell>
+        <CardShell>
+          <Bone className="h-6 w-24" />
+          <div className="divide-y divide-line/70">
+            {[0, 1, 2, 3, 4].map((i) => (
+              <LedgerRowBones key={i} />
+            ))}
+          </div>
+        </CardShell>
+      </div>
+    </SkeletonBox>
+  );
+}
