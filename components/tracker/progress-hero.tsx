@@ -3,6 +3,7 @@ import NurseTurtle, { turtleStage } from "@/components/mascot/nurse-turtle";
 import Card from "@/components/ui/card";
 import MilestoneConfetti from "@/components/ui/confetti";
 import GoalEditor from "@/components/tracker/goal-editor";
+import { DUTY_HOURS } from "@/lib/subjects";
 
 const MILESTONE = 100;
 
@@ -13,11 +14,14 @@ function formatHours(hours: number) {
 // 히어로 카드: 거북이 + "312 / 1,000시간" 큰 숫자 + 두꺼운 진행 바 + 100시간마다 마일스톤 점 + (아래) D-Day 칩
 export default function ProgressHero({
   totalMinutes,
+  approvedMinutes,
   goalHours,
   dday,
   editable = true,
 }: {
   totalMinutes: number;
+  /** 지도교수 인증 완료 시간(분). 없으면(예시 화면) 표시하지 않는다 */
+  approvedMinutes?: number;
   goalHours: number;
   /** 히어로 아래쪽에 붙는 D-Day 칩 */
   dday?: ReactNode;
@@ -46,12 +50,18 @@ export default function ProgressHero({
           <p className="mt-2 text-body-sm text-ink-soft">
             {remaining > 0 ? (
               <>
-                졸업 기준까지 <b className="text-ink">{formatHours(remaining)}시간</b> 남음
+                졸업 기준까지 <b className="text-ink">{formatHours(remaining)}시간</b> (약 {Math.ceil(remaining / DUTY_HOURS)}일 듀티)
+                남음
               </>
             ) : (
               "졸업 기준 달성"
             )}
           </p>
+          {approvedMinutes !== undefined && (
+            <p className="mt-0.5 text-body-sm text-ink-soft">
+              교수 인증 완료 <b className="text-brand-deep">{formatHours(approvedMinutes / 60)}시간</b>
+            </p>
+          )}
         </div>
       </div>
 

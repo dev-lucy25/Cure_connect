@@ -1,6 +1,7 @@
 import { z } from "zod";
-import { todayKst } from "@/lib/dates";
+import { todayKst, weekdaysFrom } from "@/lib/dates";
 import { detectPii, piiMessage } from "@/lib/validation/pii";
+import { SHIFT_KEYS, SUBJECT_KEYS } from "@/lib/subjects";
 
 // label은 조사까지 붙인 형태: { 을: "병원을", 은: "병원은" }
 const text = (label: { 을: string; 은: string }, max: number) =>
@@ -16,8 +17,14 @@ const ACTIVITIES = { 을: "한 일을", 은: "한 일은" };
 
 const isoDate = z.iso.date({ error: "날짜를 골라 주세요" });
 
+const subject = z.enum(SUBJECT_KEYS, { error: "실습 과목을 골라 주세요" });
+/** 듀티는 선택. 빈 칸 = null */
+const shift = z.preprocess((v) => (v === "" ? null : v), z.enum(SHIFT_KEYS, { error: "듀티를 다시 골라 주세요" }).nullable());
+
 export const logSchema = z.object({
   date: isoDate.refine((d) => d <= todayKst(), { error: "앞으로의 날짜는 일지로 쓸 수 없어요" }),
+  subject,
+  shift,
   hospital: text(HOSPITAL, 60),
   ward: text(WARD, 60),
   hours: z
@@ -38,11 +45,75 @@ export const logSchema = z.object({
   }),
 });
 
-export const scheduleSchema = z.object({
-  hospital: text(HOSPITAL, 60),
-  ward: text(WARD, 60),
-  startDate: isoDate,
-});
+/** 1주 일괄: 시작일부터 평일 5일 × 8시간 */
+export const WEEK_DAYS = 5;
+export const WEEK_DAY_HOURS = 8;
+
+export const weekLogSchema = logSchema
+  .omit({ hours: true })
+  .extend({ date: isoDate })
+  .superRefine((v, ctx) => {
+    const last = weekdaysFrom(v.date, WEEK_DAYS).at(-1)!;
+    if (last > todayKst()) {
+      ctx.addIssue({ code: "custom", path: ["date"], message: "마지막 날이 오늘 이후예요. 이미 지난 주의 첫날을 골라 주세요" });
+    }
+  });
+
+/** 선택 입력. 빈 칸 = null */
+const optionalText = (label: string, max: number) =>
+  z
+    .string()
+    .trim()
+    .max(max, { error: `${label}은 ${max}자 이하로 입력해 주세요` })
+    .transform((v) => v || null);
+
+const optionalTime = (label: string) =>
+  z
+    .string()
+    .trim()
+    .refine((v) => v === "" || /^([01]\d|2[0-3]):[0-5]\d$/.test(v), { error: `${label}을 다시 골라 주세요` })
+    .transform((v) => v || null);
+
+/** 쉼표나 줄바꿈으로 나눈 목록 ("간경변증, 위장관출혈") */
+const commaList = (label: string, maxItems: number, maxLen: number) =>
+  z
+    .string()
+    .transform((s) =>
+      s
+        .split(/[,\n]/)
+        .map((item) => item.trim())
+        .filter(Boolean),
+    )
+    .pipe(
+      z
+        .array(z.string().max(maxLen, { error: `${label} 하나는 ${maxLen}자 이하로 써 주세요` }))
+        .max(maxItems, { error: `${label}은 ${maxItems}개까지 쓸 수 있어요` }),
+    );
+
+// 실습 일정. 병원·병동·시작일만 필수, 나머지 병동 정보(D-Day 카드에 보이는 것)는 선택
+export const scheduleSchema = z
+  .object({
+    hospital: text(HOSPITAL, 60),
+    ward: text(WARD, 60),
+    startDate: isoDate,
+    endDate: z.union([z.literal("").transform(() => null), isoDate]),
+    subject: z.preprocess((v) => (v === "" ? null : v), subject.nullable()),
+    department: optionalText("진료과", 30),
+    shift,
+    shiftStart: optionalTime("근무 시작 시각"),
+    shiftEnd: optionalTime("근무 끝 시각"),
+    meetingPlace: optionalText("집결 장소", 80),
+    meetingTime: optionalTime("집결 시각"),
+    preceptor: optionalText("담당 수간호사", 40),
+    commonDiseases: commaList("다빈도 질환", 6, 30),
+    groupName: optionalText("조", 20),
+    teammates: commaList("조원", 10, 20),
+  })
+  .superRefine((v, ctx) => {
+    if (v.endDate && v.endDate < v.startDate) {
+      ctx.addIssue({ code: "custom", path: ["endDate"], message: "종료일은 시작일과 같거나 뒤여야 해요" });
+    }
+  });
 
 export const goalSchema = z.object({
   goalHours: z.coerce

@@ -7,6 +7,8 @@ import type { ScheduleItem } from "@/server/practice-repo";
 import { dDayLabel, daysBetween, shortDate } from "@/lib/dates";
 import Button from "@/components/ui/button";
 import Field from "@/components/ui/field";
+import SelectField from "@/components/ui/select-field";
+import { SHIFTS, SUBJECTS } from "@/lib/subjects";
 import FormStatus from "@/components/ui/form-status";
 import { IconPlus } from "@/components/ui/icons";
 import RowActions from "@/components/tracker/row-actions";
@@ -75,6 +77,7 @@ function ScheduleRow({ schedule, today }: { schedule: ScheduleItem; today: strin
         <p className="truncate font-bold">{schedule.ward}</p>
         <p className="truncate text-body-sm text-ink-soft">
           {schedule.hospital} · {shortDate(schedule.startDate)}
+          {schedule.endDate && ` ~ ${shortDate(schedule.endDate)}`}
         </p>
       </div>
       <FormStatus message={del.message} />
@@ -124,15 +127,137 @@ function ScheduleForm({
           error={errors.ward}
         />
       </div>
-      <Field
-        id={`${p}startDate`}
-        name="startDate"
-        label="시작일"
-        type="date"
-        min={today}
-        defaultValue={v?.startDate ?? initial?.startDate ?? today}
-        error={errors.startDate}
-      />
+      <div className="grid grid-cols-2 gap-3">
+        <Field
+          id={`${p}startDate`}
+          name="startDate"
+          label="시작일"
+          type="date"
+          defaultValue={v?.startDate ?? initial?.startDate ?? today}
+          error={errors.startDate}
+        />
+        <Field
+          id={`${p}endDate`}
+          name="endDate"
+          label="종료일 (선택)"
+          type="date"
+          defaultValue={v?.endDate ?? initial?.endDate ?? ""}
+          error={errors.endDate}
+        />
+      </div>
+      <div className="grid grid-cols-2 gap-3">
+        <SelectField
+          id={`${p}subject`}
+          name="subject"
+          label="실습 과목 (선택)"
+          defaultValue={v?.subject ?? initial?.subject ?? ""}
+          error={errors.subject}
+        >
+          <option value="">선택 안 함</option>
+          {SUBJECTS.map((s) => (
+            <option key={s.key} value={s.key}>
+              {s.label}
+            </option>
+          ))}
+        </SelectField>
+        <Field
+          id={`${p}department`}
+          name="department"
+          label="진료과 (선택)"
+          placeholder="예: 소화기내과"
+          defaultValue={v?.department ?? initial?.department ?? ""}
+          error={errors.department}
+        />
+      </div>
+      {/* 병동 정보는 접어 두고, 오류가 있거나 이미 적어 둔 값이 있으면 펼친다 */}
+      <details
+        open={DETAIL_FIELDS.some((f) => errors[f]) || (initial ? hasDetails(initial) : false)}
+        className="rounded-control bg-subtle p-3"
+      >
+        <summary className="min-h-11 cursor-pointer content-center text-body-sm font-bold text-ink">
+          병동 정보 더 입력하기 (근무 시간 · 집결 · 수간호사 · 질환 · 조원)
+        </summary>
+        <div className="mt-3 space-y-3">
+          <div className="grid grid-cols-3 gap-3">
+            <SelectField id={`${p}shift`} name="shift" label="듀티" defaultValue={v?.shift ?? initial?.shift ?? ""} error={errors.shift}>
+              <option value="">-</option>
+              {SHIFTS.map((s) => (
+                <option key={s.key} value={s.key}>
+                  {s.label}
+                </option>
+              ))}
+            </SelectField>
+            <Field
+              id={`${p}shiftStart`}
+              name="shiftStart"
+              label="시작"
+              type="time"
+              defaultValue={v?.shiftStart ?? initial?.shiftStart ?? ""}
+              error={errors.shiftStart}
+            />
+            <Field
+              id={`${p}shiftEnd`}
+              name="shiftEnd"
+              label="끝"
+              type="time"
+              defaultValue={v?.shiftEnd ?? initial?.shiftEnd ?? ""}
+              error={errors.shiftEnd}
+            />
+          </div>
+          <div className="grid grid-cols-[1fr_auto] gap-3">
+            <Field
+              id={`${p}meetingPlace`}
+              name="meetingPlace"
+              label="집결 장소"
+              placeholder="예: 본관 7층 엘리베이터 앞"
+              defaultValue={v?.meetingPlace ?? initial?.meetingPlace ?? ""}
+              error={errors.meetingPlace}
+            />
+            <Field
+              id={`${p}meetingTime`}
+              name="meetingTime"
+              label="집결 시각"
+              type="time"
+              defaultValue={v?.meetingTime ?? initial?.meetingTime ?? ""}
+              error={errors.meetingTime}
+            />
+          </div>
+          <Field
+            id={`${p}preceptor`}
+            name="preceptor"
+            label="담당 수간호사 (현장지도자)"
+            placeholder="예: 박지영 수간호사"
+            defaultValue={v?.preceptor ?? initial?.preceptor ?? ""}
+            error={errors.preceptor}
+          />
+          <Field
+            id={`${p}commonDiseases`}
+            name="commonDiseases"
+            label="주요 다빈도 질환 (쉼표로 구분)"
+            placeholder="예: 간경변증, 위장관출혈, 급성췌장염"
+            defaultValue={v?.commonDiseases ?? initial?.commonDiseases.join(", ") ?? ""}
+            error={errors.commonDiseases}
+          />
+          <div className="grid grid-cols-[6rem_1fr] gap-3">
+            <Field
+              id={`${p}groupName`}
+              name="groupName"
+              label="조"
+              placeholder="예: 3조"
+              defaultValue={v?.groupName ?? initial?.groupName ?? ""}
+              error={errors.groupName}
+            />
+            <Field
+              id={`${p}teammates`}
+              name="teammates"
+              label="조원 (쉼표로 구분)"
+              placeholder="예: 박소연, 정민수"
+              defaultValue={v?.teammates ?? initial?.teammates.join(", ") ?? ""}
+              error={errors.teammates}
+            />
+          </div>
+        </div>
+      </details>
       <FormStatus message={state.message} />
       <div className="flex gap-2">
         <Button type="submit" disabled={pending} className="flex-1">
@@ -143,5 +268,23 @@ function ScheduleForm({
         </Button>
       </div>
     </form>
+  );
+}
+
+const DETAIL_FIELDS = [
+  "shift",
+  "shiftStart",
+  "shiftEnd",
+  "meetingPlace",
+  "meetingTime",
+  "preceptor",
+  "commonDiseases",
+  "groupName",
+  "teammates",
+] as const;
+
+function hasDetails(s: ScheduleItem) {
+  return Boolean(
+    s.shift || s.shiftStart || s.shiftEnd || s.meetingPlace || s.meetingTime || s.preceptor || s.groupName || s.commonDiseases.length || s.teammates.length,
   );
 }

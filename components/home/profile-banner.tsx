@@ -1,18 +1,23 @@
 import Link from "next/link";
 import type { CurrentUser } from "@/server/auth";
+import type { ScheduleItem } from "@/server/practice-repo";
+import { subjectLabel } from "@/lib/subjects";
 import Card from "@/components/ui/card";
 import Chip from "@/components/ui/chip";
 
-// 학생 홈 맨 위: 이름 · 학년반 · 학번 · 이수 상태 · 학교 (· 현재 로테이션은 실습 일정 확장 때 붙인다)
+// 학생 홈 맨 위: 이름 · 학년반 · 학번 · 이수 상태 · 학교 · 현재 로테이션(오늘이 기간 안인 실습 일정)
 export default function ProfileBanner({
   user,
   totalMinutes,
   goalHours,
+  current,
 }: {
   user: CurrentUser;
   totalMinutes: number;
   goalHours: number;
+  current?: ScheduleItem;
 }) {
+  const rotation = current && `${current.subject ? `${subjectLabel(current.subject)}실습 · ` : ""}${current.ward}`;
   const done = totalMinutes >= goalHours * 60;
   const classLabel = [user.grade && `${user.grade}학년`, user.classGroup && `${user.classGroup}반`].filter(Boolean).join(" ");
   const idLine = [classLabel, user.memberNo].filter(Boolean).join(" · ");
@@ -35,6 +40,7 @@ export default function ProfileBanner({
               </Link>
             </>
           )}
+          {rotation && <> · 현재 로테이션: {rotation}</>}
         </p>
       </div>
     </Card>

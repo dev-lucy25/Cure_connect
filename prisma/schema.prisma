@@ -38,6 +38,7 @@ model Profile {
 
   practiceLogs      PracticeLog[]
   practiceSchedules PracticeSchedule[]
+  checklistItems    ChecklistItem[]
   caseNotes         CaseNote[]
   aiUsages          AiUsage[]
   wardNotes         WardNote[]
@@ -120,17 +121,46 @@ model AiUsage {
   @@id([userId, day])
 }
 
+// 간호교육인증평가 전공 영역 6과목 (과목별 목표 시간은 lib/subjects.ts)
+enum Subject {
+  adult
+  maternal
+  child
+  community
+  psych
+  management
+}
+
+enum Shift {
+  day
+  evening
+  night
+}
+
+// 일지 인증: 학생이 쓰면 pending, 지도교수가 확인하면 approved / rejected
+enum LogStatus {
+  pending
+  approved
+  rejected
+}
+
 // 실습 일지. 시간은 소수 오차가 없도록 분 단위 정수로 저장한다 (화면은 0.5시간 단위).
 model PracticeLog {
-  id         String   @id @default(cuid())
-  userId     String   @db.Uuid
-  date       DateTime @db.Date
-  hospital   String   @db.VarChar(60)
-  ward       String   @db.VarChar(60)
+  id         String    @id @default(cuid())
+  userId     String    @db.Uuid
+  date       DateTime  @db.Date
+  // 과목이 없던 예전 일지는 마이그레이션에서 성인간호학으로 채웠다 (화면에서 고칠 수 있음)
+  subject    Subject   @default(adult)
+  shift      Shift?
+  hospital   String    @db.VarChar(60)
+  ward       String    @db.VarChar(60)
   minutes    Int
-  activities String   @db.VarChar(2000)
-  createdAt  DateTime @default(now())
-  updatedAt  DateTime @updatedAt
+  activities String    @db.VarChar(2000)
+  status     LogStatus @default(pending)
+  reviewedBy String?   @db.Uuid
+  reviewedAt DateTime?
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @updatedAt
 
   user Profile @relation(fields: [userId], references: [id], onDelete: Cascade)
 
@@ -138,20 +168,47 @@ model PracticeLog {
   @@index([userId, date(sort: Desc), id(sort: Desc)])
 }
 
-// 다음 실습 일정 → "내과병동 실습 D-5"
+// 실습 일정 → "다음 실습 D-3" 카드. 병동 정보(근무 시간·집결·수간호사·다빈도 질환·조원)는 모두 선택 입력
 model PracticeSchedule {
-  id        String   @id @default(cuid())
-  userId    String   @db.Uuid
-  hospital  String   @db.VarChar(60)
-  ward      String   @db.VarChar(60)
-  startDate DateTime @db.Date
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  id             String    @id @default(cuid())
+  userId         String    @db.Uuid
+  subject        Subject?
+  hospital       String    @db.VarChar(60)
+  ward           String    @db.VarChar(60)
+  department     String?   @db.VarChar(30)
+  startDate      DateTime  @db.Date
+  endDate        DateTime? @db.Date
+  shift          Shift?
+  // "07:00" 형식
+  shiftStart     String?   @db.VarChar(5)
+  shiftEnd       String?   @db.VarChar(5)
+  meetingPlace   String?   @db.VarChar(80)
+  meetingTime    String?   @db.VarChar(5)
+  preceptor      String?   @db.VarChar(40)
+  commonDiseases String[]  @default([])
+  groupName      String?   @db.VarChar(20)
+  teammates      String[]  @default([])
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
 
   user Profile @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   // 다가오는 일정을 시작일순으로 찾는다
   @@index([userId, startDate])
+}
+
+// 첫 출근 준비물 체크리스트. 처음 열 때 기본 항목을 넣어 준다
+model ChecklistItem {
+  id        String   @id @default(cuid())
+  userId    String   @db.Uuid
+  text      String   @db.VarChar(100)
+  done      Boolean  @default(false)
+  sortOrder Int
+  createdAt DateTime @default(now())
+
+  user Profile @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, sortOrder])
 }
 
 // 병동 족보: 자주 받은 질문 · 준비물 · 분위기 · 팁 (항목형)
