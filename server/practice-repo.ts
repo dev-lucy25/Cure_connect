@@ -22,13 +22,26 @@ export type LogItem = {
 
 export type ScheduleItem = {
   id: string;
+  subject: Subject | null;
   hospital: string;
   ward: string;
+  department: string | null;
   startDate: string;
+  endDate: string | null;
+  shift: Shift | null;
+  shiftStart: string | null;
+  shiftEnd: string | null;
+  meetingPlace: string | null;
+  meetingTime: string | null;
+  preceptor: string | null;
+  commonDiseases: string[];
+  groupName: string | null;
+  teammates: string[];
 };
 
+type ScheduleInput = Omit<ScheduleItem, "id">;
+
 type LogInput = { date: string; subject: Subject; shift: Shift | null; hospital: string; ward: string; hours: number; activities: string };
-type ScheduleInput = { hospital: string; ward: string; startDate: string };
 
 const logSelect = {
   id: true,
@@ -121,26 +134,53 @@ export async function deleteLog(userId: string, id: string) {
   return count === 1;
 }
 
-/** 오늘 이후 일정, 가까운 순 */
+const scheduleSelect = {
+  id: true,
+  subject: true,
+  hospital: true,
+  ward: true,
+  department: true,
+  startDate: true,
+  endDate: true,
+  shift: true,
+  shiftStart: true,
+  shiftEnd: true,
+  meetingPlace: true,
+  meetingTime: true,
+  preceptor: true,
+  commonDiseases: true,
+  groupName: true,
+  teammates: true,
+} as const;
+
+type ScheduleRow = Omit<ScheduleItem, "startDate" | "endDate"> & { startDate: Date; endDate: Date | null };
+
+function toScheduleItem({ startDate, endDate, ...rest }: ScheduleRow): ScheduleItem {
+  return { ...rest, startDate: fromDbDate(startDate), endDate: endDate ? fromDbDate(endDate) : null };
+}
+
+function toScheduleData({ startDate, endDate, ...rest }: ScheduleInput) {
+  return { ...rest, startDate: toDbDate(startDate), endDate: endDate ? toDbDate(endDate) : null };
+}
+
+/** 진행 중이거나 앞으로 있을 일정, 시작일 가까운 순 (종료일이 없으면 시작일이 오늘 이후인 것만) */
 export async function listUpcomingSchedules(userId: string, today: string): Promise<ScheduleItem[]> {
+  const day = toDbDate(today);
   const rows = await db.practiceSchedule.findMany({
-    where: { userId, startDate: { gte: toDbDate(today) } },
+    where: { userId, OR: [{ endDate: { gte: day } }, { endDate: null, startDate: { gte: day } }] },
     orderBy: [{ startDate: "asc" }, { id: "asc" }],
     take: 10,
-    select: { id: true, hospital: true, ward: true, startDate: true },
+    select: scheduleSelect,
   });
-  return rows.map((r) => ({ id: r.id, hospital: r.hospital, ward: r.ward, startDate: fromDbDate(r.startDate) }));
+  return rows.map(toScheduleItem);
 }
 
 export async function createSchedule(userId: string, input: ScheduleInput) {
-  await db.practiceSchedule.create({ data: { userId, ...input, startDate: toDbDate(input.startDate) } });
+  await db.practiceSchedule.create({ data: { userId, ...toScheduleData(input) } });
 }
 
 export async function updateSchedule(userId: string, id: string, input: ScheduleInput) {
-  const { count } = await db.practiceSchedule.updateMany({
-    where: { id, userId },
-    data: { ...input, startDate: toDbDate(input.startDate) },
-  });
+  const { count } = await db.practiceSchedule.updateMany({ where: { id, userId }, data: toScheduleData(input) });
   return count === 1;
 }
 

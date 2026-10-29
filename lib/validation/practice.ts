@@ -59,11 +59,61 @@ export const weekLogSchema = logSchema
     }
   });
 
-export const scheduleSchema = z.object({
-  hospital: text(HOSPITAL, 60),
-  ward: text(WARD, 60),
-  startDate: isoDate,
-});
+/** 선택 입력. 빈 칸 = null */
+const optionalText = (label: string, max: number) =>
+  z
+    .string()
+    .trim()
+    .max(max, { error: `${label}은 ${max}자 이하로 입력해 주세요` })
+    .transform((v) => v || null);
+
+const optionalTime = (label: string) =>
+  z
+    .string()
+    .trim()
+    .refine((v) => v === "" || /^([01]\d|2[0-3]):[0-5]\d$/.test(v), { error: `${label}을 다시 골라 주세요` })
+    .transform((v) => v || null);
+
+/** 쉼표나 줄바꿈으로 나눈 목록 ("간경변증, 위장관출혈") */
+const commaList = (label: string, maxItems: number, maxLen: number) =>
+  z
+    .string()
+    .transform((s) =>
+      s
+        .split(/[,\n]/)
+        .map((item) => item.trim())
+        .filter(Boolean),
+    )
+    .pipe(
+      z
+        .array(z.string().max(maxLen, { error: `${label} 하나는 ${maxLen}자 이하로 써 주세요` }))
+        .max(maxItems, { error: `${label}은 ${maxItems}개까지 쓸 수 있어요` }),
+    );
+
+// 실습 일정. 병원·병동·시작일만 필수, 나머지 병동 정보(D-Day 카드에 보이는 것)는 선택
+export const scheduleSchema = z
+  .object({
+    hospital: text(HOSPITAL, 60),
+    ward: text(WARD, 60),
+    startDate: isoDate,
+    endDate: z.union([z.literal("").transform(() => null), isoDate]),
+    subject: z.preprocess((v) => (v === "" ? null : v), subject.nullable()),
+    department: optionalText("진료과", 30),
+    shift,
+    shiftStart: optionalTime("근무 시작 시각"),
+    shiftEnd: optionalTime("근무 끝 시각"),
+    meetingPlace: optionalText("집결 장소", 80),
+    meetingTime: optionalTime("집결 시각"),
+    preceptor: optionalText("담당 수간호사", 40),
+    commonDiseases: commaList("다빈도 질환", 6, 30),
+    groupName: optionalText("조", 20),
+    teammates: commaList("조원", 10, 20),
+  })
+  .superRefine((v, ctx) => {
+    if (v.endDate && v.endDate < v.startDate) {
+      ctx.addIssue({ code: "custom", path: ["endDate"], message: "종료일은 시작일과 같거나 뒤여야 해요" });
+    }
+  });
 
 export const goalSchema = z.object({
   goalHours: z.coerce

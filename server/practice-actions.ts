@@ -36,7 +36,23 @@ function pick<F extends string>(formData: FormData, fields: readonly F[]) {
 }
 
 const LOG_FIELDS = ["date", "subject", "shift", "hospital", "ward", "hours", "activities"] as const;
-const SCHEDULE_FIELDS = ["hospital", "ward", "startDate"] as const;
+const SCHEDULE_FIELDS = [
+  "hospital",
+  "ward",
+  "startDate",
+  "endDate",
+  "subject",
+  "department",
+  "shift",
+  "shiftStart",
+  "shiftEnd",
+  "meetingPlace",
+  "meetingTime",
+  "preceptor",
+  "commonDiseases",
+  "groupName",
+  "teammates",
+] as const;
 
 export async function saveLog(_prev: FormState<LogField>, formData: FormData): Promise<FormState<LogField>> {
   const user = await getCurrentUser();
