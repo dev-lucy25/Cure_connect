@@ -40,6 +40,7 @@ model Profile {
   practiceSchedules PracticeSchedule[]
   checklistItems    ChecklistItem[]
   submissions       CaseSubmission[]
+  payments          Payment[]
   caseNotes         CaseNote[]
   aiUsages          AiUsage[]
   wardNotes         WardNote[]
@@ -354,7 +355,43 @@ model CreditLedger {
   noteId         String?
   // sale: 산 사람 / unlock: 판 사람(작성자)
   counterpartyId String?      @db.Uuid
+  // purchase·refund: 어느 결제의 충전·취소인지
+  paymentId      String?
   createdAt      DateTime     @default(now())
+
+  user Profile @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, createdAt(sort: Desc)])
+}
+
+// 크레딧 충전 결제. 금액·크레딧은 서버의 상품표(lib/credits)에서만 정한다.
+// 지금은 가상 결제(mock) — 승인 단계만 토스페이먼츠로 바꾸면 실제 결제가 된다.
+enum PaymentStatus {
+  ready
+  done
+  canceled
+  failed
+}
+
+enum PaymentProvider {
+  mock
+  toss
+}
+
+// ⚠️ 마이그레이션 20261030010000에 스키마로 표현 못 하는 부분 고유 인덱스 "CreditLedger_once_per_payment"가 있다
+//   (결제마다 충전·취소 내역은 한 번씩). 다음 migrate diff에 이 인덱스 DROP 줄이 생기면 지울 것.
+model Payment {
+  id         String          @id @default(cuid())
+  orderId    String          @unique @db.VarChar(64)
+  userId     String          @db.Uuid
+  packageId  String          @db.VarChar(30)
+  amountKrw  Int
+  credits    Int
+  provider   PaymentProvider @default(mock)
+  status     PaymentStatus   @default(ready)
+  approvedAt DateTime?
+  canceledAt DateTime?
+  createdAt  DateTime        @default(now())
 
   user Profile @relation(fields: [userId], references: [id], onDelete: Cascade)
 
