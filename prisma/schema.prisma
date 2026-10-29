@@ -19,8 +19,47 @@ model Profile {
   email     String   @unique
   name      String   @db.VarChar(30)
   role      Role     @default(student)
+  // 졸업 목표 실습 시간 (사용자가 바꿀 수 있음)
+  goalHours Int      @default(1000)
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
+  practiceLogs      PracticeLog[]
+  practiceSchedules PracticeSchedule[]
+
   @@index([role])
+}
+
+// 실습 일지. 시간은 소수 오차가 없도록 분 단위 정수로 저장한다 (화면은 0.5시간 단위).
+model PracticeLog {
+  id         String   @id @default(cuid())
+  userId     String   @db.Uuid
+  date       DateTime @db.Date
+  hospital   String   @db.VarChar(60)
+  ward       String   @db.VarChar(60)
+  minutes    Int
+  activities String   @db.VarChar(2000)
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  user Profile @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  // 내 일지를 최신 날짜순으로 나눠 읽는다
+  @@index([userId, date(sort: Desc), id(sort: Desc)])
+}
+
+// 다음 실습 일정 → "내과병동 실습 D-5"
+model PracticeSchedule {
+  id        String   @id @default(cuid())
+  userId    String   @db.Uuid
+  hospital  String   @db.VarChar(60)
+  ward      String   @db.VarChar(60)
+  startDate DateTime @db.Date
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  user Profile @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  // 다가오는 일정을 시작일순으로 찾는다
+  @@index([userId, startDate])
 }

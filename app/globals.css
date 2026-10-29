@@ -47,10 +47,10 @@
 
   /* 모서리 */
   --radius-control: 16px;
-  --radius-card: 24px;
+  --radius-card: 20px;
 
   /* 그림자: 갈색 기운의 아주 연한 그림자 */
-  --shadow-soft: 0 2px 4px rgb(74 52 38 / 0.04), 0 8px 24px rgb(74 52 38 / 0.07);
+  --shadow-soft: 0 1px 2px rgb(74 52 38 / 0.04), 0 4px 16px rgb(74 52 38 / 0.04);
   --shadow-lift: 0 -2px 16px rgb(74 52 38 / 0.08);
 
   /* 글꼴: 제목만 웹폰트(Jua), 본문은 시스템 폰트 */
@@ -78,6 +78,87 @@ body {
   outline-offset: 2px;
 }
 
+/* 한글은 단어 중간에서 줄을 바꾸지 않는다 (긴 영문·숫자는 넘치지 않게 끊음) */
+html {
+  word-break: keep-all;
+  overflow-wrap: break-word;
+}
+
+/* 마스코트 움직임: CSS만 사용 (JS 없음). 움직임 줄이기 설정이면 모두 멈춘다 */
+@keyframes mascot-bob {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-4%);
+  }
+}
+
+@keyframes mascot-hop {
+  0%,
+  60%,
+  100% {
+    transform: translateY(0) scale(1, 1);
+  }
+  15% {
+    transform: translateY(0) scale(1.06, 0.94);
+  }
+  35% {
+    transform: translateY(-10%) scale(0.97, 1.03);
+  }
+}
+
+@keyframes mascot-shake {
+  0%,
+  40%,
+  100% {
+    transform: translateX(0) rotate(0);
+  }
+  10%,
+  30% {
+    transform: translateX(-2%) rotate(-2deg);
+  }
+  20% {
+    transform: translateX(2%) rotate(2deg);
+  }
+}
+
+@keyframes mascot-blink {
+  0%,
+  92%,
+  100% {
+    transform: scaleY(1);
+  }
+  95% {
+    transform: scaleY(0.1);
+  }
+}
+
+.animate-mascot-bob {
+  animation: mascot-bob 2.8s ease-in-out infinite;
+}
+
+.animate-mascot-hop {
+  animation: mascot-hop 1.3s ease-out infinite;
+  transform-origin: 50% 100%;
+}
+
+.animate-mascot-shake {
+  animation: mascot-shake 1.8s ease-in-out infinite;
+  transform-origin: 50% 90%;
+}
+
+[data-still] .mascot-blink {
+  animation: none;
+}
+
+.mascot-blink {
+  animation: mascot-blink 4.2s ease-in-out infinite;
+  transform-box: fill-box;
+  transform-origin: center;
+}
+
 @keyframes mascot-sway {
   0%,
   100% {
@@ -93,8 +174,27 @@ body {
   transform-origin: 50% 90%;
 }
 
+/* "저장됐어요"처럼 잠깐 보였다가 사라지는 안내 */
+@keyframes fade-late {
+  0%,
+  70% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+  }
+}
+
+.animate-fade-late {
+  animation: fade-late 2.6s ease-in forwards;
+}
+
 @media (prefers-reduced-motion: reduce) {
-  .animate-mascot-sway {
+  .animate-mascot-sway,
+  .animate-mascot-bob,
+  .animate-mascot-hop,
+  .animate-mascot-shake,
+  .mascot-blink {
     animation: none;
   }
 }

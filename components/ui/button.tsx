@@ -8,18 +8,18 @@ const VARIANT: Record<Variant, string> = {
   ghost: "bg-transparent text-ink-soft hover:bg-cream-deep",
 };
 
+/** 버튼 모양 클래스. 링크(<Link>)를 버튼처럼 보이게 할 때도 쓴다 */
+export function buttonClass(variant: Variant = "primary", block = false) {
+  return `inline-flex min-h-(--size-touch) items-center justify-center gap-2 rounded-control px-5 text-body font-bold transition disabled:cursor-not-allowed disabled:opacity-55 ${
+    block ? "w-full" : ""
+  } ${VARIANT[variant]}`;
+}
+
 export default function Button({
   variant = "primary",
   block = false,
   className = "",
   ...props
 }: ComponentProps<"button"> & { variant?: Variant; block?: boolean }) {
-  return (
-    <button
-      className={`inline-flex min-h-(--size-touch) items-center justify-center gap-2 rounded-control px-5 text-body font-bold transition disabled:cursor-not-allowed disabled:opacity-55 ${
-        block ? "w-full" : ""
-      } ${VARIANT[variant]} ${className}`}
-      {...props}
-    />
-  );
+  return <button className={`${buttonClass(variant, block)} ${className}`} {...props} />;
 }

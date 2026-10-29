@@ -1,15 +1,12 @@
 "use server";
 
 import { redirect } from "next/navigation";
-import { z } from "zod";
 import { db } from "@/lib/db";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { loginSchema, signupSchema, type AuthField, type AuthFormState } from "@/lib/validation/auth";
+import { fieldErrorsOf } from "@/lib/validation/form";
 
-function firstErrors(error: z.ZodError): AuthFormState["fieldErrors"] {
-  const { fieldErrors } = z.flattenError(error) as { fieldErrors: Partial<Record<AuthField, string[]>> };
-  return Object.fromEntries(Object.entries(fieldErrors).map(([k, v]) => [k, v?.[0]]));
-}
+const firstErrors = fieldErrorsOf<AuthField>;
 
 export async function login(_prev: AuthFormState, formData: FormData): Promise<AuthFormState> {
   const raw = { email: formData.get("email"), password: formData.get("password") };

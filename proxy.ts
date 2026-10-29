@@ -1,12 +1,10 @@
 import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
 
-// /dev/*는 개발 모드 미리보기 전용 (페이지 자체가 production에서 404)
-const PUBLIC_PATHS = process.env.NODE_ENV === "production" ? ["/login"] : ["/login", "/dev"];
-
+// 오픈형: 로그인 없이도 화면은 열린다. 여기서는
 // 1) 만료된 Supabase 토큰을 갱신해 쿠키에 다시 쓰고
-// 2) 로그인하지 않은 사용자를 /login으로 보낸다.
-// 여기서의 확인은 빠른 1차 차단일 뿐이며, 실제 권한 확인은 서버 코드(server/auth.ts)에서 매번 다시 한다.
+// 2) 이미 로그인한 사용자가 /login에 오면 홈으로 보낸다.
+// 기록 읽기·저장 같은 권한 확인은 서버 코드(server/auth.ts)에서 매번 한다.
 export async function proxy(request: NextRequest) {
   let response = NextResponse.next({ request });
 
@@ -25,13 +23,7 @@ export async function proxy(request: NextRequest) {
   });
 
   const { data } = await supabase.auth.getClaims();
-  const isLoggedIn = Boolean(data?.claims);
-  const isPublic = PUBLIC_PATHS.some((p) => request.nextUrl.pathname.startsWith(p));
-
-  if (!isLoggedIn && !isPublic) {
-    return NextResponse.redirect(new URL("/login", request.url));
-  }
-  if (isLoggedIn && request.nextUrl.pathname.startsWith("/login")) {
+  if (data?.claims && request.nextUrl.pathname.startsWith("/login")) {
     return NextResponse.redirect(new URL("/", request.url));
   }
   return response;

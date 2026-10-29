@@ -45,6 +45,15 @@ const C = {
 
 const stroke = { stroke: C.line, strokeWidth: 1.8, strokeLinecap: "round", strokeLinejoin: "round" } as const;
 
+// 표정별 몸 움직임 (globals.css 애니메이션). still이면 멈춘 그림
+const MOTION: Record<TurtleMood, string> = {
+  default: "animate-mascot-bob",
+  empty: "animate-mascot-bob",
+  loading: "animate-mascot-sway",
+  saved: "animate-mascot-hop",
+  error: "animate-mascot-shake",
+};
+
 const EYE_L = 47;
 const EYE_R = 73;
 const EYE_Y = 58;
@@ -55,6 +64,7 @@ export default function NurseTurtle({
   size = 120,
   className = "",
   decorative = false,
+  still = false,
 }: {
   stage?: TurtleStage;
   mood?: TurtleMood;
@@ -62,6 +72,8 @@ export default function NurseTurtle({
   className?: string;
   /** 옆에 같은 뜻의 글이 있으면 true로 두어 스크린리더가 두 번 읽지 않게 한다 */
   decorative?: boolean;
+  /** 여러 마리를 한꺼번에 보여줄 때처럼 움직임이 산만하면 true */
+  still?: boolean;
 }) {
   const label = STAGE_LABEL[stage] + MOOD_LABEL[mood];
   const a11y = decorative ? { "aria-hidden": true } : { role: "img", "aria-label": label };
@@ -71,7 +83,8 @@ export default function NurseTurtle({
       viewBox="0 0 120 120"
       width={size}
       height={size}
-      className={`${mood === "loading" ? "animate-mascot-sway" : ""} ${className}`}
+      className={`${still ? "" : MOTION[mood]} ${className}`}
+      data-still={still || undefined}
       {...a11y}
     >
       <g transform={mood === "empty" ? "rotate(-7 60 84)" : undefined}>
@@ -163,10 +176,10 @@ function Face({ mood }: { mood: TurtleMood }) {
   }
 }
 
-// 콩알 눈 + 반짝이 하이라이트
+// 콩알 눈 + 반짝이 하이라이트. 가끔 깜빡인다
 function Eye({ x, dy = 0 }: { x: number; dy?: number }) {
   return (
-    <g>
+    <g className="mascot-blink">
       <ellipse cx={x} cy={EYE_Y + dy} rx="3.2" ry="3.9" fill={C.ink} />
       <circle cx={x + 1.1} cy={EYE_Y - 1.4 + dy} r="1.2" fill={C.white} />
       <circle cx={x - 1} cy={EYE_Y + 1.4 + dy} r="0.55" fill={C.white} />

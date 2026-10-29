@@ -1,5 +1,6 @@
 import "server-only";
 import { cache } from "react";
+import { connection } from "next/server";
 import { redirect } from "next/navigation";
 import { db } from "@/lib/db";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
@@ -12,15 +13,19 @@ export type CurrentUser = {
   role: Role;
 };
 
-// 모든 서버 화면·서버 처리는 이 함수로 로그인 사용자를 얻는다.
-// 같은 요청 안에서는 한 번만 Supabase·DB를 조회한다.
-export const getCurrentUser = cache(async (): Promise<CurrentUser> => {
+/**
+ * 로그인 사용자 또는 null. 로그인 없이도 열리는 화면(오픈형)에서 쓴다.
+ * 같은 요청 안에서는 한 번만 Supabase·DB를 조회한다.
+ */
+export const getOptionalUser = cache(async (): Promise<CurrentUser | null> => {
+  // Supabase가 토큰 만료를 현재 시각으로 확인하므로, 미리 그리기(prefetch) 단계가 아니라 실제 요청 때만 실행한다
+  await connection();
   const supabase = await createSupabaseServerClient();
   // getUser()는 Supabase 서버에 토큰을 검증받는다 (쿠키 값만 믿지 않음).
   const {
     data: { user },
   } = await supabase.auth.getUser();
-  if (!user?.email) redirect("/login");
+  if (!user?.email) return null;
 
   const select = { id: true, email: true, name: true, role: true } as const;
   const profile = await db.profile.findUnique({ where: { id: user.id }, select });
@@ -32,6 +37,13 @@ export const getCurrentUser = cache(async (): Promise<CurrentUser> => {
     select,
   });
 });
+
+/** 로그인이 꼭 필요한 화면·서버 처리에서 쓴다. 없으면 /login으로 보낸다. */
+export async function getCurrentUser(): Promise<CurrentUser> {
+  const user = await getOptionalUser();
+  if (!user) redirect("/login");
+  return user;
+}
 
 export async function requireRole(role: Role): Promise<CurrentUser> {
   const user = await getCurrentUser();
