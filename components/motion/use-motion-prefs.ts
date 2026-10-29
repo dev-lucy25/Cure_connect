@@ -8,9 +8,3 @@ export function useTapEffect(scale: number = TAP_SCALE) {
   const reduce = useReducedMotion();
   return reduce ? { opacity: 0.75 } : { scale };
 }
-
-/** 나타나기 시작 위치: 움직임 줄이기 설정이면 제자리에서 투명도만 바뀐다 */
-export function useFadeUp() {
-  const reduce = useReducedMotion();
-  return reduce ? { hidden: { opacity: 0 }, show: { opacity: 1 } } : undefined;
-}

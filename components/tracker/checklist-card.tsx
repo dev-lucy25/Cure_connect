@@ -2,7 +2,7 @@
 
 import { useActionState, useOptimistic, useState, useTransition } from "react";
 import { AnimatePresence, motion } from "motion/react";
-import { SPRING_SNAPPY, SPRING_SOFT } from "@/lib/motion";
+import { SPRING_SOFT, TWEEN_POP } from "@/lib/motion";
 import Collapse from "@/components/motion/collapse";
 import { addChecklistItem, deleteChecklistItem, resetChecklist, setChecklistDone } from "@/server/checklist-actions";
 import type { ChecklistEntry } from "@/server/checklist-repo";
@@ -84,7 +84,7 @@ export default function ChecklistCard({ items }: { items: ChecklistEntry[] }) {
                 <motion.span
                   aria-hidden
                   animate={{ scale: item.done ? [1, 1.25, 1] : 1 }}
-                  transition={SPRING_SNAPPY}
+                  transition={TWEEN_POP}
                   className={`grid size-5 shrink-0 place-items-center rounded-md text-caption font-bold transition-colors ${
                     item.done ? "bg-brand-deep text-surface" : "border border-line text-transparent"
                   }`}

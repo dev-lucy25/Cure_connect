@@ -16,5 +16,8 @@ export const FADE_UP = {
 /** 목록·카드가 차례로 나타나는 간격(초) */
 export const STAGGER_STEP = 0.05;
 
+/** 키프레임 3개 이상(톡 튀기·흔들기)용. 스프링은 키프레임 2개까지만 된다 */
+export const TWEEN_POP = { type: "tween", duration: 0.32, ease: [0.22, 1, 0.36, 1] } as const;
+
 /** 누르면 살짝 작아짐 */
 export const TAP_SCALE = 0.97;

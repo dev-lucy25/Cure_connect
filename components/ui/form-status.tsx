@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { AnimatePresence, motion } from "motion/react";
-import { SPRING_SNAPPY, SPRING_SOFT } from "@/lib/motion";
+import { SPRING_SNAPPY, SPRING_SOFT, TWEEN_POP } from "@/lib/motion";
 
 // 폼 상태: 오류는 그 자리에 문구로(살짝 흔들리며 등장), 저장 성공은 화면 아래 토스트("저장했어요 🐢")로 보여준다.
 export default function FormStatus({ message, savedAt, savedText = "저장했어요 🐢" }: { message?: string; savedAt?: number; savedText?: string }) {
@@ -13,7 +13,7 @@ export default function FormStatus({ message, savedAt, savedText = "저장했어
         role="alert"
         initial={{ opacity: 0, x: -6 }}
         animate={{ opacity: 1, x: [6, -4, 2, 0] }}
-        transition={SPRING_SNAPPY}
+        transition={TWEEN_POP}
         className="rounded-control bg-danger-soft px-4 py-3 text-body-sm font-medium text-danger"
       >
         {message}
