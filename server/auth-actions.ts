@@ -4,6 +4,7 @@ import { redirect } from "next/navigation";
 import { db } from "@/lib/db";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { siteOrigin } from "@/lib/site-origin";
+import { setPendingEmail } from "@/lib/pending-email";
 import { emailForMember, inviteCodeMatches, memberNoTaken, orgExists, roomExists, roomTakenByOtherProfessor } from "@/server/org-repo";
 import {
   loginSchema,
@@ -41,8 +42,11 @@ export async function login(_prev: AuthFormState, formData: FormData): Promise<A
   const supabase = await createSupabaseServerClient();
   const { error } = await supabase.auth.signInWithPassword(credentials);
   if (error) {
-    const notConfirmed = error.code === "email_not_confirmed";
-    return { status: "error", message: notConfirmed ? "이메일 인증을 먼저 완료해 주세요" : WRONG_LOGIN, values };
+    if (error.code === "email_not_confirmed") {
+      await setPendingEmail("signup", credentials.email);
+      return { status: "error", message: "이메일 인증을 먼저 완료해 주세요", needsVerify: true, values };
+    }
+    return { status: "error", message: WRONG_LOGIN, values };
   }
 
   redirect("/");
@@ -144,8 +148,10 @@ export async function signup(_prev: AuthFormState, formData: FormData): Promise<
     return { status: "error", message: "학번·교번이 방금 다른 계정에 등록됐어요. 로그인 후 내 정보에서 다시 입력해 주세요", values };
   }
 
+  // 메일 인증이 켜져 있으면 세션 없이 돌아온다 → 메일로 받은 코드를 넣는 화면으로
   if (!data.session) {
-    return { status: "info", message: "인증 메일을 보냈어요. 메일의 링크를 누른 뒤 로그인해 주세요", values };
+    await setPendingEmail("signup", input.email);
+    redirect("/verify");
   }
   redirect("/");
 }

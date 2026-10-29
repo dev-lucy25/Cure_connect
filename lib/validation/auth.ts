@@ -107,6 +107,8 @@ export type AuthFormState = {
   fieldErrors?: Partial<Record<AuthField, string>>;
   message?: string;
   status?: "error" | "info";
+  /** 메일 인증 전 로그인 → 인증 코드 입력 화면 안내 */
+  needsVerify?: boolean;
   /** 실패했을 때 다시 채울 입력값 (비밀번호는 돌려주지 않는다) */
   values?: Partial<Record<Exclude<AuthField, "password" | "passwordConfirm"> | "method", string>>;
 };
@@ -139,4 +141,6 @@ export type ResetFormState = {
   message?: string;
   status?: "error" | "info";
   values?: { email?: string };
+  /** 재설정 코드를 보냈다 → 코드·새 비밀번호 입력 칸을 보여 준다 */
+  sent?: boolean;
 };

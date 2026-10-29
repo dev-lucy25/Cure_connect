@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import { Suspense } from "react";
 import Link from "next/link";
 import Card from "@/components/ui/card";
-import { RequestResetForm } from "@/app/reset-password/reset-forms";
+import { ResetFlow } from "@/app/reset-password/reset-forms";
 
 export const metadata: Metadata = { title: "비밀번호 재설정 · NursePass" };
 
@@ -17,11 +17,11 @@ export default function ResetPasswordPage({ searchParams }: PageProps<"/reset-pa
       <div className="flex flex-1 flex-col justify-center py-6">
         <Card>
           <h1 className="font-display text-headline text-ink">비밀번호 재설정</h1>
-          <p className="mt-1 mb-5 text-body-sm text-ink-soft">가입한 이메일로 비밀번호를 새로 정하는 링크를 보내 드려요.</p>
+          <p className="mt-1 mb-5 text-body-sm text-ink-soft">가입한 이메일로 인증 코드를 보내 드려요. 코드와 새 비밀번호를 입력하면 바로 바뀌어요.</p>
           <Suspense>
             <ExpiredNotice searchParams={searchParams} />
           </Suspense>
-          <RequestResetForm />
+          <ResetFlow />
         </Card>
       </div>
     </main>

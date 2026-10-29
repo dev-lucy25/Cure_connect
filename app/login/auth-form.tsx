@@ -93,6 +93,11 @@ function Message({ state }: { state: AuthFormState }) {
       }`}
     >
       {state.message}
+      {state.needsVerify && (
+        <Link href="/verify" className="ml-1 font-bold underline underline-offset-2">
+          인증 코드 입력하기 →
+        </Link>
+      )}
     </motion.p>
   );
 }
