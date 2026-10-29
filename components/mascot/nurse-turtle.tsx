@@ -1,6 +1,6 @@
 // NursePass 마스코트: 간호 캡을 쓴 아기 거북이 — "느려도 꾸준히 1,000시간".
 // 그림 파일 없이 인라인 SVG로만 그린다. 얇고 연한 선, 콩알 눈, 떡 같은 실루엣, 소품은 단계마다 하나.
-// 서버 컴포넌트라 클라이언트 JS가 없다. 색은 globals.css 디자인 토큰을 그대로 쓴다.
+// 서버 컴포넌트라 클라이언트 JS가 없다. 색은 globals.css 마스코트 토큰 — 다크 모드에서도 밝은 화면과 같은 거북이.
 
 export type TurtleStage = 1 | 2 | 3 | 4 | 5;
 export type TurtleMood = "default" | "empty" | "loading" | "saved" | "error";
@@ -31,16 +31,18 @@ export function turtleStage(percent: number): TurtleStage {
 }
 
 const C = {
-  line: "var(--color-ink-soft)",
-  ink: "var(--color-ink)",
+  line: "var(--color-mascot-line)",
+  ink: "var(--color-mascot-ink)",
   skin: "var(--color-turtle)",
   belly: "var(--color-turtle-belly)",
   shell: "var(--color-shell)",
   shellLine: "var(--color-shell-line)",
-  pink: "var(--color-pink)",
-  pinkDeep: "var(--color-pink-deep)",
-  white: "var(--color-surface)",
+  pink: "var(--color-mascot-pink)",
+  pinkDeep: "var(--color-mascot-pink-deep)",
+  white: "var(--color-mascot-white)",
   tear: "var(--color-tear)",
+  // 몸 밖에 떠 있는 장식(z)은 바탕 위에 보여야 하므로 화면 테마 색
+  themeLine: "var(--color-ink-soft)",
 };
 
 const stroke = { stroke: C.line, strokeWidth: 1.8, strokeLinecap: "round", strokeLinejoin: "round" } as const;
@@ -205,7 +207,7 @@ function MoodAccent({ mood }: { mood: TurtleMood }) {
   }
   if (mood === "loading") {
     return (
-      <text x="92" y="40" fontSize="11" fill={C.line} fontFamily="var(--font-display)">
+      <text x="92" y="40" fontSize="11" fill={C.themeLine} fontFamily="var(--font-display)">
         z
       </text>
     );

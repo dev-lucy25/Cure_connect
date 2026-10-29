@@ -58,6 +58,12 @@
   --color-shell: #f3d6a6;
   --color-shell-line: #d8a865;
   --color-tear: #bfe3f5;
+  /* 마스코트 선·눈·캡·볼터치: 다크 모드에서도 바꾸지 않는다 (밝은 화면의 거북이 그대로) */
+  --color-mascot-line: #6e6157;
+  --color-mascot-ink: #2a201a;
+  --color-mascot-white: #ffffff;
+  --color-mascot-pink: #ffc8d6;
+  --color-mascot-pink-deep: #b03a5e;
 
   /* 간격: 단위 1 = 4px, 8px 그리드 (p-2=8, p-5=20, gap-3=12) */
   --spacing: 4px;
