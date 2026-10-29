@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { Suspense } from "react";
 import Link from "next/link";
-import { getPendingEmail, maskEmail } from "@/lib/pending-email";
+import { getPendingEmail, getPendingSentAt, maskEmail } from "@/lib/pending-email";
 import Card from "@/components/ui/card";
 import { Bone } from "@/components/ui/skeleton";
 import NurseTurtle from "@/components/mascot/nurse-turtle";
@@ -35,7 +35,7 @@ export default function VerifyPage({ searchParams }: PageProps<"/verify">) {
 }
 
 async function VerifyContent({ searchParams }: Pick<PageProps<"/verify">, "searchParams">) {
-  const [{ expired }, email] = await Promise.all([searchParams, getPendingEmail("signup")]);
+  const [{ expired }, email, sentAt] = await Promise.all([searchParams, getPendingEmail("signup"), getPendingSentAt("signup")]);
   return (
     <>
       {expired && (
@@ -48,9 +48,9 @@ async function VerifyContent({ searchParams }: Pick<PageProps<"/verify">, "searc
           <p className="mt-2 mb-5 text-center text-body-sm text-ink-soft">
             <span className="font-bold text-ink">{maskEmail(email)}</span>로 보낸 메일의
             <br />
-            인증 코드를 입력해 주세요. (메일의 링크를 눌러도 돼요)
+            인증 코드 6자리를 입력해 주세요. (메일의 링크를 눌러도 돼요)
           </p>
-          <VerifyForm />
+          <VerifyForm sentAt={sentAt} />
         </>
       ) : (
         <div className="mt-3 space-y-4 text-center">

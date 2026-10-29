@@ -4,6 +4,8 @@ import { useActionState, useState } from "react";
 import { requestPasswordReset, updatePassword } from "@/server/password-actions";
 import { resetWithCode, type CodeFormState } from "@/server/verify-actions";
 import Collapse from "@/components/motion/collapse";
+import CodeTimer from "@/components/auth/code-timer";
+import { CODE_LENGTH } from "@/lib/auth-code";
 import type { ResetFormState } from "@/lib/validation/auth";
 import Button from "@/components/ui/button";
 import Field from "@/components/ui/field";
@@ -48,7 +50,7 @@ export function RequestResetForm({ onSent }: { onSent: () => void }) {
 }
 
 /** 2단계: 메일로 받은 코드 + 새 비밀번호 */
-export function CodeResetForm() {
+export function CodeResetForm({ sentAt }: { sentAt: number | null }) {
   const [state, action, pending] = useActionState<CodeFormState, FormData>(resetWithCode, {});
   return (
     <form action={action} noValidate className="space-y-4 border-t border-line/70 pt-5">
@@ -57,10 +59,12 @@ export function CodeResetForm() {
         label="메일로 받은 인증 코드"
         inputMode="numeric"
         autoComplete="one-time-code"
-        maxLength={10}
-        placeholder="숫자 6자리"
+        maxLength={CODE_LENGTH}
+        placeholder={`숫자 ${CODE_LENGTH}자리`}
         error={state.fieldErrors?.code}
       />
+      <CodeTimer sentAt={sentAt} />
+      <p className="text-caption text-ink-soft">메일이 안 보이면 스팸함(정크메일함)도 확인해 주세요.</p>
       <Field name="password" label="새 비밀번호 (8자 이상)" type="password" autoComplete="new-password" error={state.fieldErrors?.password} />
       <Field name="confirm" label="새 비밀번호 확인" type="password" autoComplete="new-password" error={state.fieldErrors?.confirm} />
       <Message state={state} />
@@ -73,12 +77,13 @@ export function CodeResetForm() {
 
 /** 재설정 화면: 이메일 → (보낸 뒤) 코드·새 비밀번호가 아래로 펼쳐진다 */
 export function ResetFlow() {
-  const [sent, setSent] = useState(false);
+  // 마지막으로 코드를 보낸 시각 (다시 받으면 남은 시간이 10분부터 다시)
+  const [sentAt, setSentAt] = useState<number | null>(null);
   return (
     <div className="space-y-5">
-      <RequestResetForm onSent={() => setSent(true)} />
-      <Collapse open={sent}>
-        <CodeResetForm />
+      <RequestResetForm onSent={() => setSentAt(Date.now())} />
+      <Collapse open={sentAt !== null}>
+        <CodeResetForm sentAt={sentAt} />
       </Collapse>
     </div>
   );

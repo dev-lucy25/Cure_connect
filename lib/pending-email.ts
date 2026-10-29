@@ -8,14 +8,19 @@ export type PendingKind = "signup" | "recovery";
 
 const NAME: Record<PendingKind, string> = { signup: "np_verify_email", recovery: "np_reset_email" };
 
+const OPTIONS = { httpOnly: true, sameSite: "lax", secure: process.env.NODE_ENV === "production", path: "/", maxAge: 60 * 60 } as const;
+
+/** 코드를 보낸 이메일과 보낸 시각(남은 시간 표시용)을 기억한다 */
 export async function setPendingEmail(kind: PendingKind, email: string) {
-  (await cookies()).set(NAME[kind], email, {
-    httpOnly: true,
-    sameSite: "lax",
-    secure: process.env.NODE_ENV === "production",
-    path: "/",
-    maxAge: 60 * 60,
-  });
+  const jar = await cookies();
+  jar.set(NAME[kind], email, OPTIONS);
+  jar.set(`${NAME[kind]}_at`, String(Date.now()), OPTIONS);
+}
+
+/** 마지막으로 코드를 보낸 시각 (없으면 null) */
+export async function getPendingSentAt(kind: PendingKind) {
+  const at = Number((await cookies()).get(`${NAME[kind]}_at`)?.value);
+  return Number.isFinite(at) && at > 0 ? at : null;
 }
 
 export async function getPendingEmail(kind: PendingKind) {
@@ -23,7 +28,9 @@ export async function getPendingEmail(kind: PendingKind) {
 }
 
 export async function clearPendingEmail(kind: PendingKind) {
-  (await cookies()).delete(NAME[kind]);
+  const jar = await cookies();
+  jar.delete(NAME[kind]);
+  jar.delete(`${NAME[kind]}_at`);
 }
 
 /** 화면 표시용: liolo980506@gmail.com → li*******06@gmail.com */

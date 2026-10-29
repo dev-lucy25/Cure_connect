@@ -1,20 +1,22 @@
 "use client";
 
-import { useActionState, useEffect, useState, useTransition } from "react";
+import { useActionState, useState, useTransition } from "react";
 import Link from "next/link";
 import { resendSignupCode, verifySignupCode, type CodeFormState } from "@/server/verify-actions";
+import { CODE_LENGTH, RESEND_WAIT_MS } from "@/lib/auth-code";
+import CodeTimer, { useRemaining } from "@/components/auth/code-timer";
 import Button from "@/components/ui/button";
 import Field from "@/components/ui/field";
 import FormStatus from "@/components/ui/form-status";
 
-const RESEND_WAIT_S = 60;
-
-// 코드 입력 + 다시 받기(60초 기다림). 맞으면 서버가 홈으로 보낸다
-export default function VerifyForm() {
+// 코드 입력 + 남은 시간(10분) + 다시 받기(60초 간격). 맞으면 서버가 홈으로 보낸다
+export default function VerifyForm({ sentAt }: { sentAt: number | null }) {
   const [state, action, pending] = useActionState<CodeFormState, FormData>(verifySignupCode, {});
   const [resend, setResend] = useState<CodeFormState>({});
   const [sending, startSending] = useTransition();
-  const left = useCountdown(resend.resentAt);
+  // 다시 받으면 남은 시간·다시 받기 대기가 그때부터 새로 시작
+  const lastSent = resend.resentAt ?? sentAt;
+  const left = Math.ceil((useRemaining(lastSent, RESEND_WAIT_MS) ?? 0) / 1000);
 
   return (
     <div className="space-y-4">
@@ -24,11 +26,12 @@ export default function VerifyForm() {
           label="인증 코드"
           inputMode="numeric"
           autoComplete="one-time-code"
-          maxLength={10}
-          placeholder="숫자 6자리"
+          maxLength={CODE_LENGTH}
+          placeholder={`숫자 ${CODE_LENGTH}자리`}
           autoFocus
           error={state.fieldErrors?.code}
         />
+        <CodeTimer sentAt={lastSent} />
         <FormStatus message={state.message} />
         <Button type="submit" block disabled={pending}>
           {pending ? "확인 중..." : "인증하고 시작하기"}
@@ -53,18 +56,7 @@ export default function VerifyForm() {
         savedAt={resend.resentAt}
         savedText="새 인증 코드를 보냈어요 📮"
       />
+      <p className="text-caption text-ink-soft">메일이 안 보이면 스팸함(정크메일함)도 확인해 주세요. 보내는 사람: NursePass</p>
     </div>
   );
-}
-
-/** 다시 받기 누른 뒤 남은 초 */
-function useCountdown(since: number | undefined) {
-  const [now, setNow] = useState(() => since ?? 0);
-  useEffect(() => {
-    if (!since) return;
-    const timer = setInterval(() => setNow(Date.now()), 1000);
-    return () => clearInterval(timer);
-  }, [since]);
-  if (!since) return 0;
-  return Math.max(0, RESEND_WAIT_S - Math.floor((Math.max(now, since) - since) / 1000));
 }

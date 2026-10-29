@@ -4,7 +4,7 @@ import { redirect } from "next/navigation";
 import { z } from "zod";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { siteOrigin } from "@/lib/site-origin";
-import { clearPendingEmail, getPendingEmail } from "@/lib/pending-email";
+import { clearPendingEmail, getPendingEmail, setPendingEmail } from "@/lib/pending-email";
 import { newPasswordSchema, type ResetField } from "@/lib/validation/auth";
 import { fieldErrorsOf } from "@/lib/validation/form";
 
@@ -71,6 +71,7 @@ export async function resendSignupCode(): Promise<CodeFormState> {
       message: limited ? "조금 전에 보냈어요. 잠시 후 다시 받아 주세요" : "보내지 못했어요. 잠시 후 다시 시도해 주세요",
     };
   }
+  await setPendingEmail("signup", email); // 보낸 시각 갱신 → 남은 시간 10분부터 다시
   return { status: "info", message: "새 인증 코드를 보냈어요. 메일함을 확인해 주세요", resentAt: Date.now() };
 }
 
