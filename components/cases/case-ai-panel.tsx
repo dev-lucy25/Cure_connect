@@ -11,6 +11,7 @@ import { organizeCaseAction } from "@/server/case-actions";
 import type { FormState } from "@/lib/validation/form";
 import type { CaseAiResult } from "@/lib/validation/case";
 import AiResultView from "@/components/cases/ai-result-view";
+import { AiEditForm, RevisePanel } from "@/components/cases/ai-revise";
 import NurseTurtle from "@/components/mascot/nurse-turtle";
 import Button from "@/components/ui/button";
 import Card from "@/components/ui/card";
@@ -42,6 +43,9 @@ export default function CaseAiPanel({
 }) {
   const [state, action, pending] = useActionState<FormState<never>, FormData>(organizeCaseAction, {});
   const left = Math.max(0, limit - usedToday);
+  // 직접 고치기 (정리 결과가 있고 메모가 그대로일 때만)
+  const [editing, setEditing] = useState(false);
+  const canTouch = Boolean(ai) && !stale && !pending;
 
   return (
     <Card aria-busy={pending} aria-labelledby="ai-title">
@@ -74,6 +78,8 @@ export default function CaseAiPanel({
               <WalkingTurtle label="정리하고 있어요" />
               <p className="text-body-sm text-ink-soft">최대 25초 걸려요</p>
             </div>
+          ) : ai && editing && canTouch ? (
+            <AiEditForm caseId={caseId} ai={ai} onDone={() => setEditing(false)} />
           ) : ai ? (
             <AiResultView ai={ai} />
           ) : (
@@ -84,6 +90,17 @@ export default function CaseAiPanel({
           )}
         </motion.div>
       </AnimatePresence>
+
+      {ai && canTouch && !editing && (
+        <>
+          <div className="mt-3 flex justify-end">
+            <Button type="button" variant="ghost" onClick={() => setEditing(true)} className="min-h-11 px-3 text-body-sm">
+              ✏️ 직접 고치기
+            </Button>
+          </div>
+          <RevisePanel caseId={caseId} left={left} />
+        </>
+      )}
 
       {ai && !pending && (
         <>

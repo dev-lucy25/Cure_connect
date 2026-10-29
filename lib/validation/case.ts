@@ -141,3 +141,18 @@ export function normalizeAiResult(result: CaseAiResult): CaseAiResult {
     .map((d, i) => ({ ...d, priority: i + 1 }));
   return { ...result, diagnoses };
 }
+
+/** AI 수정 지시 빠른 버튼 (데모 새 버전) */
+export const QUICK_REVISIONS = [
+  { label: "✨ EMR 학술 용어로 다듬기", instruction: "간호사정과 SOAPIE 문장을 대학병원 EMR 학술 용어로 더 전문적으로 다듬어 줘" },
+  { label: "+ '낙상 위험성' 진단 추가", instruction: "낙상 위험성(Risk for Adult Falls) 간호진단과 낙상 예방 중재를 추가해 줘" },
+  { label: "+ 비약물적 중재 추가", instruction: "비약물적 통증 완화 중재와 정서적 지지를 추가해 줘" },
+  { label: "+ 교육적 간호계획 보강", instruction: "환자·보호자 교육 중재와 퇴원 교육 내용을 보강해 줘" },
+] as const;
+
+/** 직접 쓰는 수정 지시 (AI에 보내기 전에 환자 식별 정보 차단) */
+export const reviseInstructionSchema = z
+  .string()
+  .trim()
+  .min(2, { error: "무엇을 고칠지 써 주세요" })
+  .max(200, { error: "수정 지시는 200자 이하로 써 주세요" });

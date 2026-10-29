@@ -4,9 +4,9 @@ import { refresh } from "next/cache";
 import { redirect } from "next/navigation";
 import { getCurrentUser } from "@/server/auth";
 import * as repo from "@/server/case-repo";
-import { askCase, organizeCase } from "@/server/case-chat";
+import { askCase, organizeCase, reviseCase, saveEditedResult } from "@/server/case-chat";
 import { fieldErrorsOf, idSchema, type FormState } from "@/lib/validation/form";
-import { caseSchema, chatQuestionSchema, type CaseField } from "@/lib/validation/case";
+import { AI_SECTIONS, caseAiResultSchema, caseSchema, chatQuestionSchema, reviseInstructionSchema, type CaseField } from "@/lib/validation/case";
 
 // 모든 처리는 첫 줄에서 로그인을 서버에서 다시 확인하고, 그 사용자 것만 바꾼다.
 
@@ -98,4 +98,59 @@ export async function loadMoreCases(cursor: string) {
   const parsed = idSchema.safeParse(cursor);
   if (!parsed.success) return { items: [], nextCursor: null };
   return repo.listCases(user.id, parsed.data);
+}
+
+/** AI 수정 지시 (빠른 버튼 또는 직접 쓴 지시) */
+export async function reviseCaseAction(_prev: FormState<"instruction">, formData: FormData): Promise<FormState<"instruction">> {
+  const user = await getCurrentUser();
+  const values = { instruction: String(formData.get("instruction") ?? "") };
+  const id = idSchema.safeParse(formData.get("id"));
+  if (!id.success) return { message: NOT_FOUND, values };
+  const parsed = reviseInstructionSchema.safeParse(values.instruction);
+  if (!parsed.success) return { fieldErrors: { instruction: parsed.error.issues[0]?.message }, values };
+  try {
+    const outcome = await reviseCase(user.id, id.data, parsed.data);
+    if (!outcome.ok) return { message: outcome.message, values };
+  } catch {
+    return { message: "AI 수정에 실패했어요. 잠시 후 다시 시도해 주세요", values };
+  }
+  refresh();
+  return { savedAt: Date.now(), notice: "AI가 고쳤어요 🪄" };
+}
+
+/** 줄마다 한 항목 (빈 줄 무시) */
+const lines = (formData: FormData, key: string) =>
+  String(formData.get(key) ?? "")
+    .split(/\r?\n/)
+    .map((l) => l.trim())
+    .filter(Boolean);
+
+/** SOAPIE 직접 고치기: 제목·S~E(줄마다 한 항목)·간호진단(진단명·관련요인)·빠진 항목 */
+export async function editCaseAiAction(_prev: FormState<"edit">, formData: FormData): Promise<FormState<"edit">> {
+  const user = await getCurrentUser();
+  const id = idSchema.safeParse(formData.get("id"));
+  if (!id.success) return { message: NOT_FOUND };
+  const diagnoses = [0, 1, 2, 3, 4, 5]
+    .map((i) => ({
+      name: String(formData.get(`dx_name_${i}`) ?? "").trim(),
+      relatedTo: String(formData.get(`dx_related_${i}`) ?? "").trim(),
+      domain: String(formData.get(`dx_domain_${i}`) ?? ""),
+    }))
+    .filter((d) => d.name)
+    .map((d, i) => ({ ...d, priority: i + 1 }));
+  const parsed = caseAiResultSchema.safeParse({
+    title: String(formData.get("title") ?? ""),
+    ...Object.fromEntries(AI_SECTIONS.map((k) => [k, lines(formData, k)])),
+    diagnoses,
+    missingInfo: lines(formData, "missingInfo"),
+  });
+  if (!parsed.success) return { message: "한 줄은 300자, 항목은 12개, 진단명은 100자까지 쓸 수 있어요" };
+  try {
+    const outcome = await saveEditedResult(user.id, id.data, parsed.data);
+    if (!outcome.ok) return { message: outcome.message };
+  } catch {
+    return { message: "저장하지 못했어요. 잠시 후 다시 시도해 주세요" };
+  }
+  refresh();
+  return { savedAt: Date.now(), notice: "고친 내용을 저장했어요" };
 }
