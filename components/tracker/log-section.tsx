@@ -1,6 +1,9 @@
 "use client";
 
 import { useActionState, useState, useTransition } from "react";
+import { AnimatePresence, motion } from "motion/react";
+import { SPRING_SOFT } from "@/lib/motion";
+import Collapse from "@/components/motion/collapse";
 import { loadMoreLogs, removeLog, saveLog } from "@/server/practice-actions";
 import type { FormState, LogField } from "@/lib/validation/practice";
 import type { LogItem } from "@/server/practice-repo";
@@ -43,9 +46,9 @@ export default function LogSection({
           </Button>
         )}
       </div>
-      {writing && (
+      <Collapse open={writing}>
         <LogForm action={action} state={state} pending={pending} today={today} onCancel={() => setOpenedAt(null)} />
-      )}
+      </Collapse>
       {items.length === 0 ? (
         !writing && (
           <div className="flex flex-col items-center rounded-card border border-dashed border-line px-5 py-8 text-center">
@@ -113,17 +116,29 @@ function LogTimeline({
   return (
     <>
       <ol className="relative space-y-4 border-l-2 border-line pl-5">
-        {groups.map((g) => (
-          <li key={g.date} className="relative">
-            <span aria-hidden className="absolute top-1 -left-[27px] size-3 rounded-full bg-brand ring-4 ring-canvas" />
-            <p className="text-body-sm font-bold text-ink-soft">{dateLabel(g.date)}</p>
-            <ul className="mt-2 space-y-3">
-              {g.logs.map((log) => (
-                <LogCard key={log.id} log={log} today={today} />
-              ))}
-            </ul>
-          </li>
-        ))}
+        <AnimatePresence initial={false}>
+          {groups.map((g) => (
+            <motion.li
+              key={g.date}
+              layout="position"
+              initial={{ opacity: 0, y: 8 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, height: 0 }}
+              transition={SPRING_SOFT}
+              className="relative"
+            >
+              <span aria-hidden className="absolute top-1 -left-[27px] size-3 rounded-full bg-brand ring-4 ring-canvas" />
+              <p className="text-body-sm font-bold text-ink-soft">{dateLabel(g.date)}</p>
+              <ul className="mt-2 space-y-3">
+                <AnimatePresence initial={false}>
+                  {g.logs.map((log) => (
+                    <LogCard key={log.id} log={log} today={today} />
+                  ))}
+                </AnimatePresence>
+              </ul>
+            </motion.li>
+          ))}
+        </AnimatePresence>
       </ol>
       {failed && <FormStatus message="일지를 더 불러오지 못했어요. 다시 눌러 주세요" />}
       {cursor && (
@@ -143,16 +158,25 @@ function LogCard({ log, today }: { log: LogItem; today: string }) {
   const editing = editAt !== null && !(state.savedAt && state.savedAt > editAt);
   const long = log.activities.length > 90 || log.activities.split("\n").length > 3;
 
+  // 새로 생기면 펼쳐지며 들어오고, 지우면 접히며 빠진다
+  const presence = {
+    layout: "position" as const,
+    initial: { opacity: 0, scale: 0.98 },
+    animate: { opacity: 1, scale: 1 },
+    exit: { opacity: 0, scale: 0.98, height: 0, marginTop: 0 },
+    transition: SPRING_SOFT,
+  };
+
   if (editing) {
     return (
-      <li>
+      <motion.li {...presence}>
         <LogForm action={action} state={state} pending={pending} today={today} initial={log} onCancel={() => setEditAt(null)} />
-      </li>
+      </motion.li>
     );
   }
 
   return (
-    <li className="rounded-card border border-line bg-surface p-5 pb-2 shadow-soft">
+    <motion.li {...presence} className="rounded-card border border-line bg-surface p-5 pb-2 shadow-soft">
       <div className="flex items-start justify-between gap-2">
         <div className="min-w-0">
           <p className="truncate text-title font-bold">
@@ -169,7 +193,15 @@ function LogCard({ log, today }: { log: LogItem; today: string }) {
         </Chip>
         <StatusChip status={log.status} />
       </div>
-      <p className={`mt-3 whitespace-pre-line break-words text-body ${long && !expanded ? "line-clamp-3" : ""}`}>{log.activities}</p>
+      {/* 펼치기·접기: 세 줄 높이 ↔ 전체 높이를 부드럽게 */}
+      <motion.div
+        initial={false}
+        animate={{ height: long && !expanded ? "4.8em" : "auto" }}
+        transition={SPRING_SOFT}
+        className="mt-3 overflow-hidden text-body"
+      >
+        <p className={`whitespace-pre-line break-words ${long && !expanded ? "line-clamp-3" : ""}`}>{log.activities}</p>
+      </motion.div>
       <div className="mt-1 flex flex-wrap items-center justify-end gap-1">
         {long && (
           <button type="button" onClick={() => setExpanded((e) => !e)} className="mr-auto min-h-11 text-body-sm font-bold text-brand-deep">
@@ -180,14 +212,19 @@ function LogCard({ log, today }: { log: LogItem; today: string }) {
         <FormStatus savedAt={state.savedAt} />
         <RowActions id={log.id} onEdit={() => setEditAt(Date.now())} deleteAction={delAction} deleting={deleting} />
       </div>
-    </li>
+    </motion.li>
   );
 }
 
 // 지도교수 인증 상태. 일지를 고치면 다시 "인증 대기"가 된다
 function StatusChip({ status }: { status: LogItem["status"] }) {
   if (status === "approved") return <Chip className="text-caption">✓ 인증 완료</Chip>;
-  if (status === "rejected") return <Chip tone="pink" className="text-caption">반려됨 · 수정 필요</Chip>;
+  if (status === "rejected")
+    return (
+      <Chip tone="pink" className="text-caption">
+        반려됨 · 수정 필요
+      </Chip>
+    );
   return (
     <Chip tone="warn" className="text-caption">
       인증 대기
