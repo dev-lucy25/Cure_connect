@@ -4,7 +4,7 @@ import { updateTag } from "next/cache";
 import { redirect } from "next/navigation";
 import { db } from "@/lib/db";
 import { getCurrentUser } from "@/server/auth";
-import { inviteCodeMatches, memberNoTaken, orgExists } from "@/server/org-repo";
+import { inviteCodeMatches, memberNoTaken, orgExists, roomExists } from "@/server/org-repo";
 import { professorUpgradeSchema, profileSchema, type ProfileField } from "@/lib/validation/auth";
 import { fieldErrorsOf, type FormState } from "@/lib/validation/form";
 
@@ -13,7 +13,7 @@ import { fieldErrorsOf, type FormState } from "@/lib/validation/form";
 const SAVE_FAILED = "저장하지 못했어요. 잠시 후 다시 시도해 주세요";
 const TAKEN = "이 학교에 이미 등록된 학번·교번이에요";
 
-const PROFILE_FIELDS = ["name", "orgId", "memberNo", "grade", "classGroup", "staffTitle"] as const;
+const PROFILE_FIELDS = ["name", "orgId", "memberNo", "grade", "classGroup", "staffTitle", "roomCode"] as const;
 const UPGRADE_FIELDS = ["orgId", "memberNo", "inviteCode", "staffTitle"] as const;
 
 function pick<F extends string>(formData: FormData, fields: readonly F[]) {
@@ -29,8 +29,12 @@ export async function saveProfile(_prev: FormState<ProfileField>, formData: Form
   const user = await getCurrentUser();
   const values = pick(formData, PROFILE_FIELDS);
   const professor = user.role === "professor";
-  // 교수는 학교를 바꿀 수 없다 (다른 학교 교수가 되려면 그 학교 초대 코드가 필요)
-  if (professor) values.orgId = user.orgId ?? "";
+  // 교수는 학교를 바꿀 수 없다 (다른 학교 교수가 되려면 그 학교 초대 코드가 필요).
+  // 교수 방 코드는 교수 대시보드에서 바꾼다
+  if (professor) {
+    values.orgId = user.orgId ?? "";
+    values.roomCode = user.roomCode ?? "";
+  }
 
   const parsed = profileSchema(user.role === "professor" ? "professor" : "student").safeParse(values);
   if (!parsed.success) return { fieldErrors: fieldErrorsOf<ProfileField>(parsed.error), values };
@@ -41,6 +45,9 @@ export async function saveProfile(_prev: FormState<ProfileField>, formData: Form
   }
   if (input.orgId && input.memberNo && (await memberNoTaken(input.orgId, input.memberNo, user.id))) {
     return { fieldErrors: { memberNo: TAKEN }, values };
+  }
+  if (!professor && input.roomCode && input.roomCode !== user.roomCode && !(await roomExists(input.roomCode))) {
+    return { fieldErrors: { roomCode: "없는 방 코드예요. 교수님께 받은 코드를 확인해 주세요" }, values };
   }
 
   try {
@@ -53,6 +60,7 @@ export async function saveProfile(_prev: FormState<ProfileField>, formData: Form
         grade: professor ? null : input.grade,
         classGroup: professor ? null : input.classGroup,
         staffTitle: professor ? input.staffTitle : null,
+        roomCode: input.roomCode,
       },
       select: { id: true },
     });

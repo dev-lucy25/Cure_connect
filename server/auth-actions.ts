@@ -4,7 +4,7 @@ import { redirect } from "next/navigation";
 import { db } from "@/lib/db";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { siteOrigin } from "@/lib/site-origin";
-import { emailForMember, inviteCodeMatches, memberNoTaken, orgExists } from "@/server/org-repo";
+import { emailForMember, inviteCodeMatches, memberNoTaken, orgExists, roomExists, roomTakenByOtherProfessor } from "@/server/org-repo";
 import {
   loginSchema,
   memberLoginSchema,
@@ -48,7 +48,7 @@ export async function login(_prev: AuthFormState, formData: FormData): Promise<A
   redirect("/");
 }
 
-const SIGNUP_FIELDS = ["name", "email", "role", "orgId", "memberNo", "grade", "classGroup", "staffTitle", "inviteCode"] as const;
+const SIGNUP_FIELDS = ["name", "email", "role", "orgId", "memberNo", "grade", "classGroup", "staffTitle", "inviteCode", "roomCode"] as const;
 
 export async function signup(_prev: AuthFormState, formData: FormData): Promise<AuthFormState> {
   const values = Object.fromEntries(SIGNUP_FIELDS.map((f) => [f, str(formData, f)]));
@@ -66,6 +66,13 @@ export async function signup(_prev: AuthFormState, formData: FormData): Promise<
   }
   if (input.orgId && input.memberNo && (await memberNoTaken(input.orgId, input.memberNo))) {
     return { fieldErrors: { memberNo: "이 학교에 이미 가입된 학번·교번이에요" }, values };
+  }
+  // 방 코드: 학생은 있는 방만(오타 방지), 교수는 다른 교수와 겹치지 않는 새 방
+  if (input.roomCode && input.role === "student" && !(await roomExists(input.roomCode))) {
+    return { fieldErrors: { roomCode: "없는 방 코드예요. 교수님께 받은 코드를 확인해 주세요" }, values };
+  }
+  if (input.roomCode && input.role === "professor" && (await roomTakenByOtherProfessor(input.roomCode))) {
+    return { fieldErrors: { roomCode: "다른 교수님이 쓰는 방 코드예요. 다른 코드를 정해 주세요" }, values };
   }
 
   const supabase = await createSupabaseServerClient();
@@ -99,6 +106,7 @@ export async function signup(_prev: AuthFormState, formData: FormData): Promise<
         grade: professor ? null : input.grade,
         classGroup: professor ? null : input.classGroup,
         staffTitle: professor ? input.staffTitle : null,
+        roomCode: input.roomCode,
       },
       update: {},
       select: { id: true },

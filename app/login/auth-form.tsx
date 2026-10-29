@@ -331,6 +331,16 @@ function SignupForm({ orgs }: { orgs: OrgOption[] }) {
           </div>
         </Collapse>
 
+        <Field
+          name="roomCode"
+          label={professor ? "실습반 방 코드 만들기 (선택)" : "실습반 방 코드 (선택)"}
+          placeholder={professor ? "예: DIT-2026 · 학생들에게 알려 줄 코드" : "교수님께 받은 코드 · 예: DIT-2026"}
+          autoCapitalize="characters"
+          autoComplete="off"
+          defaultValue={values.roomCode}
+          error={errors.roomCode}
+        />
+
         <Message state={state} />
 
         <Button type="submit" block disabled={pending}>

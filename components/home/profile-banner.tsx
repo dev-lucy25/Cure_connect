@@ -30,6 +30,11 @@ export default function ProfileBanner({
             {user.name} 학생{idLine && <span className="ml-1 text-body-sm font-medium text-ink-soft">({idLine})</span>}
           </h2>
           {done ? <Chip tone="pink">🎓 {goalHours.toLocaleString()}시간 달성</Chip> : <Chip>실습 정상 이수중</Chip>}
+          {user.roomCode && (
+            <Chip tone="neutral" className="text-caption">
+              🔑 방 코드: {user.roomCode}
+            </Chip>
+          )}
         </div>
         <p className="mt-1 text-body-sm text-ink-soft">
           {user.orgName ?? (

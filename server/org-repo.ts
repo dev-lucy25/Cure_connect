@@ -28,6 +28,17 @@ export async function memberNoTaken(orgId: string, memberNo: string, exceptUserI
   return found !== null && found.id !== exceptUserId;
 }
 
+/** 이 방 코드를 쓰는 교수가 있는가 (학생이 방에 들어갈 때 오타 방지) */
+export async function roomExists(roomCode: string) {
+  return (await db.profile.count({ where: { roomCode, role: "professor" } })) > 0;
+}
+
+/** 다른 교수가 이미 쓰는 방 코드인가 */
+export async function roomTakenByOtherProfessor(roomCode: string, exceptUserId?: string) {
+  const found = await db.profile.findFirst({ where: { roomCode, role: "professor", ...(exceptUserId ? { NOT: { id: exceptUserId } } : {}) }, select: { id: true } });
+  return found !== null;
+}
+
 /** 학교 + 학번(교번)으로 로그인할 때 Supabase에 넘길 이메일을 찾는다 */
 export async function emailForMember(orgId: string, memberNo: string) {
   const found = await db.profile.findUnique({ where: { orgId_memberNo: { orgId, memberNo } }, select: { email: true } });

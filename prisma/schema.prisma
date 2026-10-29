@@ -31,6 +31,8 @@ model Profile {
   classGroup String?  @db.VarChar(10)
   // 교수 직책 (예: 실습과장, 조교)
   staffTitle String?  @db.VarChar(30)
+  // 실습반 방 코드. 교수: 자기가 관리하는 방(교수끼리 겹치지 않음) / 학생: 들어간 방
+  roomCode   String?  @db.VarChar(20)
   createdAt  DateTime @default(now())
   updatedAt  DateTime @updatedAt
 
@@ -41,6 +43,7 @@ model Profile {
   checklistItems    ChecklistItem[]
   submissions       CaseSubmission[]
   payments          Payment[]
+  notifications     Notification[]
   caseNotes         CaseNote[]
   aiUsages          AiUsage[]
   wardNotes         WardNote[]
@@ -51,6 +54,7 @@ model Profile {
   @@unique([orgId, memberNo])
   @@index([role])
   @@index([orgId, role])
+  @@index([roomCode])
 }
 
 enum OrgPlan {
@@ -228,6 +232,8 @@ model PracticeSchedule {
   commonDiseases String[]  @default([])
   groupName      String?   @db.VarChar(20)
   teammates      String[]  @default([])
+  // 핵심 준비사항 (예: 포셉·청진기 지참, 수간호사 OT 질문 대비)
+  prepNotes      String    @default("") @db.VarChar(300)
   createdAt      DateTime  @default(now())
   updatedAt      DateTime  @updatedAt
 
@@ -395,5 +401,23 @@ model Payment {
 
   user Profile @relation(fields: [userId], references: [id], onDelete: Cascade)
 
+  @@index([userId, createdAt(sort: Desc)])
+}
+
+// 앱 안 알림: 교수의 독려 알림, 과제 채점 결과, 일지 인증 결과, 족보 판매 등
+model Notification {
+  id        String    @id @default(cuid())
+  userId    String    @db.Uuid
+  kind      String    @db.VarChar(30)
+  title     String    @db.VarChar(80)
+  body      String    @db.VarChar(500)
+  link      String?   @db.VarChar(200)
+  readAt    DateTime?
+  createdAt DateTime  @default(now())
+
+  user Profile @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  // 안 읽은 알림 개수·최신순 목록
+  @@index([userId, readAt])
   @@index([userId, createdAt(sort: Desc)])
 }

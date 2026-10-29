@@ -37,6 +37,19 @@ const membership = {
   staffTitle: optionalText("직책", 30),
 };
 
+/** 방 코드: 영문·숫자·하이픈 3~20자, 대문자로 저장 (DB CHECK와 같음) */
+export const roomCodeSchema = z
+  .string()
+  .trim()
+  .toUpperCase()
+  .regex(/^[A-Z0-9-]{3,20}$/, { error: "방 코드는 영문·숫자·하이픈 3~20자로 입력해 주세요" });
+
+const optionalRoomCode = z
+  .string()
+  .trim()
+  .transform((v) => v || null)
+  .pipe(roomCodeSchema.nullable());
+
 type Membership = { orgId: string | null; memberNo: string | null };
 
 /** 학교를 고르면 학번(교번)이 필요하고, 학번만 쓰고 학교를 안 고르면 안 된다 */
@@ -62,6 +75,7 @@ export const signupSchema = z
     role: z.enum(["student", "professor"], { error: "역할을 골라 주세요" }),
     ...membership,
     inviteCode: optional(z.string().max(20).toUpperCase()),
+    roomCode: optionalRoomCode,
   })
   .superRefine((v, ctx) => {
     const professor = v.role === "professor";
@@ -83,7 +97,8 @@ export type AuthField =
   | "grade"
   | "classGroup"
   | "staffTitle"
-  | "inviteCode";
+  | "inviteCode"
+  | "roomCode";
 
 export type AuthFormState = {
   fieldErrors?: Partial<Record<AuthField, string>>;
@@ -95,7 +110,7 @@ export type AuthFormState = {
 
 /** 내 정보 수정. 교수는 학교를 바꿀 수 없으므로(서버가 무시) 같은 검사를 쓴다 */
 export const profileSchema = (role: "student" | "professor") =>
-  z.object({ name, ...membership }).superRefine((v, ctx) => checkMembership(v, ctx, role === "professor" ? "교번" : "학번"));
+  z.object({ name, ...membership, roomCode: optionalRoomCode }).superRefine((v, ctx) => checkMembership(v, ctx, role === "professor" ? "교번" : "학번"));
 
 /** 학생 계정을 교수·조교로 인증 (학교 초대 코드 필요) */
 export const professorUpgradeSchema = z.object({
@@ -105,7 +120,7 @@ export const professorUpgradeSchema = z.object({
   staffTitle: optionalText("직책", 30),
 });
 
-export type ProfileField = "name" | "orgId" | "memberNo" | "grade" | "classGroup" | "staffTitle" | "inviteCode";
+export type ProfileField = "name" | "orgId" | "memberNo" | "grade" | "classGroup" | "staffTitle" | "inviteCode" | "roomCode";
 
 /** 비밀번호 재설정 메일 요청 */
 export const resetRequestSchema = z.object({ email });
