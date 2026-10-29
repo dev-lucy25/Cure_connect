@@ -58,12 +58,21 @@ export default function Modal({
     };
   }, [open]);
 
+  // Esc는 포커스가 어디 있든 닫는다 (다른 동작 뒤에 자동으로 열려 포커스가 밖에 남은 경우도)
+  const closeRef = useRef(onClose);
+  useEffect(() => {
+    closeRef.current = onClose;
+  });
+  useEffect(() => {
+    if (!open) return;
+    const onEscape = (e: KeyboardEvent) => {
+      if (e.key === "Escape") closeRef.current();
+    };
+    document.addEventListener("keydown", onEscape);
+    return () => document.removeEventListener("keydown", onEscape);
+  }, [open]);
+
   function onKeyDown(e: React.KeyboardEvent) {
-    if (e.key === "Escape") {
-      e.stopPropagation();
-      onClose();
-      return;
-    }
     if (e.key !== "Tab" || !panelRef.current) return;
     // 포커스가 모달 밖으로 나가지 않게 처음·끝에서 돌린다
     const items = [...panelRef.current.querySelectorAll<HTMLElement>(FOCUSABLE)];
