@@ -54,6 +54,8 @@ model Profile {
   wardNoteUnlocks   WardNoteUnlock[]
   wardNoteRatings   WardNoteRating[]
   creditLedger      CreditLedger[]
+  preceptorAttempts PreceptorAttempt[]
+  dailyJournals     DailyJournal[]
 
   @@unique([orgId, memberNo])
   @@index([role])
@@ -453,4 +455,38 @@ model Notification {
   // 안 읽은 알림 개수·최신순 목록
   @@index([userId, readAt])
   @@index([userId, createdAt(sort: Desc)])
+}
+
+// AI 프리셉터 모의 구술질문 한 번 (질문 은행: lib/preceptor-questions.ts). 80점 미만이면 오답노트
+model PreceptorAttempt {
+  id           String       @id @default(cuid())
+  userId       String       @db.Uuid
+  wardCategory WardCategory
+  questionKey  String       @db.VarChar(40)
+  answer       String       @db.VarChar(1000)
+  score        Int
+  // { strengths: string[], improvements: string[], modelAnswer: string }
+  feedback     Json
+  createdAt    DateTime     @default(now())
+
+  user Profile @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, createdAt(sort: Desc)])
+  @@index([wardCategory, createdAt])
+}
+
+// AI 실습일지 (메모 → 성찰 일지 초안 → 학생이 고쳐 저장)
+model DailyJournal {
+  id        String   @id @default(cuid())
+  userId    String   @db.Uuid
+  date      DateTime @db.Date
+  ward      String   @db.VarChar(60)
+  memo      String   @db.VarChar(1000)
+  content   String   @db.VarChar(4000)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  user Profile @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, date(sort: Desc)])
 }
