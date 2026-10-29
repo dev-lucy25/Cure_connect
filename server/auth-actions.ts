@@ -48,12 +48,34 @@ export async function login(_prev: AuthFormState, formData: FormData): Promise<A
   redirect("/");
 }
 
+/** Supabase 가입 오류 코드 → 사용자 안내 */
+function signupError(code: string | undefined): AuthFormState {
+  switch (code) {
+    case "user_already_exists":
+    case "email_exists":
+      return { fieldErrors: { email: "이미 가입된 이메일이에요. 로그인해 주세요" } };
+    case "weak_password":
+      return { fieldErrors: { password: "너무 쉬운 비밀번호예요. 영문·숫자·기호를 섞어 주세요" } };
+    case "email_address_invalid":
+    case "email_address_not_authorized":
+      return { fieldErrors: { email: "이 이메일 주소로는 인증 메일을 보낼 수 없어요. 다른 이메일을 써 주세요" } };
+    case "over_email_send_rate_limit":
+    case "over_request_rate_limit":
+      return { status: "error", message: "지금 인증 메일을 보낼 수 있는 횟수를 넘었어요. 잠시(최대 1시간) 뒤 다시 가입해 주세요" };
+    case "signup_disabled":
+    case "email_provider_disabled":
+      return { status: "error", message: "지금은 새 가입을 받지 않아요. 관리자에게 문의해 주세요" };
+    default:
+      return { status: "error", message: "가입하지 못했어요. 잠시 후 다시 시도해 주세요" };
+  }
+}
+
 const SIGNUP_FIELDS = ["name", "email", "role", "orgId", "memberNo", "grade", "classGroup", "staffTitle", "inviteCode", "roomCode"] as const;
 
 export async function signup(_prev: AuthFormState, formData: FormData): Promise<AuthFormState> {
   const values = Object.fromEntries(SIGNUP_FIELDS.map((f) => [f, str(formData, f)]));
 
-  const parsed = signupSchema.safeParse({ ...values, password: formData.get("password") });
+  const parsed = signupSchema.safeParse({ ...values, password: formData.get("password"), passwordConfirm: formData.get("passwordConfirm") });
   if (!parsed.success) return { fieldErrors: firstErrors(parsed.error), values };
   const input = parsed.data;
 
@@ -85,11 +107,11 @@ export async function signup(_prev: AuthFormState, formData: FormData): Promise<
 
   // 이메일 인증이 켜져 있으면 중복 가입은 오류 대신 identities가 빈 사용자로 돌아온다.
   const duplicated = data.user?.identities?.length === 0;
-  if (error || !data.user || duplicated) {
-    const taken = duplicated || error?.code === "user_already_exists";
-    return taken
-      ? { fieldErrors: { email: "이미 가입된 이메일이에요" }, values }
-      : { status: "error", message: "가입하지 못했어요. 잠시 후 다시 시도해 주세요", values };
+  if (duplicated) return { fieldErrors: { email: "이미 가입된 이메일이에요. 로그인해 주세요" }, values };
+  if (error || !data.user) {
+    // 원인을 뭉뚱그리지 않고 알려 준다. 서버 기록에는 오류 코드만 남긴다(이메일·비밀번호는 남기지 않음)
+    console.error("[signup] supabase", error?.status, error?.code);
+    return { ...signupError(error?.code), values };
   }
 
   const professor = input.role === "professor";

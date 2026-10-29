@@ -276,6 +276,7 @@ function SignupForm({ orgs }: { orgs: OrgOption[] }) {
           error={errors.email}
         />
         <Field name="password" label="비밀번호 (8자 이상)" type="password" autoComplete="new-password" error={errors.password} />
+        <Field name="passwordConfirm" label="비밀번호 확인" type="password" autoComplete="new-password" error={errors.passwordConfirm} />
 
         <OrgSelect
           orgs={orgs}

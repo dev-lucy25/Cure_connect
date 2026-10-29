@@ -72,12 +72,14 @@ export const signupSchema = z
     name,
     email,
     password,
+    passwordConfirm: z.string(),
     role: z.enum(["student", "professor"], { error: "역할을 골라 주세요" }),
     ...membership,
     inviteCode: optional(z.string().max(20).toUpperCase()),
     roomCode: optionalRoomCode,
   })
   .superRefine((v, ctx) => {
+    if (v.password !== v.passwordConfirm) ctx.addIssue({ code: "custom", path: ["passwordConfirm"], message: "두 비밀번호가 같지 않아요" });
     const professor = v.role === "professor";
     checkMembership(v, ctx, professor ? "교번" : "학번");
     // 교수는 학교와 그 학교의 초대 코드가 꼭 있어야 한다 (코드가 맞는지는 서버가 DB로 확인)
@@ -91,6 +93,7 @@ export type AuthField =
   | "name"
   | "email"
   | "password"
+  | "passwordConfirm"
   | "role"
   | "orgId"
   | "memberNo"
@@ -105,7 +108,7 @@ export type AuthFormState = {
   message?: string;
   status?: "error" | "info";
   /** 실패했을 때 다시 채울 입력값 (비밀번호는 돌려주지 않는다) */
-  values?: Partial<Record<Exclude<AuthField, "password"> | "method", string>>;
+  values?: Partial<Record<Exclude<AuthField, "password" | "passwordConfirm"> | "method", string>>;
 };
 
 /** 내 정보 수정. 교수는 학교를 바꿀 수 없으므로(서버가 무시) 같은 검사를 쓴다 */
