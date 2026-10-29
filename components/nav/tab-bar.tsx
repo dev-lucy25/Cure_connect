@@ -4,6 +4,7 @@ import { TABS } from "@/components/nav/tabs";
 import BottomTabs, { TopTabs } from "@/components/nav/tab-links";
 import NurseTurtle from "@/components/mascot/nurse-turtle";
 import ThemeToggle from "@/components/theme/theme-toggle";
+import { IconUser } from "@/components/ui/icons";
 
 // 상단 앱 바와 하단 탭 바. 역할·로그인 여부는 서버에서 읽는다(같은 요청 안에서 한 번만 조회).
 // md 이상에서는 탭이 앱 바 가운데로 올라오고 하단 탭 바는 숨는다.
@@ -31,7 +32,16 @@ export async function AppBar() {
   // 크레딧 배지는 족보 기능과 함께 붙인다. 로그인 전에는 그 자리에 로그인 버튼
   return (
     <AppBarShell nav={<TopTabs tabs={TABS[user?.role ?? "guest"]} />}>
-      {!user && (
+      {user ? (
+        <Link
+          href="/me"
+          aria-label="내 정보"
+          className="press inline-flex min-h-11 min-w-11 items-center justify-center gap-1.5 rounded-full px-2 text-body-sm font-bold text-ink-soft hover:text-ink md:px-3"
+        >
+          <IconUser size={22} />
+          <span className="hidden max-w-24 truncate md:inline">{user.name}</span>
+        </Link>
+      ) : (
         <Link
           href="/login"
           className="press inline-flex min-h-11 items-center rounded-full bg-brand-soft px-4 text-body-sm font-bold text-brand-deep"

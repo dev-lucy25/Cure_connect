@@ -93,6 +93,20 @@ export type AuthFormState = {
   values?: Partial<Record<Exclude<AuthField, "password"> | "method", string>>;
 };
 
+/** 내 정보 수정. 교수는 학교를 바꿀 수 없으므로(서버가 무시) 같은 검사를 쓴다 */
+export const profileSchema = (role: "student" | "professor") =>
+  z.object({ name, ...membership }).superRefine((v, ctx) => checkMembership(v, ctx, role === "professor" ? "교번" : "학번"));
+
+/** 학생 계정을 교수·조교로 인증 (학교 초대 코드 필요) */
+export const professorUpgradeSchema = z.object({
+  orgId: z.string().trim().min(1, { error: "학교를 골라 주세요" }).max(30),
+  memberNo,
+  inviteCode: z.string().trim().min(1, { error: "학교 초대 코드를 입력해 주세요" }).max(20).toUpperCase(),
+  staffTitle: optionalText("직책", 30),
+});
+
+export type ProfileField = "name" | "orgId" | "memberNo" | "grade" | "classGroup" | "staffTitle" | "inviteCode";
+
 /** 비밀번호 재설정 메일 요청 */
 export const resetRequestSchema = z.object({ email });
 
