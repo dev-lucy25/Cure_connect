@@ -20,7 +20,7 @@ export default function GoalEditor({ goalHours }: { goalHours: number }) {
         <button
           type="button"
           onClick={() => setOpenedAt(Date.now())}
-          className="ml-auto min-h-11 whitespace-nowrap text-body-sm font-bold text-mint-deep hover:underline"
+          className="ml-auto min-h-11 whitespace-nowrap text-body-sm font-bold text-brand-deep hover:underline"
         >
           목표 시간 바꾸기
         </button>

@@ -14,7 +14,7 @@ export default function IconButton({
       aria-label={label}
       title={label}
       className={`grid size-11 place-items-center rounded-full transition disabled:opacity-50 ${
-        tone === "danger" ? "text-danger hover:bg-danger-soft" : "text-ink-soft hover:bg-cream-deep hover:text-ink"
+        tone === "danger" ? "text-danger hover:bg-danger-soft" : "text-ink-soft hover:bg-subtle hover:text-ink"
       } ${className}`}
       {...props}
     >

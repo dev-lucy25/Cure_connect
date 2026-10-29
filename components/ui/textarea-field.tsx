@@ -24,8 +24,8 @@ export default function TextareaField({
         name={name}
         aria-invalid={Boolean(error)}
         aria-describedby={describedBy}
-        className={`min-h-28 w-full resize-y rounded-control border-2 bg-cream px-4 py-3 text-body text-ink outline-none transition placeholder:text-ink-soft/70 focus:bg-surface ${
-          error ? "border-danger" : "border-line focus:border-mint-deep"
+        className={`min-h-28 w-full resize-y rounded-control border bg-surface px-4 py-3 text-body text-ink outline-none transition placeholder:text-ink-soft/70 focus:ring-3 focus:ring-brand-soft ${
+          error ? "border-danger" : "border-line focus:border-brand-deep"
         }`}
         {...props}
       />

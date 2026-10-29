@@ -26,8 +26,41 @@ model Profile {
 
   practiceLogs      PracticeLog[]
   practiceSchedules PracticeSchedule[]
+  caseNotes         CaseNote[]
+  aiUsages          AiUsage[]
 
   @@index([role])
+}
+
+// 케이스 메모와 AI 정리 결과(SOAPIE·간호진단·빠진 사정 항목).
+// memoUpdatedAt > aiAt 이면 메모가 정리 뒤에 바뀐 것 → "다시 정리" 표시
+model CaseNote {
+  id            String    @id @default(cuid())
+  userId        String    @db.Uuid
+  title         String    @db.VarChar(60)
+  ward          String    @db.VarChar(60)
+  memo          String    @db.VarChar(2000)
+  memoUpdatedAt DateTime  @default(now())
+  aiResult      Json?
+  aiAt          DateTime?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  user Profile @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  // 내 케이스를 최근 수정순으로 나눠 읽는다
+  @@index([userId, updatedAt(sort: Desc), id(sort: Desc)])
+}
+
+// AI 정리 하루 사용 횟수 (1인 하루 20회). day는 한국 날짜
+model AiUsage {
+  userId String @db.Uuid
+  day    DateTime @db.Date
+  count  Int    @default(0)
+
+  user Profile @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@id([userId, day])
 }
 
 // 실습 일지. 시간은 소수 오차가 없도록 분 단위 정수로 저장한다 (화면은 0.5시간 단위).

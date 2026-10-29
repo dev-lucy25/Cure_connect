@@ -1,6 +1,6 @@
 import type { Role } from "@/generated/prisma/client";
 
-export type TabIcon = "clock" | "note" | "book" | "user" | "login" | "chart" | "check";
+export type TabIcon = "clock" | "note" | "book" | "chart" | "check";
 
 export type Tab = {
   label: string;
@@ -9,23 +9,18 @@ export type Tab = {
   href: string | null;
 };
 
-// guest: 로그인 전(오픈형). 둘러볼 수 있고, 기록하려면 로그인 탭으로 간다.
+const STUDENT_TABS: Tab[] = [
+  { label: "트래커", icon: "clock", href: "/" },
+  { label: "케이스", icon: "note", href: "/cases" },
+  { label: "족보", icon: "book", href: null },
+];
+
+// guest: 로그인 전(오픈형). 학생과 같은 탭을 보여주고, 로그인이 필요한 화면은 각 화면에서 안내한다.
 export const TABS: Record<Role | "guest", Tab[]> = {
-  guest: [
-    { label: "트래커", icon: "clock", href: "/" },
-    { label: "케이스", icon: "note", href: null },
-    { label: "족보", icon: "book", href: null },
-    { label: "로그인", icon: "login", href: "/login" },
-  ],
-  student: [
-    { label: "트래커", icon: "clock", href: "/" },
-    { label: "케이스", icon: "note", href: null },
-    { label: "족보", icon: "book", href: null },
-    { label: "마이", icon: "user", href: null },
-  ],
+  guest: STUDENT_TABS,
+  student: STUDENT_TABS,
   professor: [
     { label: "학생 현황", icon: "chart", href: "/" },
     { label: "채점", icon: "check", href: null },
-    { label: "마이", icon: "user", href: null },
   ],
 };

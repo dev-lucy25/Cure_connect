@@ -42,20 +42,6 @@ export const IconBook = (p: IconProps) => (
   </Icon>
 );
 
-export const IconUser = (p: IconProps) => (
-  <Icon {...p}>
-    <circle cx="12" cy="8.5" r="3.5" />
-    <path d="M5 19.5c1.2-3.3 3.8-5 7-5s5.8 1.7 7 5" />
-  </Icon>
-);
-
-export const IconLogin = (p: IconProps) => (
-  <Icon {...p}>
-    <path d="M10 4.5h7.5a1.5 1.5 0 0 1 1.5 1.5v12a1.5 1.5 0 0 1-1.5 1.5H10" />
-    <path d="M4.5 12h9M10.5 8.5 14 12l-3.5 3.5" />
-  </Icon>
-);
-
 export const IconLogout = (p: IconProps) => (
   <Icon {...p}>
     <path d="M14 4.5H6.5A1.5 1.5 0 0 0 5 6v12a1.5 1.5 0 0 0 1.5 1.5H14" />

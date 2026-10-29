@@ -15,7 +15,7 @@ export default function AuthForm() {
 
   return (
     <>
-      <div role="tablist" aria-label="로그인 또는 회원가입" className="mb-4 grid grid-cols-2 rounded-full bg-cream-deep p-1">
+      <div role="tablist" aria-label="로그인 또는 회원가입" className="mb-3 grid grid-cols-2 rounded-full bg-subtle p-1">
         {(["login", "signup"] as const).map((m) => (
           <button
             key={m}
@@ -24,7 +24,7 @@ export default function AuthForm() {
             aria-selected={mode === m}
             onClick={() => setMode(m)}
             className={`min-h-(--size-touch) rounded-full text-body-sm font-bold transition ${
-              mode === m ? "bg-surface text-mint-deep shadow-soft" : "text-ink-soft"
+              mode === m ? "bg-brand text-ink" : "text-ink-soft"
             }`}
           >
             {m === "login" ? "로그인" : "회원가입"}
@@ -49,12 +49,12 @@ function Form({ mode }: { mode: Mode }) {
   const errors = state.fieldErrors ?? {};
 
   return (
-    <Card className="px-6 pt-4 pb-6">
+    <Card>
       <div className="flex flex-col items-center text-center">
         <NurseTurtle stage={2} mood={moodOf(state, pending)} size={112} decorative />
-        <h1 className="mt-1 font-display text-headline text-ink">너스패스</h1>
+        <h1 className="mt-1 font-display text-headline text-ink">NursePass</h1>
         <p className="mt-1 text-body-sm text-ink-soft">
-          {mode === "login" ? "1,000시간 실습, 오늘도 하루 채워 볼까요?" : "반가워요! 같이 1,000시간을 채워 가요"}
+          {mode === "login" ? "간호학과 임상실습 기록" : "계정을 만들고 기록을 시작하세요"}
         </p>
       </div>
 
@@ -83,7 +83,7 @@ function Form({ mode }: { mode: Mode }) {
           <p
             role={state.status === "error" ? "alert" : "status"}
             className={`rounded-control px-4 py-3 text-body-sm font-medium ${
-              state.status === "error" ? "bg-danger-soft text-danger" : "bg-mint-soft text-mint-deep"
+              state.status === "error" ? "bg-danger-soft text-danger" : "bg-brand-soft text-brand-deep"
             }`}
           >
             {state.message}

@@ -68,7 +68,7 @@ function ScheduleRow({ schedule, today }: { schedule: ScheduleItem; today: strin
 
   return (
     <li className="flex flex-wrap items-center gap-3 py-2 pr-2 pl-4">
-      <span className="w-14 shrink-0 font-display text-title text-mint-deep">
+      <span className="w-14 shrink-0 font-display text-title text-brand-deep">
         {dDayLabel(daysBetween(today, schedule.startDate))}
       </span>
       <div className="min-w-0 flex-1">

@@ -52,18 +52,7 @@ export const goalSchema = z.object({
     .max(3000, { error: "3000시간 이하로 정해 주세요" }),
 });
 
-export const idSchema = z.string().cuid({ error: "잘못된 요청이에요" });
-
 export type LogField = keyof z.infer<typeof logSchema>;
 export type ScheduleField = keyof z.infer<typeof scheduleSchema>;
 
-/**
- * 저장 처리 결과. savedAt은 "저장됐어요" 표시를 다시 띄우기 위한 값.
- * values: React가 처리 후 폼을 비우므로, 실패하면 입력값을 돌려줘 그대로 다시 채운다.
- */
-export type FormState<F extends string> = {
-  fieldErrors?: Partial<Record<F, string>>;
-  message?: string;
-  savedAt?: number;
-  values?: Partial<Record<F, string>>;
-};
+export { idSchema, type FormState } from "@/lib/validation/form";

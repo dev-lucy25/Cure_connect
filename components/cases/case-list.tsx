@@ -1,0 +1,120 @@
+"use client";
+
+import Link from "next/link";
+import { useActionState, useState, useTransition } from "react";
+import { createCaseAction, loadMoreCases } from "@/server/case-actions";
+import type { FormState } from "@/lib/validation/form";
+import type { CaseField } from "@/lib/validation/case";
+import type { CaseSummary } from "@/server/case-repo";
+import NurseTurtle from "@/components/mascot/nurse-turtle";
+import Button from "@/components/ui/button";
+import Card from "@/components/ui/card";
+import Chip from "@/components/ui/chip";
+import FormStatus from "@/components/ui/form-status";
+import { IconPlus } from "@/components/ui/icons";
+import PageHeader from "@/components/ui/page-header";
+import CaseForm from "@/components/cases/case-form";
+
+export default function CaseList({ items, nextCursor }: { items: CaseSummary[]; nextCursor: string | null }) {
+  const [state, action, pending] = useActionState<FormState<CaseField>, FormData>(createCaseAction, {});
+  const [writing, setWriting] = useState(false);
+
+  return (
+    <div className="space-y-3">
+      <PageHeader title="케이스" description="현장 메모를 SOAPIE 초안으로 정리해요" />
+
+      {/* 히어로: 새 케이스 쓰기. 저장에 성공하면 서버가 새 케이스 화면으로 보내므로 폼은 실패할 때만 다시 그려진다 */}
+      <div className="pt-2">
+        {writing ? (
+          <CaseForm action={action} state={state} pending={pending} onCancel={() => setWriting(false)} submitLabel="저장하고 열기" />
+        ) : (
+          <Card className="flex items-center gap-4">
+            <span className="grid size-16 shrink-0 place-items-center rounded-card bg-brand-soft">
+              <NurseTurtle stage={3} size={56} decorative />
+            </span>
+            <div className="min-w-0 flex-1">
+              <p className="text-title font-bold">새 케이스</p>
+              <p className="text-body-sm text-ink-soft">메모는 본인만 볼 수 있어요</p>
+            </div>
+            <Button type="button" onClick={() => setWriting(true)} className="shrink-0 px-4 text-body-sm">
+              <IconPlus size={18} /> 케이스 쓰기
+            </Button>
+          </Card>
+        )}
+      </div>
+
+      <section aria-labelledby="cases-title" className="space-y-3 pt-3">
+        <h2 id="cases-title" className="text-title font-bold">
+          내 케이스
+        </h2>
+        {items.length === 0 ? (
+          <div className="flex flex-col items-center rounded-card border border-dashed border-line px-5 py-8 text-center">
+            <NurseTurtle stage={3} mood="empty" size={88} decorative />
+            <p className="mt-2 text-title font-bold">아직 케이스가 없어요</p>
+            <p className="mt-1 text-body-sm text-ink-soft">실습 중 적은 메모로 첫 케이스를 만들어 보세요</p>
+          </div>
+        ) : (
+          <Pages key={items.map((i) => i.id + i.updatedAt).join()} items={items} nextCursor={nextCursor} />
+        )}
+      </section>
+    </div>
+  );
+}
+
+// 첫 페이지가 바뀌면(key) 더 불러온 부분을 버리고 다시 시작한다
+function Pages({ items, nextCursor }: { items: CaseSummary[]; nextCursor: string | null }) {
+  const [more, setMore] = useState<CaseSummary[]>([]);
+  const [cursor, setCursor] = useState(nextCursor);
+  const [failed, setFailed] = useState(false);
+  const [loading, startLoading] = useTransition();
+
+  function loadMore() {
+    if (!cursor) return;
+    setFailed(false);
+    startLoading(async () => {
+      try {
+        const page = await loadMoreCases(cursor);
+        setMore((prev) => [...prev, ...page.items]);
+        setCursor(page.nextCursor);
+      } catch {
+        setFailed(true);
+      }
+    });
+  }
+
+  return (
+    <>
+      <ul className="space-y-3">
+        {[...items, ...more].map((c) => (
+          <li key={c.id}>
+            <Link
+              href={`/cases/${c.id}`}
+              className="press block rounded-card border border-line bg-surface p-5 shadow-soft hover:border-brand"
+            >
+              <div className="flex items-start justify-between gap-2">
+                <div className="min-w-0">
+                  <p className="truncate text-title font-bold">{c.title}</p>
+                  <p className="truncate text-body-sm text-ink-soft">{c.ward}</p>
+                </div>
+                <AiBadge hasAi={c.hasAi} stale={c.stale} />
+              </div>
+              <p className="mt-2 line-clamp-2 text-body-sm text-ink-soft">{c.preview}</p>
+            </Link>
+          </li>
+        ))}
+      </ul>
+      {failed && <FormStatus message="케이스를 더 불러오지 못했어요. 다시 눌러 주세요" />}
+      {cursor && (
+        <Button type="button" variant="ghost" block disabled={loading} onClick={loadMore}>
+          {loading ? "불러오는 중..." : "더 보기"}
+        </Button>
+      )}
+    </>
+  );
+}
+
+export function AiBadge({ hasAi, stale }: { hasAi: boolean; stale: boolean }) {
+  if (!hasAi) return <Chip tone="neutral" className="shrink-0">메모만</Chip>;
+  if (stale) return <Chip tone="pink" className="shrink-0">다시 정리</Chip>;
+  return <Chip className="shrink-0">AI 정리됨</Chip>;
+}

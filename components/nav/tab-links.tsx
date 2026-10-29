@@ -3,51 +3,46 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import type { Tab, TabIcon } from "@/components/nav/tabs";
-import { IconBook, IconChart, IconCheckSquare, IconClock, IconLogin, IconNote, IconUser } from "@/components/ui/icons";
+import { IconBook, IconChart, IconCheckSquare, IconClock, IconNote } from "@/components/ui/icons";
 
 const ICONS: Record<TabIcon, typeof IconClock> = {
   clock: IconClock,
   note: IconNote,
   book: IconBook,
-  user: IconUser,
-  login: IconLogin,
   chart: IconChart,
   check: IconCheckSquare,
 };
 
-export default function TabLinks({ tabs, side }: { tabs: Tab[]; side: boolean }) {
+// 하단 탭 바: 아이콘 + 글자, 선택 탭은 민트 알약 배경. 앱 폭(480px) 가운데에 붙는다
+export default function BottomTabs({ tabs }: { tabs: Tab[] }) {
   const pathname = usePathname();
+  // "/"는 정확히 같을 때만, 나머지는 하위 화면(/cases/123)에서도 켜진 상태로 본다
+  const isActive = (href: string | null) => href !== null && (href === "/" ? pathname === "/" : pathname.startsWith(href));
 
   return (
     <nav
       aria-label="주요 메뉴"
-      data-nav={side ? "side" : "bottom"}
-      className={`fixed inset-x-0 bottom-0 z-20 border-t border-line/70 bg-surface/95 pb-[env(safe-area-inset-bottom)] backdrop-blur ${
-        side ? "lg:inset-y-0 lg:right-auto lg:left-0 lg:w-60 lg:border-t-0 lg:border-r lg:pt-8 lg:pb-0" : ""
-      }`}
+      className="fixed inset-x-0 bottom-0 z-20 mx-auto max-w-(--width-app) border-t border-line bg-surface/95 px-3 pb-[env(safe-area-inset-bottom)] backdrop-blur"
     >
-      {side && <p className="hidden px-6 pb-6 font-display text-headline text-mint-deep lg:block">너스패스</p>}
-      <ul className={`mx-auto flex max-w-120 ${side ? "lg:max-w-none lg:flex-col lg:gap-1 lg:px-3" : ""}`}>
+      <ul className="flex h-(--size-tab) items-center gap-1">
         {tabs.map((tab) => {
           const Icon = ICONS[tab.icon];
-          const active = tab.href !== null && pathname === tab.href;
-          const base = `flex min-h-(--size-tab) flex-1 flex-col items-center justify-center gap-1 rounded-control text-caption font-bold ${
-            side ? "lg:flex-row lg:justify-start lg:gap-3 lg:px-4 lg:text-body" : ""
-          }`;
+          const active = isActive(tab.href);
+          const base = "press flex min-h-12 w-full flex-col items-center justify-center gap-0.5 rounded-full text-caption font-bold";
           return (
-            <li key={tab.label} className="flex flex-1 px-1">
+            <li key={tab.label} className="flex-1">
               {tab.href ? (
                 <Link
                   href={tab.href}
                   aria-current={active ? "page" : undefined}
-                  className={`${base} ${active ? "text-mint-deep" : "text-ink-soft hover:text-ink"}`}
+                  className={`${base} ${active ? "bg-brand text-ink" : "text-ink-soft hover:text-ink"}`}
                 >
-                  <Icon strokeWidth={active ? 2.2 : 1.8} />
+                  <Icon size={20} strokeWidth={active ? 2.2 : 1.8} />
                   {tab.label}
                 </Link>
               ) : (
                 <span aria-disabled className={`${base} cursor-not-allowed text-ink-soft/45`}>
-                  <Icon />
+                  <Icon size={20} />
                   <span>
                     {tab.label}
                     <span className="sr-only"> (곧 열려요)</span>
