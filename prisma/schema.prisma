@@ -1,0 +1,26 @@
+generator client {
+  provider = "prisma-client"
+  output   = "../generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum Role {
+  student
+  professor
+}
+
+// Supabase Auth 사용자(auth.users)와 1:1. id는 Supabase 사용자 id를 그대로 쓴다.
+// 역할은 서버만 정한다: 가입 시 항상 student, professor는 시드 스크립트로만 생성.
+model Profile {
+  id        String   @id @db.Uuid
+  email     String   @unique
+  name      String   @db.VarChar(30)
+  role      Role     @default(student)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([role])
+}

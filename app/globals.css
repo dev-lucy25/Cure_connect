@@ -1,26 +1,100 @@
 @import "tailwindcss";
 
-:root {
-  --background: #ffffff;
-  --foreground: #171717;
+/*
+ * 너스패스 디자인 토큰 — 색·간격·글자 크기·모서리·그림자는 여기서만 정의한다.
+ * Tailwind 클래스로 바로 쓸 수 있다: bg-cream, text-ink, text-mint-deep, rounded-card, shadow-soft, text-display ...
+ * 파스텔(mint, pink)은 배경·장식 전용. 글자는 ink 또는 *-deep 색만 쓴다(명암 대비 4.5:1 이상).
+ */
+/* static: 클래스에서 안 쓰여도 모든 토큰을 CSS 변수로 내보낸다 (SVG 마스코트가 var()로 직접 참조) */
+@theme static {
+  /* 색 */
+  --color-cream: #fff8ec;
+  --color-cream-deep: #f6ead6;
+  --color-surface: #ffffff;
+  --color-mint: #a8e6cf;
+  --color-mint-soft: #e3f6ee;
+  --color-mint-deep: #2a7560;
+  --color-pink: #ffc8d6;
+  --color-pink-soft: #ffeef3;
+  --color-pink-deep: #b23a5f;
+  --color-ink: #4a3426;
+  --color-ink-soft: #77604f;
+  --color-line: #eadcc8;
+  --color-danger: #b4232f;
+  --color-danger-soft: #fdeceb;
+  --color-turtle: #c9ecda;
+  --color-turtle-belly: #fff6e6;
+  --color-shell: #f3d6a6;
+  --color-shell-line: #d8a865;
+  --color-tear: #bfe3f5;
+
+  /* 간격: Tailwind 간격 단위 1 = 4px (p-2=8px, p-4=16px, p-6=24px) */
+  --spacing: 4px;
+
+  /* 글자 크기 */
+  --text-caption: 12px;
+  --text-caption--line-height: 1.4;
+  --text-body-sm: 14px;
+  --text-body-sm--line-height: 1.5;
+  --text-body: 16px;
+  --text-body--line-height: 1.6;
+  --text-title: 20px;
+  --text-title--line-height: 1.35;
+  --text-headline: 28px;
+  --text-headline--line-height: 1.25;
+  --text-display: 44px;
+  --text-display--line-height: 1.1;
+
+  /* 모서리 */
+  --radius-control: 16px;
+  --radius-card: 24px;
+
+  /* 그림자: 갈색 기운의 아주 연한 그림자 */
+  --shadow-soft: 0 2px 4px rgb(74 52 38 / 0.04), 0 8px 24px rgb(74 52 38 / 0.07);
+  --shadow-lift: 0 -2px 16px rgb(74 52 38 / 0.08);
+
+  /* 글꼴: 제목만 웹폰트(Jua), 본문은 시스템 폰트 */
+  --font-display: var(--font-jua), "Apple SD Gothic Neo", "Malgun Gothic", system-ui, sans-serif;
+  --font-sans: system-ui, -apple-system, "Apple SD Gothic Neo", "Malgun Gothic", "Noto Sans KR", sans-serif;
+
+  /* 크기 기준 */
+  --size-touch: 48px;
+  --size-tab: 56px;
 }
 
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+html {
+  background: var(--color-cream);
+  color: var(--color-ink);
+  font-family: var(--font-sans);
+  -webkit-text-size-adjust: 100%;
 }
 
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  background: var(--color-cream);
+}
+
+:focus-visible {
+  outline: 3px solid var(--color-mint-deep);
+  outline-offset: 2px;
+}
+
+@keyframes mascot-sway {
+  0%,
+  100% {
+    transform: rotate(-4deg);
+  }
+  50% {
+    transform: rotate(4deg);
+  }
+}
+
+.animate-mascot-sway {
+  animation: mascot-sway 1.6s ease-in-out infinite;
+  transform-origin: 50% 90%;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .animate-mascot-sway {
+    animation: none;
+  }
 }
