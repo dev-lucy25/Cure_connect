@@ -3,6 +3,7 @@
 import { redirect } from "next/navigation";
 import { db } from "@/lib/db";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
+import { siteOrigin } from "@/lib/site-origin";
 import { emailForMember, inviteCodeMatches, memberNoTaken, orgExists } from "@/server/org-repo";
 import {
   loginSchema,
@@ -68,7 +69,12 @@ export async function signup(_prev: AuthFormState, formData: FormData): Promise<
   }
 
   const supabase = await createSupabaseServerClient();
-  const { data, error } = await supabase.auth.signUp({ email: input.email, password: input.password });
+  const { data, error } = await supabase.auth.signUp({
+    email: input.email,
+    password: input.password,
+    // 인증 메일 링크는 /auth/callback에서 로그인 세션으로 바뀐 뒤 홈으로 간다
+    options: { emailRedirectTo: `${await siteOrigin()}/auth/callback?next=/` },
+  });
 
   // 이메일 인증이 켜져 있으면 중복 가입은 오류 대신 identities가 빈 사용자로 돌아온다.
   const duplicated = data.user?.identities?.length === 0;

@@ -92,3 +92,19 @@ export type AuthFormState = {
   /** 실패했을 때 다시 채울 입력값 (비밀번호는 돌려주지 않는다) */
   values?: Partial<Record<Exclude<AuthField, "password"> | "method", string>>;
 };
+
+/** 비밀번호 재설정 메일 요청 */
+export const resetRequestSchema = z.object({ email });
+
+/** 새 비밀번호 (두 번 입력해 같은지 확인) */
+export const newPasswordSchema = z
+  .object({ password, confirm: z.string() })
+  .refine((v) => v.password === v.confirm, { path: ["confirm"], error: "두 비밀번호가 같지 않아요" });
+
+export type ResetField = "email" | "password" | "confirm";
+export type ResetFormState = {
+  fieldErrors?: Partial<Record<ResetField, string>>;
+  message?: string;
+  status?: "error" | "info";
+  values?: { email?: string };
+};
