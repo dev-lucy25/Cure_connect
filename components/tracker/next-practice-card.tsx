@@ -7,7 +7,7 @@ import Card from "@/components/ui/card";
 import Chip from "@/components/ui/chip";
 
 // 가장 가까운 실습(진행 중이면 그것)의 병동 정보 카드: D-Day · 기간 · 근무 시간 · 집결 · 수간호사 · 다빈도 질환 · 조원
-// 선배 족보 바로가기 버튼은 족보 화면(P4)과 함께 붙인다.
+// 그 병동 선배 족보(/notes?ward=)·케이스 준비 바로가기
 export default function NextPracticeCard({ schedule, today }: { schedule: ScheduleItem; today: string }) {
   const untilStart = daysBetween(today, schedule.startDate);
   const ongoing = untilStart <= 0 && (schedule.endDate ? schedule.endDate >= today : untilStart === 0);
@@ -54,8 +54,11 @@ export default function NextPracticeCard({ schedule, today }: { schedule: Schedu
           ))}
         </dl>
       )}
-      <div className="mt-4 flex gap-2">
-        <Link href="/cases" className={`${buttonClass("primary")} flex-1 text-body-sm`}>
+      <div className="mt-4 flex flex-wrap gap-2">
+        <Link href={`/notes?ward=${encodeURIComponent(schedule.ward)}`} className={`${buttonClass("primary")} flex-1 px-3 text-body-sm`}>
+          🔍 {schedule.ward} 선배 족보
+        </Link>
+        <Link href="/cases" className={`${buttonClass("secondary")} px-4 text-body-sm`}>
           🤖 케이스 준비
         </Link>
       </div>

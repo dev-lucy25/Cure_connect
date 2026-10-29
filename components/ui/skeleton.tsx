@@ -282,3 +282,48 @@ export function SubmissionsSkeleton() {
     </SkeletonBox>
   );
 }
+
+function NoteCardBones() {
+  return (
+    <CardShell>
+      <div className="flex justify-between gap-3">
+        <Bone className="h-6 w-2/5" />
+        <Bone className="h-5 w-24" />
+      </div>
+      <Bone className="mt-3 h-5 w-4/5" />
+      <Bone className="mt-2 h-3 w-1/2" />
+      <div aria-hidden className="skeleton mt-3 h-12 rounded-control" />
+      <div aria-hidden className="skeleton mt-3 h-28 rounded-control" />
+    </CardShell>
+  );
+}
+
+/** 족보 "더 보기" 중 (md 이상 2열) */
+export function NotesMoreSkeleton() {
+  return (
+    <SkeletonBox label="족보를 더 불러오는 중" className="grid gap-4 md:grid-cols-2">
+      <NoteCardBones />
+      <NoteCardBones />
+    </SkeletonBox>
+  );
+}
+
+/** 족보 마켓: 배너 → 분류 칩 → 카드 2열 */
+export function NotesSkeleton() {
+  return (
+    <SkeletonBox label="족보를 불러오는 중" className="space-y-4">
+      <HeaderBones />
+      <div aria-hidden className="skeleton h-36 rounded-card md:h-28" />
+      <div className="flex gap-2 overflow-hidden">
+        {[0, 1, 2, 3, 4].map((i) => (
+          <Bone key={i} className="h-11 w-28 shrink-0" />
+        ))}
+      </div>
+      <div className="grid gap-4 md:grid-cols-2">
+        {[0, 1, 2, 3].map((i) => (
+          <NoteCardBones key={i} />
+        ))}
+      </div>
+    </SkeletonBox>
+  );
+}

@@ -12,7 +12,7 @@ export type Tab = {
 const STUDENT_TABS: Tab[] = [
   { label: "실습", icon: "clock", href: "/" },
   { label: "케이스", icon: "note", href: "/cases" },
-  { label: "족보", icon: "book", href: null },
+  { label: "족보", icon: "book", href: "/notes" },
 ];
 
 // guest: 로그인 전(오픈형). 학생과 같은 탭을 보여주고, 로그인이 필요한 화면은 각 화면에서 안내한다.
