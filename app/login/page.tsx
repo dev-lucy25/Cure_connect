@@ -5,6 +5,8 @@ import { Bone } from "@/components/ui/skeleton";
 import AuthForm from "@/app/login/auth-form";
 import ThemeToggle from "@/components/theme/theme-toggle";
 import { listOrganizations } from "@/server/org-repo";
+import { demoLoginPassword } from "@/lib/env/server";
+import { DemoLoginCard } from "@/components/home/demo-login";
 
 export const metadata: Metadata = { title: "로그인 · NursePass" };
 
@@ -17,6 +19,8 @@ const FEATURES = [
 // 모바일: 소개 → 로그인 폼 세로로. md 이상: 왼쪽 소개 / 오른쪽 폼 2단
 export default async function LoginPage() {
   const orgs = await listOrganizations();
+  // 체험 버튼은 배포 환경변수(DEMO_LOGIN_ENABLED)로 켤 때만
+  const demo = demoLoginPassword() !== null;
 
   return (
     <main className="mx-auto flex w-full max-w-(--width-app) flex-1 flex-col px-5 pt-3 pb-10 md:max-w-(--width-wide) md:px-8">
@@ -51,6 +55,7 @@ export default async function LoginPage() {
           <Suspense fallback={<AuthFormBones />}>
             <AuthForm orgs={orgs} />
           </Suspense>
+          {demo && <DemoLoginCard />}
           <p className="mt-6 text-center text-body-sm text-ink-soft">환자 식별 정보는 입력하지 마세요</p>
         </div>
       </div>
