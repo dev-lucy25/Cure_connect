@@ -1,6 +1,7 @@
 import type { CurrentUser } from "@/server/auth";
 import { listRoster, professorKpis } from "@/server/professor-repo";
 import { RISK_HOURS } from "@/lib/practice-status";
+import Link from "next/link";
 import Card from "@/components/ui/card";
 import Chip from "@/components/ui/chip";
 import PageHeader from "@/components/ui/page-header";
@@ -30,6 +31,7 @@ export default async function ProfessorHome({ user }: { user: CurrentUser }) {
       suffix: "건",
       tone: kpis.pendingSubmissions > 0 ? "text-pink-deep" : "text-ink",
       sub: "같은 학교·방 학생 제출",
+      href: "/prof/submissions",
     },
   ];
 
@@ -54,15 +56,31 @@ export default async function ProfessorHome({ user }: { user: CurrentUser }) {
 
       <StaggerItem>
         <ul className="grid grid-cols-2 gap-3 md:grid-cols-4">
-          {kpiItems.map((k) => (
-            <li key={k.label} className="rounded-card border border-line bg-surface p-4 shadow-soft">
-              <p className="text-caption font-bold text-ink-soft">{k.label}</p>
-              <p className="mt-1 font-display text-display leading-none">
-                <AnimatedNumber value={k.value} suffix={k.suffix} className={k.tone} />
-              </p>
-              <p className="mt-1.5 text-caption text-ink-soft">{k.sub}</p>
-            </li>
-          ))}
+          {kpiItems.map((k) => {
+            const body = (
+              <>
+                <p className="text-caption font-bold text-ink-soft">{k.label}</p>
+                <p className="mt-1 font-display text-display leading-none">
+                  <AnimatedNumber value={k.value} suffix={k.suffix} className={k.tone} />
+                </p>
+                <p className="mt-1.5 text-caption text-ink-soft">
+                  {k.sub}
+                  {"href" in k && " · 채점하러 가기 →"}
+                </p>
+              </>
+            );
+            return (
+              <li key={k.label}>
+                {"href" in k && k.href ? (
+                  <Link href={k.href} className="press block h-full rounded-card border border-line bg-surface p-4 shadow-soft hover:border-brand-deep">
+                    {body}
+                  </Link>
+                ) : (
+                  <div className="h-full rounded-card border border-line bg-surface p-4 shadow-soft">{body}</div>
+                )}
+              </li>
+            );
+          })}
         </ul>
       </StaggerItem>
 

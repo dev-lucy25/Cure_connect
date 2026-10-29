@@ -64,6 +64,10 @@ async function SubmissionsContent() {
                     </div>
                     <SubmissionStatusChip status={s.status} grade={s.grade} />
                   </div>
+                  {s.score !== null && <p className="text-body-sm font-bold text-brand-deep">점수 {s.score}점</p>}
+                  {s.status === "revision" && (
+                    <p className="text-body-sm text-pink-deep">교수님 피드백대로 케이스를 고치고 다시 정리한 뒤 “다시 제출”해 주세요</p>
+                  )}
                   {s.feedback && <p className="rounded-control bg-subtle px-3 py-2 text-body-sm break-words whitespace-pre-line">💬 {s.feedback}</p>}
                   {s.caseId && (
                     <Link href={`/cases/${s.caseId}`} className="inline-flex min-h-11 items-center text-body-sm font-bold text-brand-deep">

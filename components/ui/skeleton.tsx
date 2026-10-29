@@ -200,6 +200,30 @@ export function NotificationsSkeleton() {
   );
 }
 
+/** 교수 채점함: 제목 + 상태 탭 + 제출 카드 */
+export function GradingSkeleton() {
+  return (
+    <SkeletonBox label="채점할 과제를 불러오는 중" className="space-y-4">
+      <HeaderBones />
+      <div className="flex gap-2">
+        <Bone className="h-10 w-24" />
+        <Bone className="h-10 w-24" />
+        <Bone className="h-10 w-24" />
+      </div>
+      <div className="grid gap-3 md:grid-cols-2">
+        {Array.from({ length: 4 }, (_, i) => (
+          <CardShell key={i} className="space-y-2">
+            <Bone className="h-4 w-1/3" />
+            <Bone className="h-6 w-3/4" />
+            <Bone className="h-4 w-1/2" />
+            <div aria-hidden className="skeleton mt-3 h-11 rounded-control" />
+          </CardShell>
+        ))}
+      </div>
+    </SkeletonBox>
+  );
+}
+
 export function LogsMoreSkeleton() {
   return (
     <SkeletonBox label="일지를 더 불러오는 중" className="space-y-3">

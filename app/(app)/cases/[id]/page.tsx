@@ -5,7 +5,7 @@ import RoleNotice from "@/components/home/role-notice";
 import { Suspense } from "react";
 import { getCurrentUser } from "@/server/auth";
 import { AI_DAILY_LIMIT, getAiUsedToday, getCase, listChat } from "@/server/case-repo";
-import { latestSubmissionForCase } from "@/server/submission-repo";
+import { connectedProfessors, latestSubmissionForCase } from "@/server/submission-repo";
 import { timeAgoFromNow } from "@/lib/dates";
 import { idSchema } from "@/lib/validation/form";
 import CaseAiPanel from "@/components/cases/case-ai-panel";
@@ -38,11 +38,12 @@ async function CaseDetail({ params }: { params: Promise<{ id: string }> }) {
   }
   const parsed = idSchema.safeParse(id);
   if (!parsed.success) notFound();
-  const [found, usedToday, messages, submission] = await Promise.all([
+  const [found, usedToday, messages, submission, professors] = await Promise.all([
     getCase(user.id, parsed.data),
     getAiUsedToday(user.id),
     listChat(user.id, parsed.data),
     latestSubmissionForCase(user.id, parsed.data),
+    connectedProfessors(user),
   ]);
   if (!found) notFound();
   const submittedAgo = submission ? timeAgoFromNow(submission.submittedAt) : null;
@@ -56,7 +57,7 @@ async function CaseDetail({ params }: { params: Promise<{ id: string }> }) {
         <CaseAiPanel
           caseId={found.id}
           caseTitle={found.title}
-          canSubmit={user.role === "student" && user.orgId !== null}
+          professors={professors}
           submission={submission}
           submittedAgo={submittedAgo}
           ai={found.ai}
