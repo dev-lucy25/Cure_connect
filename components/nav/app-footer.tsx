@@ -15,7 +15,7 @@ export default function AppFooter() {
         <div className="flex items-start gap-2.5">
           <NurseTurtle stage={2} size={36} decorative still />
           <div>
-            <p className="font-display text-body font-bold text-ink">NursePass</p>
+            <p className="font-brand text-body text-ink">NursePass</p>
             <p>간호학과 임상실습 1,000시간 기록 · AI 케이스스터디 · 선배 족보</p>
           </div>
         </div>

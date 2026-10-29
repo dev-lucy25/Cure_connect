@@ -3,7 +3,7 @@ import { Jua } from "next/font/google";
 import "./globals.css";
 import MotionProvider from "@/components/motion/motion-provider";
 
-// 제목·숫자 전용 둥근 글꼴. 한글 글리프는 unicode-range로 필요한 조각만 받으므로 preload는 끈다.
+// 로고 글자 전용 둥근 글꼴(본문·제목은 globals.css의 Pretendard). 한글 글리프는 unicode-range로 필요한 조각만 받으므로 preload는 끈다.
 const jua = Jua({
   variable: "--font-jua",
   weight: "400",
@@ -18,7 +18,10 @@ export const metadata: Metadata = {
 };
 
 export const viewport: Viewport = {
-  themeColor: "#fff9f1",
+  themeColor: [
+    { media: "(prefers-color-scheme: light)", color: "#fbf9f5" },
+    { media: "(prefers-color-scheme: dark)", color: "#151311" },
+  ],
   viewportFit: "cover",
 };
 
