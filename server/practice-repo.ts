@@ -40,6 +40,7 @@ export type ScheduleItem = {
   commonDiseases: string[];
   groupName: string | null;
   teammates: string[];
+  prepNotes: string;
 };
 
 type ScheduleInput = Omit<ScheduleItem, "id">;
@@ -225,6 +226,7 @@ const scheduleSelect = {
   commonDiseases: true,
   groupName: true,
   teammates: true,
+  prepNotes: true,
 } as const;
 
 type ScheduleRow = Omit<ScheduleItem, "startDate" | "endDate"> & { startDate: Date; endDate: Date | null };

@@ -124,6 +124,8 @@ export const scheduleSchema = z
     commonDiseases: commaList("다빈도 질환", 6, 30),
     groupName: optionalText("조", 20),
     teammates: commaList("조원", 10, 20),
+    // 핵심 준비사항 (예: 포셉·청진기 지참, 수간호사 OT 질문 대비) — 빈 칸은 ""
+    prepNotes: z.string().trim().max(300, { error: "준비사항은 300자 이하로 써 주세요" }).default(""),
   })
   .superRefine((v, ctx) => {
     if (v.endDate && v.endDate < v.startDate) {

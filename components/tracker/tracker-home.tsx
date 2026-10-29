@@ -1,6 +1,7 @@
 import type { CurrentUser } from "@/server/auth";
 import { getProgress, getSubjectMinutes, listLogs, listPastSchedules, listUpcomingSchedules } from "@/server/practice-repo";
 import { listChecklist } from "@/server/checklist-repo";
+import { connectedProfessors } from "@/server/submission-repo";
 import { todayKst } from "@/lib/dates";
 import PageHeader from "@/components/ui/page-header";
 import ProfileBanner from "@/components/home/profile-banner";
@@ -18,13 +19,14 @@ import ChecklistCard from "@/components/tracker/checklist-card";
 // md 이상: 왼쪽 7칸(히어로, 과목별 현황) / 오른쪽 5칸(다음 실습, 준비물, 실습 일정), 그 아래 일지 전체 폭
 export default async function TrackerHome({ user }: { user: CurrentUser }) {
   const today = todayKst();
-  const [progress, subjectMinutes, logs, schedules, checklist, pastSchedules] = await Promise.all([
+  const [progress, subjectMinutes, logs, schedules, checklist, pastSchedules, professors] = await Promise.all([
     getProgress(user.id),
     getSubjectMinutes(user.id),
     listLogs(user.id),
     listUpcomingSchedules(user.id, today),
     listChecklist(user.id),
     listPastSchedules(user.id, today),
+    connectedProfessors(user),
   ]);
 
   // 오늘이 기간 안에 있는 일정 = 현재 로테이션
@@ -37,7 +39,7 @@ export default async function TrackerHome({ user }: { user: CurrentUser }) {
     <Stagger className="space-y-3">
       <PageHeader title="실습 시간" description={`${user.name}님의 실습 기록`} />
       <StaggerItem className="pt-2">
-        <ProfileBanner user={user} totalMinutes={progress.totalMinutes} current={current} />
+        <ProfileBanner user={user} totalMinutes={progress.totalMinutes} current={current} professors={professors} />
       </StaggerItem>
       <div className="flex flex-col gap-4 md:grid md:grid-cols-12 md:items-start">
         <StaggerItem className="md:col-span-7">

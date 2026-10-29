@@ -12,10 +12,13 @@ export default function ProfileBanner({
   user,
   totalMinutes,
   current,
+  professors,
 }: {
   user: CurrentUser;
   totalMinutes: number;
   current?: ScheduleItem;
+  /** 내 기록을 볼 수 있는 교수님 (같은 학교·같은 방) */
+  professors: string[];
 }) {
   const rotation = current && `${current.subject ? `${subjectLabel(current.subject)}실습 · ` : ""}${current.ward}`;
   const status = STATUS_TEXT[practiceStatus(totalMinutes / 60)];
@@ -46,6 +49,18 @@ export default function ProfileBanner({
             </>
           )}
           {rotation && <> · 현재 로테이션: {rotation}</>}
+        </p>
+        <p className="mt-0.5 text-body-sm text-ink-soft" data-connected-professors>
+          {professors.length > 0 ? (
+            <>🟢 교수님 현황판 연결됨 · {professors.join(", ")} 교수님</>
+          ) : (
+            <>
+              ⚪ 아직 연결된 교수님이 없어요 ·{" "}
+              <Link href="/me" className="font-bold text-brand-deep underline underline-offset-2">
+                학교나 방 코드 연결하기
+              </Link>
+            </>
+          )}
         </p>
       </div>
     </Card>

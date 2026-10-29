@@ -312,6 +312,15 @@ function ScheduleForm({
                 error={errors.teammates}
               />
             </div>
+            <Field
+              id={`${p}prepNotes`}
+              name="prepNotes"
+              label="핵심 준비사항"
+              placeholder="예: 포셉·3색 볼펜 지참, 소화기 약어 숙지"
+              maxLength={300}
+              defaultValue={v?.prepNotes ?? initial?.prepNotes ?? ""}
+              error={errors.prepNotes}
+            />
           </div>
         </Expandable>
       </div>
@@ -338,6 +347,7 @@ const DETAIL_FIELDS = [
   "commonDiseases",
   "groupName",
   "teammates",
+  "prepNotes",
 ] as const;
 
 /** 일정 줄 왼쪽 표시: 다가오면 D-n, 진행 중이면 "진행", 끝났으면 "지남" */
@@ -358,6 +368,7 @@ function hasDetails(s: ScheduleItem) {
     s.preceptor ||
     s.groupName ||
     s.commonDiseases.length ||
-    s.teammates.length,
+    s.teammates.length ||
+    s.prepNotes,
   );
 }

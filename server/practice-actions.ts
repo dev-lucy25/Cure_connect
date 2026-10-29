@@ -58,6 +58,7 @@ const SCHEDULE_FIELDS = [
   "commonDiseases",
   "groupName",
   "teammates",
+  "prepNotes",
 ] as const;
 
 export async function saveLog(_prev: FormState<LogField>, formData: FormData): Promise<FormState<LogField>> {
