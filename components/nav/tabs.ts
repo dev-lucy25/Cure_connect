@@ -1,6 +1,6 @@
 import type { Role } from "@/generated/prisma/client";
 
-export type TabIcon = "clock" | "note" | "book" | "tool" | "chart" | "check";
+export type TabIcon = "clock" | "note" | "book" | "tool" | "chart" | "check" | "pie";
 
 export type Tab = {
   label: string;
@@ -24,5 +24,6 @@ export const TABS: Record<Role | "guest", Tab[]> = {
     { label: "학생 현황", icon: "chart", href: "/" },
     { label: "일지 인증", icon: "clock", href: "/prof/approvals" },
     { label: "채점", icon: "check", href: "/prof/submissions" },
+    { label: "통계", icon: "pie", href: "/prof/insights" },
   ],
 };

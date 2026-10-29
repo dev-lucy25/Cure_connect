@@ -4,7 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { motion } from "motion/react";
 import type { Tab, TabIcon } from "@/components/nav/tabs";
-import { IconBook, IconChart, IconCheckSquare, IconClock, IconNote, IconTool } from "@/components/ui/icons";
+import { IconBook, IconChart, IconCheckSquare, IconClock, IconNote, IconPie, IconTool } from "@/components/ui/icons";
 import { SPRING_SNAPPY } from "@/lib/motion";
 import { useTapEffect } from "@/components/motion/use-motion-prefs";
 
@@ -14,6 +14,7 @@ const ICONS: Record<TabIcon, typeof IconClock> = {
   book: IconBook,
   tool: IconTool,
   chart: IconChart,
+  pie: IconPie,
   check: IconCheckSquare,
 };
 
@@ -27,7 +28,9 @@ const MotionLink = motion.create(Link);
 
 /** 선택된 탭 뒤의 민트 알약. 같은 layoutId끼리 탭을 옮기면 미끄러지듯 따라간다 */
 function ActivePill({ layoutId }: { layoutId: string }) {
-  return <motion.span layoutId={layoutId} transition={SPRING_SNAPPY} aria-hidden className="absolute inset-0 -z-10 rounded-full bg-brand" />;
+  return (
+    <motion.span layoutId={layoutId} transition={SPRING_SNAPPY} aria-hidden className="absolute inset-0 -z-10 rounded-full bg-brand" />
+  );
 }
 
 function TabList({ tabs, variant }: { tabs: Tab[]; variant: "bottom" | "top" }) {

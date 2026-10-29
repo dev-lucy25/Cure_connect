@@ -109,3 +109,10 @@ export const IconBell = (p: IconProps) => (
     <path d="M10 20.5a2 2 0 0 0 4 0" />
   </Icon>
 );
+
+export const IconPie = (p: IconProps) => (
+  <Icon {...p}>
+    <path d="M12 3.5v8.5h8.5A8.5 8.5 0 1 1 12 3.5z" />
+    <path d="M15 3.8A8.5 8.5 0 0 1 20.2 9H15z" />
+  </Icon>
+);
