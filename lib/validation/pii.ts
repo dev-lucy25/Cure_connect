@@ -26,6 +26,14 @@ const NOT_NAMES = new Set([
   "선임", "후임", "우리", "저희", "나이", "연세", "정상", "이상", "안정", "불안", "통증", "고통",
 ]);
 
+// "○○ 환자"로 자주 쓰는 의료·일상 낱말. 앞 두 글자가 이름과 겹칠 수 있어(조현병/조현우) 낱말 전체가 같을 때만 뺀다
+const NOT_NAME_WORDS = new Set([
+  "오전", "오후", "오전에", "오후에", "오전엔", "오후엔", "고위험", "고열", "고령의", "고관절",
+  "심장", "심부전", "신장", "신부전", "위암", "유방암", "방광암", "백혈병", "조현병", "우울증", "공황",
+  "변비", "마비", "편마비", "장애", "임부", "임산부", "산모", "경련", "진정", "인지", "전신", "경증",
+  "남아", "여아", "성인의", "소아의", "노인의", "수술한", "수술할", "신환", "전원", "주사",
+]);
+
 const PATTERNS: [PiiKind, RegExp][] = [
   ["rrn", /\d{6}\s?-\s?[1-4]\d{6}/],
   ["phone", /01[016789][-\s.]?\d{3,4}[-\s.]?\d{4}/],
@@ -43,7 +51,7 @@ export function detectPii(text: string): PiiKind[] {
   }
   for (const m of text.matchAll(NAME_PATTERN)) {
     const word = m[1];
-    if (!NOT_NAMES.has(word) && !NOT_NAMES.has(word.slice(0, 2))) found.add("name");
+    if (!NOT_NAME_WORDS.has(word) && !NOT_NAMES.has(word) && !NOT_NAMES.has(word.slice(0, 2))) found.add("name");
   }
   return [...found];
 }
