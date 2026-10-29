@@ -8,7 +8,13 @@ import { PrismaClient } from "@/generated/prisma/client";
 const globalForPrisma = globalThis as unknown as { prisma?: PrismaClient; prismaClass?: typeof PrismaClient };
 
 function createClient() {
-  const adapter = new PrismaPg({ connectionString: process.env.DATABASE_URL });
+  const adapter = new PrismaPg({
+    connectionString: process.env.DATABASE_URL,
+    // pg 기본값은 10초 쉰 연결을 닫는다. DB(파리)와 새 연결을 맺는 데 2~3초가 걸려
+    // 화면을 잠깐 보다 탭을 누르면 멈칫했다 → 쉬는 연결을 10분 유지하고 keep-alive로 끊김을 막는다.
+    idleTimeoutMillis: 10 * 60_000,
+    keepAlive: true,
+  });
   return new PrismaClient({ adapter });
 }
 
