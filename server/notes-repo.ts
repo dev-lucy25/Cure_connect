@@ -162,17 +162,24 @@ export async function createNote(userId: string, input: NoteInput): Promise<Crea
   }, TX);
 }
 
-/** 작성자만 고칠 수 있다. 남의 족보면 0건이 바뀌고 false */
-export async function updateNote(userId: string, id: string, input: NoteInput) {
+export type UpdateResult = "updated" | "not_found" | "below_reward";
+
+/**
+ * 작성자만 고칠 수 있다. 등록 보상(+500C)을 받은 족보는 보상 기준(시크릿 3줄 또는 150자) 아래로 줄일 수 없다
+ * (보상만 받고 내용을 비우는 것을 막음)
+ */
+export async function updateNote(userId: string, id: string, input: NoteInput): Promise<UpdateResult> {
+  const rewarded = await db.creditLedger.count({ where: { userId, reason: "upload", noteId: id } });
+  if (rewarded > 0 && !rewardEligible(input)) return "below_reward";
   const { count } = await db.wardNote.updateMany({ where: { id, authorId: userId }, data: input });
-  return count === 1;
+  return count === 1 ? "updated" : "not_found";
 }
 
-export type DeleteResult = "deleted" | "not_found" | "sold";
+export type DeleteResult = "deleted" | "not_found" | "sold" | "reward_spent";
 
 /**
  * 작성자만 지울 수 있다. 이미 누가 돈을 내고 열었으면 지울 수 없다(산 사람의 열람권 보호 → 고치기만).
- * 올릴 때 받은 보상은 잔액이 허락하는 만큼 회수한다 (0 미만으로는 내려가지 않음)
+ * 올릴 때 받은 보상은 전부 회수한다. 보상을 이미 써서 잔액이 모자라면 지울 수 없다(보상만 챙기고 지우기 방지)
  */
 export async function deleteNote(userId: string, id: string): Promise<DeleteResult> {
   return db.$transaction(async (tx) => {
@@ -180,6 +187,10 @@ export async function deleteNote(userId: string, id: string): Promise<DeleteResu
     if (!note) return "not_found";
     if (note.salesCount > 0) return "sold";
     const reward = await tx.creditLedger.findFirst({ where: { userId, reason: "upload", noteId: id }, select: { delta: true } });
+    if (reward) {
+      const [me] = await tx.$queryRaw<{ credits: number }[]>`SELECT "credits" FROM "Profile" WHERE "id" = ${userId}::uuid FOR UPDATE`;
+      if (me.credits < reward.delta) return "reward_spent";
+    }
     await tx.wardNote.delete({ where: { id } });
     if (reward) {
       const [row] = await tx.$queryRaw<{ before: number; after: number }[]>`

@@ -50,7 +50,11 @@ export async function updateNoteAction(_prev: NoteFormState, formData: FormData)
   const parsed = noteSchema.safeParse(values);
   if (!parsed.success) return { fieldErrors: fieldErrorsOf<NoteField>(parsed.error), values };
   try {
-    if (!(await repo.updateNote(user.id, id.data, parsed.data))) return { message: NOT_FOUND, values };
+    const result = await repo.updateNote(user.id, id.data, parsed.data);
+    if (result === "not_found") return { message: NOT_FOUND, values };
+    if (result === "below_reward") {
+      return { message: "등록 보상을 받은 족보라 시크릿 내용을 3줄 또는 150자 이상으로 유지해 주세요", values };
+    }
   } catch {
     return { message: "저장하지 못했어요. 잠시 후 다시 시도해 주세요", values };
   }
@@ -69,6 +73,9 @@ export async function deleteNoteAction(_prev: FormState<never>, formData: FormDa
     return { message: "지우지 못했어요. 잠시 후 다시 시도해 주세요" };
   }
   if (result === "sold") return { message: "이미 열람한 후배가 있어 지울 수 없어요. 고치기는 할 수 있어요" };
+  if (result === "reward_spent") {
+    return { message: `등록 보상 ${UPLOAD_REWARD}C를 이미 사용해 지울 수 없어요. 크레딧이 ${UPLOAD_REWARD}C 이상일 때 지우거나, 내용을 고쳐 주세요` };
+  }
   if (result === "not_found") return { message: NOT_FOUND };
   refresh();
   return { savedAt: Date.now() };
