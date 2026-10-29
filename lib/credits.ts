@@ -45,3 +45,15 @@ export function rewardEligible(secret: { questions: string[]; tips: string[] }) 
   const lines = [...secret.questions, ...secret.tips];
   return lines.length >= REWARD_MIN_LINES || lines.join("").length >= REWARD_MIN_CHARS;
 }
+
+/** 결제 방식: 지금은 가상 결제(실제 돈 없음). 토스페이먼츠 연동 시 "toss"로 바꾸고 server/payment-provider.ts에 승인 처리를 넣는다 */
+export const PAYMENT_MODE = "mock" as const;
+/** 가상 결제는 하루 3번까지 (크레딧 무한 생성 방지) */
+export const MOCK_PURCHASES_PER_DAY = 3;
+/** 결제 후 7일 안, 충전받은 크레딧을 쓰지 않았으면 결제 취소 가능 */
+export const REFUND_DAYS = 7;
+
+export type CreditPackage = (typeof CREDIT_PACKAGES)[number];
+export function findPackage(id: string): CreditPackage | undefined {
+  return CREDIT_PACKAGES.find((p) => p.id === id);
+}
