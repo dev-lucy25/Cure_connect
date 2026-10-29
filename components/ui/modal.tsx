@@ -164,10 +164,11 @@ export default function Modal({
                 </span>
               </IconButton>
             </div>
-            {/* 내용이 길면 이 안에서만 스크롤 (끌어 닫기와 겹치지 않게 터치 스크롤은 내용이 받음) */}
+            {/* 내용이 길면 이 안에서만 스크롤 (끌어 닫기와 겹치지 않게 터치 스크롤은 내용이 받음).
+                캡처 단계에서 막으면 안쪽 요소(사진 자르기 틀 등)까지 pointerdown을 못 받으므로, 안쪽이 받은 뒤 시트로 올라가는 것만 막는다 */}
             <div
               className="overflow-y-auto overscroll-contain px-5 pt-1 pb-[calc(env(safe-area-inset-bottom)+20px)]"
-              onPointerDownCapture={(e) => e.stopPropagation()}
+              onPointerDown={(e) => e.stopPropagation()}
             >
               {children}
             </div>
