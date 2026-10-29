@@ -144,6 +144,43 @@ function LogCardBones() {
 }
 
 /** 실습 일지 "더 보기" 중 */
+/** 교수 홈(학생 현황): 교수 정보 + KPI 4칸 + 현황판 */
+export function ProfessorHomeSkeleton() {
+  return (
+    <SkeletonBox label="학생 현황을 불러오는 중" className="space-y-3">
+      <HeaderBones />
+      <div className="pt-2">
+        <CardShell className="flex flex-col gap-3 md:flex-row md:justify-between">
+          <div className="flex-1 space-y-2">
+            <Bone className="h-6 w-2/5" />
+            <Bone className="h-4 w-1/3" />
+          </div>
+          <div aria-hidden className="skeleton h-16 w-full rounded-control md:w-80" />
+        </CardShell>
+      </div>
+      <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
+        {Array.from({ length: 4 }, (_, i) => (
+          <CardShell key={i} className="p-4">
+            <Bone className="h-3 w-3/4" />
+            <Bone className="mt-3 h-8 w-1/2" />
+          </CardShell>
+        ))}
+      </div>
+      <CardShell className="space-y-3">
+        <Bone className="h-6 w-1/3" />
+        <div className="flex gap-2">
+          <Bone className="h-9 w-16" />
+          <Bone className="h-9 w-20" />
+          <Bone className="h-9 w-28" />
+        </div>
+        {Array.from({ length: 4 }, (_, i) => (
+          <div key={i} aria-hidden className="skeleton h-16 rounded-control" />
+        ))}
+      </CardShell>
+    </SkeletonBox>
+  );
+}
+
 export function LogsMoreSkeleton() {
   return (
     <SkeletonBox label="일지를 더 불러오는 중" className="space-y-3">
