@@ -2,6 +2,7 @@ import type { CurrentUser } from "@/server/auth";
 import { getProgress, listLogs, listUpcomingSchedules } from "@/server/practice-repo";
 import { todayKst } from "@/lib/dates";
 import PageHeader from "@/components/ui/page-header";
+import ProfileBanner from "@/components/home/profile-banner";
 import DDayChip from "@/components/tracker/dday-chip";
 import LogSection from "@/components/tracker/log-section";
 import ProgressHero from "@/components/tracker/progress-hero";
@@ -20,6 +21,9 @@ export default async function TrackerHome({ user }: { user: CurrentUser }) {
     <div className="space-y-3">
       <PageHeader title="실습 시간" description={`${user.name}님의 실습 기록`} />
       <div className="pt-2">
+        <ProfileBanner user={user} totalMinutes={progress.totalMinutes} goalHours={progress.goalHours} />
+      </div>
+      <div>
         <ProgressHero
           totalMinutes={progress.totalMinutes}
           goalHours={progress.goalHours}
