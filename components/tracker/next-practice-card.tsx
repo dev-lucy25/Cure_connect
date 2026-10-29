@@ -38,7 +38,8 @@ export default function NextPracticeCard({ schedule, today }: { schedule: Schedu
       {(schedule.shift || shiftTime || schedule.meetingPlace) && (
         <p className="mt-1 text-body-sm text-ink">
           {[
-            (schedule.shift || shiftTime) && `${schedule.shift ? `${shiftLabel(schedule.shift)} 근무` : "근무"}${shiftTime ? ` (${shiftTime})` : ""}`,
+            (schedule.shift || shiftTime) &&
+              `${schedule.shift ? `${shiftLabel(schedule.shift)} 근무` : "근무"}${shiftTime ? ` (${shiftTime})` : ""}`,
             schedule.meetingPlace && `집결: ${schedule.meetingPlace}${schedule.meetingTime ? ` ${schedule.meetingTime}` : ""}`,
           ]
             .filter(Boolean)

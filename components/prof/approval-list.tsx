@@ -13,6 +13,7 @@ import Button from "@/components/ui/button";
 import Checkbox from "@/components/ui/checkbox";
 import Chip from "@/components/ui/chip";
 import FormStatus from "@/components/ui/form-status";
+import { controlClass } from "@/components/ui/field-parts";
 
 type Result = { message?: string; savedAt?: number; notice?: string };
 
@@ -138,7 +139,7 @@ export default function ApprovalList({ logs, showStudent }: { logs: ReviewLog[];
                       maxLength={200}
                       placeholder="반려 사유 (선택) · 예: 시간이 일정과 맞지 않아요"
                       aria-label="반려 사유"
-                      className="min-h-11 min-w-0 flex-1 rounded-control border border-line bg-canvas px-3 text-body-sm focus:border-brand-deep focus:outline-none"
+                      className={`${controlClass()} min-h-11 min-w-0 flex-1 px-3 text-body-sm`}
                     />
                     <Button
                       type="button"

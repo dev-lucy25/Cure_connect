@@ -12,7 +12,7 @@ import { dDayLabel, daysBetween, shortDate } from "@/lib/dates";
 import Button from "@/components/ui/button";
 import Field from "@/components/ui/field";
 import SelectField from "@/components/ui/select-field";
-import { SHIFTS, SUBJECTS } from "@/lib/subjects";
+import { SHIFT_OPTIONS, SUBJECT_OPTIONS } from "@/lib/subjects";
 import FormStatus from "@/components/ui/form-status";
 import { IconPlus } from "@/components/ui/icons";
 import RowActions from "@/components/tracker/row-actions";
@@ -62,7 +62,10 @@ export default function SchedulePanel({ schedules, past, today }: { schedules: S
             {showPast ? "지난 일정 접기" : `지난 일정 ${past.length}개 보기`}
           </button>
           <Collapse open={showPast}>
-            <ul className="divide-y divide-line/70 overflow-hidden rounded-card border border-line/70 bg-surface/70 shadow-soft" data-past-schedules>
+            <ul
+              className="divide-y divide-line/70 overflow-hidden rounded-card border border-line/70 bg-surface/70 shadow-soft"
+              data-past-schedules
+            >
               <AnimatePresence initial={false}>
                 {past.map((s) => (
                   <ScheduleRow key={s.id} schedule={s} today={today} />
@@ -126,7 +129,7 @@ function ScheduleSummary({
           {schedule.ward}
         </p>
         <p className="truncate text-body-sm text-ink-soft">
-          {schedule.kind === "academic" ? (schedule.prepNotes || "학사 일정") : schedule.hospital} · {shortDate(schedule.startDate)}
+          {schedule.kind === "academic" ? schedule.prepNotes || "학사 일정" : schedule.hospital} · {shortDate(schedule.startDate)}
           {schedule.endDate && ` ~ ${shortDate(schedule.endDate)}`}
         </p>
       </div>
@@ -159,7 +162,9 @@ function ScheduleForm({
   // 병동 정보는 접어 두고, 이미 적어 둔 값이 있거나 오류가 있으면 펼친다
   const [moreOpen, setMoreOpen] = useState(initial ? hasDetails(initial) : false);
   // 실습 / 학사 일정(케이스 발표·술기 시험 등): 학사 일정은 이름·날짜·준비사항만
-  const [kind, setKind] = useState<"practice" | "academic">((v?.kind as "practice" | "academic" | undefined) ?? initial?.kind ?? "practice");
+  const [kind, setKind] = useState<"practice" | "academic">(
+    (v?.kind as "practice" | "academic" | undefined) ?? initial?.kind ?? "practice",
+  );
   const academic = kind === "academic";
   const showMore = moreOpen || DETAIL_FIELDS.some((f) => errors[f]);
   return (
@@ -237,136 +242,130 @@ function ScheduleForm({
         />
       ) : (
         <>
-        <div className="grid grid-cols-2 gap-3">
-          <SelectField
-            id={`${p}subject`}
-            name="subject"
-            label="실습 과목 (선택)"
-            defaultValue={v?.subject ?? initial?.subject ?? ""}
-            error={errors.subject}
-          >
-            <option value="">선택 안 함</option>
-            {SUBJECTS.map((s) => (
-              <option key={s.key} value={s.key}>
-                {s.label}
-              </option>
-            ))}
-          </SelectField>
-          <Field
-            id={`${p}department`}
-            name="department"
-            label="진료과 (선택)"
-            placeholder="예: 소화기내과"
-            defaultValue={v?.department ?? initial?.department ?? ""}
-            error={errors.department}
-          />
-        </div>
-        {/* 접혀 있어도 입력칸은 남아 있어 고칠 때 기존 값이 지워지지 않는다 */}
-        <div className="rounded-control bg-subtle px-3 py-1">
-          <button
-            type="button"
-            aria-expanded={showMore}
-            aria-controls={`${p}more`}
-            onClick={() => setMoreOpen((open) => !open)}
-            className="flex min-h-11 w-full items-center justify-between gap-2 text-left text-body-sm font-bold text-ink"
-          >
-            병동 정보 더 입력하기 (근무 시간 · 집결 · 수간호사 · 질환 · 조원)
-            <motion.span aria-hidden animate={{ rotate: showMore ? 180 : 0 }} transition={SPRING_SOFT} className="text-ink-soft">
-              ▾
-            </motion.span>
-          </button>
-          <Expandable open={showMore}>
-            <div id={`${p}more`} className="space-y-3 pt-1 pb-2">
-              <div className="grid grid-cols-3 gap-3">
-                <SelectField id={`${p}shift`} name="shift" label="듀티" defaultValue={v?.shift ?? initial?.shift ?? ""} error={errors.shift}>
-                  <option value="">-</option>
-                  {SHIFTS.map((s) => (
-                    <option key={s.key} value={s.key}>
-                      {s.label}
-                    </option>
-                  ))}
-                </SelectField>
+          <div className="grid grid-cols-2 gap-3">
+            <SelectField
+              id={`${p}subject`}
+              name="subject"
+              label="실습 과목 (선택)"
+              defaultValue={v?.subject ?? initial?.subject ?? ""}
+              error={errors.subject}
+              options={[{ value: "", label: "선택 안 함" }, ...SUBJECT_OPTIONS]}
+            />
+            <Field
+              id={`${p}department`}
+              name="department"
+              label="진료과 (선택)"
+              placeholder="예: 소화기내과"
+              defaultValue={v?.department ?? initial?.department ?? ""}
+              error={errors.department}
+            />
+          </div>
+          {/* 접혀 있어도 입력칸은 남아 있어 고칠 때 기존 값이 지워지지 않는다 */}
+          <div className="rounded-control bg-subtle px-3 py-1">
+            <button
+              type="button"
+              aria-expanded={showMore}
+              aria-controls={`${p}more`}
+              onClick={() => setMoreOpen((open) => !open)}
+              className="flex min-h-11 w-full items-center justify-between gap-2 text-left text-body-sm font-bold text-ink"
+            >
+              병동 정보 더 입력하기 (근무 시간 · 집결 · 수간호사 · 질환 · 조원)
+              <motion.span aria-hidden animate={{ rotate: showMore ? 180 : 0 }} transition={SPRING_SOFT} className="text-ink-soft">
+                ▾
+              </motion.span>
+            </button>
+            <Expandable open={showMore}>
+              <div id={`${p}more`} className="space-y-3 pt-1 pb-2">
+                <div className="grid grid-cols-3 gap-3">
+                  <SelectField
+                    id={`${p}shift`}
+                    name="shift"
+                    label="듀티"
+                    defaultValue={v?.shift ?? initial?.shift ?? ""}
+                    error={errors.shift}
+                    options={[{ value: "", label: "-" }, ...SHIFT_OPTIONS]}
+                  />
+                  <Field
+                    id={`${p}shiftStart`}
+                    name="shiftStart"
+                    label="시작"
+                    type="time"
+                    defaultValue={v?.shiftStart ?? initial?.shiftStart ?? ""}
+                    error={errors.shiftStart}
+                  />
+                  <Field
+                    id={`${p}shiftEnd`}
+                    name="shiftEnd"
+                    label="끝"
+                    type="time"
+                    defaultValue={v?.shiftEnd ?? initial?.shiftEnd ?? ""}
+                    error={errors.shiftEnd}
+                  />
+                </div>
+                <div className="grid grid-cols-[1fr_auto] gap-3">
+                  <Field
+                    id={`${p}meetingPlace`}
+                    name="meetingPlace"
+                    label="집결 장소"
+                    placeholder="예: 본관 7층 엘리베이터 앞"
+                    defaultValue={v?.meetingPlace ?? initial?.meetingPlace ?? ""}
+                    error={errors.meetingPlace}
+                  />
+                  <Field
+                    id={`${p}meetingTime`}
+                    name="meetingTime"
+                    label="집결 시각"
+                    type="time"
+                    defaultValue={v?.meetingTime ?? initial?.meetingTime ?? ""}
+                    error={errors.meetingTime}
+                  />
+                </div>
                 <Field
-                  id={`${p}shiftStart`}
-                  name="shiftStart"
-                  label="시작"
-                  type="time"
-                  defaultValue={v?.shiftStart ?? initial?.shiftStart ?? ""}
-                  error={errors.shiftStart}
+                  id={`${p}preceptor`}
+                  name="preceptor"
+                  label="담당 수간호사 (현장지도자)"
+                  placeholder="예: 박지영 수간호사"
+                  defaultValue={v?.preceptor ?? initial?.preceptor ?? ""}
+                  error={errors.preceptor}
                 />
                 <Field
-                  id={`${p}shiftEnd`}
-                  name="shiftEnd"
-                  label="끝"
-                  type="time"
-                  defaultValue={v?.shiftEnd ?? initial?.shiftEnd ?? ""}
-                  error={errors.shiftEnd}
+                  id={`${p}commonDiseases`}
+                  name="commonDiseases"
+                  label="주요 다빈도 질환 (쉼표로 구분)"
+                  placeholder="예: 간경변증, 위장관출혈, 급성췌장염"
+                  defaultValue={v?.commonDiseases ?? initial?.commonDiseases.join(", ") ?? ""}
+                  error={errors.commonDiseases}
+                />
+                <div className="grid grid-cols-[6rem_1fr] gap-3">
+                  <Field
+                    id={`${p}groupName`}
+                    name="groupName"
+                    label="조"
+                    placeholder="예: 3조"
+                    defaultValue={v?.groupName ?? initial?.groupName ?? ""}
+                    error={errors.groupName}
+                  />
+                  <Field
+                    id={`${p}teammates`}
+                    name="teammates"
+                    label="조원 (쉼표로 구분)"
+                    placeholder="예: 박소연, 정민수"
+                    defaultValue={v?.teammates ?? initial?.teammates.join(", ") ?? ""}
+                    error={errors.teammates}
+                  />
+                </div>
+                <Field
+                  id={`${p}prepNotes`}
+                  name="prepNotes"
+                  label="핵심 준비사항"
+                  placeholder="예: 포셉·3색 볼펜 지참, 소화기 약어 숙지"
+                  maxLength={300}
+                  defaultValue={v?.prepNotes ?? initial?.prepNotes ?? ""}
+                  error={errors.prepNotes}
                 />
               </div>
-              <div className="grid grid-cols-[1fr_auto] gap-3">
-                <Field
-                  id={`${p}meetingPlace`}
-                  name="meetingPlace"
-                  label="집결 장소"
-                  placeholder="예: 본관 7층 엘리베이터 앞"
-                  defaultValue={v?.meetingPlace ?? initial?.meetingPlace ?? ""}
-                  error={errors.meetingPlace}
-                />
-                <Field
-                  id={`${p}meetingTime`}
-                  name="meetingTime"
-                  label="집결 시각"
-                  type="time"
-                  defaultValue={v?.meetingTime ?? initial?.meetingTime ?? ""}
-                  error={errors.meetingTime}
-                />
-              </div>
-              <Field
-                id={`${p}preceptor`}
-                name="preceptor"
-                label="담당 수간호사 (현장지도자)"
-                placeholder="예: 박지영 수간호사"
-                defaultValue={v?.preceptor ?? initial?.preceptor ?? ""}
-                error={errors.preceptor}
-              />
-              <Field
-                id={`${p}commonDiseases`}
-                name="commonDiseases"
-                label="주요 다빈도 질환 (쉼표로 구분)"
-                placeholder="예: 간경변증, 위장관출혈, 급성췌장염"
-                defaultValue={v?.commonDiseases ?? initial?.commonDiseases.join(", ") ?? ""}
-                error={errors.commonDiseases}
-              />
-              <div className="grid grid-cols-[6rem_1fr] gap-3">
-                <Field
-                  id={`${p}groupName`}
-                  name="groupName"
-                  label="조"
-                  placeholder="예: 3조"
-                  defaultValue={v?.groupName ?? initial?.groupName ?? ""}
-                  error={errors.groupName}
-                />
-                <Field
-                  id={`${p}teammates`}
-                  name="teammates"
-                  label="조원 (쉼표로 구분)"
-                  placeholder="예: 박소연, 정민수"
-                  defaultValue={v?.teammates ?? initial?.teammates.join(", ") ?? ""}
-                  error={errors.teammates}
-                />
-              </div>
-              <Field
-                id={`${p}prepNotes`}
-                name="prepNotes"
-                label="핵심 준비사항"
-                placeholder="예: 포셉·3색 볼펜 지참, 소화기 약어 숙지"
-                maxLength={300}
-                defaultValue={v?.prepNotes ?? initial?.prepNotes ?? ""}
-                error={errors.prepNotes}
-              />
-            </div>
-          </Expandable>
-        </div>
+            </Expandable>
+          </div>
         </>
       )}
       <FormStatus message={state.message} />

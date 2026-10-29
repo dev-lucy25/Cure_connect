@@ -14,6 +14,7 @@ import { buttonClass } from "@/components/ui/button-class";
 import Link from "next/link";
 import Chip from "@/components/ui/chip";
 import FormStatus from "@/components/ui/form-status";
+import SearchInput from "@/components/ui/search-input";
 
 const FILTERS: { key: RosterFilter; label: string }[] = [
   { key: "ALL", label: "전체" },
@@ -113,16 +114,13 @@ export default function Roster({ rows, hasRoom, hasOrg }: { rows: RosterRow[]; h
 
       {rows.length > 0 && (
         <div className="px-5 pb-3">
-          <label className="sr-only" htmlFor="roster-search">
-            학생 이름·학번 검색
-          </label>
-          <input
+          <SearchInput
             id="roster-search"
-            type="search"
+            label="학생 이름·학번 검색"
             value={query}
             onChange={(e) => setQuery(e.target.value)}
-            placeholder="🔍 이름·학번으로 찾기"
-            className="min-h-11 w-full rounded-control border border-line bg-canvas px-4 text-body-sm text-ink placeholder:text-ink-soft focus:border-brand-deep focus:outline-none md:w-72"
+            placeholder="이름·학번으로 찾기"
+            className="md:w-72"
           />
         </div>
       )}

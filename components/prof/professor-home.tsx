@@ -72,7 +72,10 @@ export default async function ProfessorHome({ user }: { user: CurrentUser }) {
             return (
               <li key={k.label}>
                 {"href" in k && k.href ? (
-                  <Link href={k.href} className="press block h-full rounded-card border border-line bg-surface p-4 shadow-soft hover:border-brand-deep">
+                  <Link
+                    href={k.href}
+                    className="press block h-full rounded-card border border-line bg-surface p-4 shadow-soft hover:border-brand-deep"
+                  >
                     {body}
                   </Link>
                 ) : (

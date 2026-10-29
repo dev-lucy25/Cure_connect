@@ -30,3 +30,8 @@ export function shiftLabel(key: Shift) {
 
 /** 하루 듀티 = 8시간. "남은 시간 ≈ N일 듀티" 계산에 쓴다 */
 export const DUTY_HOURS = 8;
+
+/** 드롭다운(SelectField) 항목 */
+export const SUBJECT_OPTIONS = SUBJECTS.map((s) => ({ value: s.key, label: s.label }));
+export const SHIFT_OPTIONS = SHIFTS.map((s) => ({ value: s.key, label: s.label }));
+export const GRADE_OPTIONS = [1, 2, 3, 4].map((g) => ({ value: String(g), label: `${g}학년` }));

@@ -4,7 +4,7 @@ import { useState } from "react";
 import type { FormState, LogField } from "@/lib/validation/practice";
 import type { LogItem } from "@/server/practice-repo";
 import { detectPii, piiMessage } from "@/lib/validation/pii";
-import { SHIFTS, SUBJECTS } from "@/lib/subjects";
+import { SHIFT_OPTIONS, SUBJECT_OPTIONS } from "@/lib/subjects";
 import { shortDate, weekdaysFrom } from "@/lib/dates";
 import Button from "@/components/ui/button";
 import Field from "@/components/ui/field";
@@ -73,7 +73,9 @@ export default function LogForm({
         {week ? (
           <div>
             <p className="mb-1.5 text-body-sm font-bold text-ink">실습 시간</p>
-            <p className="flex min-h-(--size-touch) items-center rounded-control bg-subtle px-4 text-body font-bold text-ink">{bulk * WEEK_DAY_HOURS}시간</p>
+            <p className="flex min-h-(--size-touch) items-center rounded-control bg-subtle px-4 text-body font-bold text-ink">
+              {bulk * WEEK_DAY_HOURS}시간
+            </p>
           </div>
         ) : (
           <Field
@@ -129,24 +131,23 @@ export default function LogForm({
           ))}
       </div>
       <div className="grid grid-cols-2 gap-3">
-        <SelectField id={`${p}subject`} name="subject" label="실습 과목" defaultValue={v?.subject ?? initial?.subject ?? ""} error={errors.subject}>
-          <option value="" disabled>
-            과목 선택
-          </option>
-          {SUBJECTS.map((s) => (
-            <option key={s.key} value={s.key}>
-              {s.label}
-            </option>
-          ))}
-        </SelectField>
-        <SelectField id={`${p}shift`} name="shift" label="듀티 (선택)" defaultValue={v?.shift ?? initial?.shift ?? ""} error={errors.shift}>
-          <option value="">선택 안 함</option>
-          {SHIFTS.map((s) => (
-            <option key={s.key} value={s.key}>
-              {s.label}
-            </option>
-          ))}
-        </SelectField>
+        <SelectField
+          id={`${p}subject`}
+          name="subject"
+          label="실습 과목"
+          placeholder="과목 선택"
+          defaultValue={v?.subject ?? initial?.subject ?? ""}
+          error={errors.subject}
+          options={SUBJECT_OPTIONS}
+        />
+        <SelectField
+          id={`${p}shift`}
+          name="shift"
+          label="듀티 (선택)"
+          defaultValue={v?.shift ?? initial?.shift ?? ""}
+          error={errors.shift}
+          options={[{ value: "", label: "선택 안 함" }, ...SHIFT_OPTIONS]}
+        />
       </div>
       <div className="grid gap-3 sm:grid-cols-2">
         <Field

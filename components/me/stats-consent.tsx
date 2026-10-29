@@ -3,7 +3,7 @@
 import { useOptimistic, useState, useTransition } from "react";
 import { setStatsOptOutAction } from "@/server/stats-actions";
 import Card from "@/components/ui/card";
-import Checkbox from "@/components/ui/checkbox";
+import Switch from "@/components/ui/switch";
 import FormStatus from "@/components/ui/form-status";
 
 // 내 정보: 교수 익명 통계에 내 기록 포함 (기본 켜짐). 이름·개별 기록은 절대 보이지 않는다
@@ -18,7 +18,7 @@ export default function StatsConsent({ included }: { included: boolean }) {
         일지의 &ldquo;오늘 어땠나요?&rdquo;(난이도·어려웠던 술기)와 AI 프리셉터 모의질문 점수는 교수님께 학생 5명 이상 묶음으로만 보여요.
         이름과 개별 기록은 보이지 않아요.
       </p>
-      <Checkbox
+      <Switch
         className="mt-2"
         label="익명 통계에 내 기록 포함"
         checked={shown}

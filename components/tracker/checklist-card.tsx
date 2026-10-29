@@ -99,16 +99,28 @@ export default function ChecklistCard({ items }: { items: ChecklistEntry[] }) {
                 onClick={() => run({ type: "toggle", id: item.id, done: !item.done }, () => setChecklistDone(item.id, !item.done))}
                 className="press flex min-h-11 flex-1 items-center gap-2.5 rounded-control px-2 text-left hover:bg-subtle"
               >
-                {/* 체크하면 상자가 톡 튀며 채워진다 */}
+                {/* 체크하면 상자가 톡 튀며 채워지고 체크 표시가 그려진다 (공용 Checkbox와 같은 모양) */}
                 <motion.span
                   aria-hidden
-                  animate={{ scale: item.done ? [1, 1.25, 1] : 1 }}
+                  animate={{ scale: item.done ? [1, 1.2, 1] : 1 }}
                   transition={TWEEN_POP}
-                  className={`grid size-5 shrink-0 place-items-center rounded-md text-caption font-bold transition-colors ${
-                    item.done ? "bg-brand-deep text-surface" : "border border-line text-transparent"
+                  className={`grid size-[22px] shrink-0 place-items-center rounded-[7px] border-2 transition-colors duration-200 ${
+                    item.done ? "border-brand-deep bg-brand-deep text-surface" : "border-line-strong bg-surface"
                   }`}
                 >
-                  ✓
+                  <svg viewBox="0 0 16 16" className="size-3.5">
+                    <motion.path
+                      d="M3.5 8.5l3 3 6-7"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="2.4"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      initial={false}
+                      animate={{ pathLength: item.done ? 1 : 0, opacity: item.done ? 1 : 0 }}
+                      transition={{ duration: 0.25, ease: "easeOut" }}
+                    />
+                  </svg>
                 </motion.span>
                 <span className={`text-body-sm ${item.done ? "text-ink-soft line-through" : "font-medium text-ink"}`}>{item.text}</span>
               </button>
@@ -175,14 +187,9 @@ function WardImport() {
             name="ward"
             label="병동별 준비 항목 불러오기"
             value={ward}
-            onChange={(e) => setWard(e.target.value)}
-          >
-            {wards.map((w) => (
-              <option key={w.key} value={w.key}>
-                {w.label}
-              </option>
-            ))}
-          </SelectField>
+            onValueChange={setWard}
+            options={wards.map((w) => ({ value: w.key, label: w.label }))}
+          />
         </div>
         <Button
           type="button"

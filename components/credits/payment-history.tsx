@@ -11,7 +11,14 @@ import Button from "@/components/ui/button";
 import Chip from "@/components/ui/chip";
 import FormStatus from "@/components/ui/form-status";
 
-const fmt = new Intl.DateTimeFormat("ko-KR", { timeZone: "Asia/Seoul", month: "numeric", day: "numeric", hour: "2-digit", minute: "2-digit", hour12: false });
+const fmt = new Intl.DateTimeFormat("ko-KR", {
+  timeZone: "Asia/Seoul",
+  month: "numeric",
+  day: "numeric",
+  hour: "2-digit",
+  minute: "2-digit",
+  hour12: false,
+});
 
 // 결제 내역: 완료·취소된 충전. 7일 안·충전 뒤 열람 없음·잔액 충분이면 "결제 취소"(한 번 더 확인)
 export default function PaymentHistory({ rows }: { rows: PaymentRow[] }) {
