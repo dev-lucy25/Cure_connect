@@ -141,3 +141,24 @@ export const IconX = (p: IconProps) => (
     <path d="M7 7l10 10M17 7L7 17" />
   </Icon>
 );
+
+export const IconCamera = (p: IconProps) => (
+  <Icon {...p}>
+    <path d="M4 8.5A1.5 1.5 0 0 1 5.5 7h2l1.5-2h6l1.5 2h2A1.5 1.5 0 0 1 20 8.5v9a1.5 1.5 0 0 1-1.5 1.5h-13A1.5 1.5 0 0 1 4 17.5z" />
+    <circle cx="12" cy="13" r="3.5" />
+  </Icon>
+);
+
+export const IconZoomIn = (p: IconProps) => (
+  <Icon {...p}>
+    <circle cx="10.5" cy="10.5" r="6" />
+    <path d="M15 15l4.5 4.5M8 10.5h5M10.5 8v5" />
+  </Icon>
+);
+
+export const IconZoomOut = (p: IconProps) => (
+  <Icon {...p}>
+    <circle cx="10.5" cy="10.5" r="6" />
+    <path d="M15 15l4.5 4.5M8 10.5h5" />
+  </Icon>
+);
