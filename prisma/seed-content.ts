@@ -880,15 +880,24 @@ function validate() {
   }
 }
 
-export async function seedDemoContent(db: PrismaClient, ids: { caseOwner: string; noteAuthor: string }) {
+/** 고정 id "cseed…"의 seed 자리를 계정마다 다른 표시(tag)로 바꿔, 같은 예시를 다른 계정에도 따로 넣을 수 있게 한다 */
+export const seedId = (id: string, tag: string) => id.replace(/^cseed/, `c${tag}`);
+
+/** 케이스 5개를 한 계정에 넣는다 (tag가 다르면 다른 행) */
+export async function seedDemoCases(db: PrismaClient, userId: string, tag = "seed") {
   validate();
   for (const c of cases) {
+    const id = seedId(c.id, tag);
     const at = new Date(c.at);
     // AI 정리는 메모 저장 2분 뒤 → "메모가 바뀌었어요" 표시가 뜨지 않는다
     const aiAt = new Date(at.getTime() + 2 * 60_000);
     const fields = { title: c.title, ward: c.ward, memo: c.memo, memoUpdatedAt: at, aiResult: c.ai, aiAt, updatedAt: aiAt };
-    await db.caseNote.upsert({ where: { id: c.id }, create: { id: c.id, userId: ids.caseOwner, createdAt: at, ...fields }, update: fields });
+    await db.caseNote.upsert({ where: { id }, create: { id, userId, createdAt: at, ...fields }, update: fields });
   }
+}
+
+export async function seedDemoContent(db: PrismaClient, ids: { caseOwner: string; noteAuthor: string }) {
+  await seedDemoCases(db, ids.caseOwner);
   // 판매 수·평점은 실제 열람·평점 기록과 맞아야 해서 0으로 두고, 크레딧 보상도 주지 않는다
   for (const { id, at, ...n } of notes) {
     const createdAt = new Date(at);

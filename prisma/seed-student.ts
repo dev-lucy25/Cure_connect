@@ -7,6 +7,7 @@ import { journalSchema, preceptorAnswerSchema, preceptorEvalSchema, type Precept
 import { idSchema } from "../lib/validation/form";
 import { detectPii } from "../lib/validation/pii";
 import { storedCaseAiSchema } from "../lib/validation/case";
+import { seedId } from "./seed-content";
 
 type Ids = { studentId: string; profId: string; profName: string; orgId: string };
 
@@ -411,7 +412,9 @@ function validate(logs: SeedLog[]) {
   for (const c of chats) if (detectPii(c.content).length) throw new Error(`대화 내용 확인: ${c.id}`);
 }
 
-export async function seedStudentActivity(db: PrismaClient, ids: Ids) {
+/** tag: 고정 id의 "seed" 자리(seedId). 다른 계정에 같은 예시를 넣을 때 다른 값을 준다 */
+export async function seedStudentActivity(db: PrismaClient, ids: Ids, tag = "seed") {
+  const T = (id: string) => seedId(id, tag);
   const logs = buildLogs();
   validate(logs);
 
@@ -425,7 +428,7 @@ export async function seedStudentActivity(db: PrismaClient, ids: Ids) {
       reviewedAt: reviewed ? fridayAfter(date) : null,
       updatedAt: reviewed ? fridayAfter(date) : createdAt,
     };
-    await db.practiceLog.upsert({ where: { id }, create: { id, userId: ids.studentId, createdAt, ...data }, update: data });
+    await db.practiceLog.upsert({ where: { id: T(id) }, create: { id: T(id), userId: ids.studentId, createdAt, ...data }, update: data });
   }
 
   // 지금 도는 소아 병동 + 다음 정신과 실습(홈의 D-day)
@@ -470,22 +473,23 @@ export async function seedStudentActivity(db: PrismaClient, ids: Ids) {
     },
   ];
   for (const { id, ...s } of schedules) {
-    await db.practiceSchedule.upsert({ where: { id }, create: { id, userId: ids.studentId, kind: "practice", ...s }, update: s });
+    await db.practiceSchedule.upsert({ where: { id: T(id) }, create: { id: T(id), userId: ids.studentId, kind: "practice", ...s }, update: s });
   }
 
   for (const { id, date, ...j } of journals) {
     const at = new Date(`${date}T21:30:00+09:00`);
     const data = { ...j, date: new Date(`${date}T00:00:00Z`), updatedAt: at };
-    await db.dailyJournal.upsert({ where: { id }, create: { id, userId: ids.studentId, createdAt: at, ...data }, update: data });
+    await db.dailyJournal.upsert({ where: { id: T(id) }, create: { id: T(id), userId: ids.studentId, createdAt: at, ...data }, update: data });
   }
 
   for (const a of attempts) {
     const data = { wardCategory: a.ward, questionKey: a.key, answer: a.answer, score: a.eval.score, feedback: a.eval };
-    await db.preceptorAttempt.upsert({ where: { id: a.id }, create: { id: a.id, userId: ids.studentId, createdAt: new Date(a.at), ...data }, update: data });
+    await db.preceptorAttempt.upsert({ where: { id: T(a.id) }, create: { id: T(a.id), userId: ids.studentId, createdAt: new Date(a.at), ...data }, update: data });
   }
 
   for (const { id, at, ...c } of chats) {
-    await db.caseChatMessage.upsert({ where: { id }, create: { id, createdAt: new Date(at), ...c }, update: c });
+    const data = { ...c, caseId: T(c.caseId) };
+    await db.caseChatMessage.upsert({ where: { id: T(id) }, create: { id: T(id), createdAt: new Date(at), ...data }, update: data });
   }
 
   // 과제 제출: 정형외과 케이스는 채점 완료(A), 중환자실 케이스는 채점 대기 → 교수 화면에서 바로 채점해 볼 수 있다
@@ -494,7 +498,7 @@ export async function seedStudentActivity(db: PrismaClient, ids: Ids) {
     { id: "cseedsubvent", caseId: "cseedcasevent", at: "2026-10-16T21:40:00+09:00", graded: false },
   ];
   for (const s of submissions) {
-    const found = await db.caseNote.findUniqueOrThrow({ where: { id: s.caseId }, select: { title: true, ward: true, memo: true, aiResult: true } });
+    const found = await db.caseNote.findUniqueOrThrow({ where: { id: T(s.caseId) }, select: { title: true, ward: true, memo: true, aiResult: true } });
     const aiResult = storedCaseAiSchema.parse(found.aiResult);
     const gradedAt = new Date(new Date(s.at).getTime() + 2 * 86_400_000);
     const data = {
@@ -516,7 +520,7 @@ export async function seedStudentActivity(db: PrismaClient, ids: Ids) {
           }
         : { status: "submitted" as const, grade: null, score: null, feedback: null, gradedBy: null, gradedAt: null }),
     };
-    await db.caseSubmission.upsert({ where: { id: s.id }, create: { id: s.id, studentId: ids.studentId, caseId: s.caseId, ...data }, update: data });
+    await db.caseSubmission.upsert({ where: { id: T(s.id) }, create: { id: T(s.id), studentId: ids.studentId, caseId: T(s.caseId), ...data }, update: data });
   }
 
   // 알림: 지난 것은 읽음, 최근 두 개는 안 읽음
@@ -532,12 +536,12 @@ export async function seedStudentActivity(db: PrismaClient, ids: Ids) {
   for (const { id, at, read, ...n } of notes) {
     const createdAt = new Date(at);
     const data = { ...n, readAt: read ? new Date(createdAt.getTime() + 3_600_000) : null };
-    await db.notification.upsert({ where: { id }, create: { id, userId: ids.studentId, createdAt, ...data }, update: data });
+    await db.notification.upsert({ where: { id: T(id) }, create: { id: T(id), userId: ids.studentId, createdAt, ...data }, update: data });
   }
 
   const approved = logs.filter((l) => l.status === "approved").reduce((s, l) => s + l.minutes, 0) / 60;
   const pending = logs.filter((l) => l.status === "pending").reduce((s, l) => s + l.minutes, 0) / 60;
   console.log(
-    `김하늘: 실습 기록 ${logs.length}건(인증 ${approved}시간 · 대기 ${pending}시간) · 일정 ${schedules.length} · 일지 ${journals.length} · 모의질문 ${attempts.length} · 대화 ${chats.length} · 과제 ${submissions.length} · 알림 ${notes.length}`,
+    `학생 활동(${tag}): 실습 기록 ${logs.length}건(인증 ${approved}시간 · 대기 ${pending}시간) · 일정 ${schedules.length} · 일지 ${journals.length} · 모의질문 ${attempts.length} · 대화 ${chats.length} · 과제 ${submissions.length} · 알림 ${notes.length}`,
   );
 }
