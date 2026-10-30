@@ -326,7 +326,7 @@ export async function seedCohortActivity(
 
   // 족보 열람·평점: 실제 열람처럼 크레딧이 오가게 한 트랜잭션으로 (이미 연 족보는 건너뛴다)
   const paid = await db.wardNote.findMany({ where: { id: { startsWith: "cseednote" }, price: 300 }, orderBy: { createdAt: "asc" }, select: { id: true, authorId: true, price: true } });
-  const free = await db.wardNote.findMany({ where: { id: { startsWith: "cseednote" }, price: 0 }, select: { id: true } });
+  const free = await db.wardNote.findMany({ where: { id: { startsWith: "cseednote" }, price: 0 }, orderBy: { createdAt: "asc" }, select: { id: true } });
   let unlocks = 0;
   for (const [i, userId] of ids.students.entries()) {
     const note = paid[(i * 5) % paid.length];
@@ -360,5 +360,62 @@ export async function seedCohortActivity(
     await db.wardNote.update({ where: { id: s.noteId }, data: { ratingSum: s._sum.score ?? 0, ratingCount: s._count }, select: { id: true } });
   }
 
-  console.log(`같은 학교 학생 ${ids.students.length}명: 실습 기록 ${logCount}건 · 과제 ${SUBMITS.length} · 새 족보 열람 ${unlocks}건 · 평점 ${sums.reduce((n, s) => n + s._count, 0)}개`);
+  const commentCount = await seedComments(db, ids.students);
+  console.log(
+    `같은 학교 학생 ${ids.students.length}명: 실습 기록 ${logCount}건 · 과제 ${SUBMITS.length} · 새 족보 열람 ${unlocks}건 · 평점 ${sums.reduce((n, s) => n + s._count, 0)}개 · 댓글 ${commentCount}개`,
+  );
+}
+
+// 족보 댓글: [id, 족보, 쓴 학생 순번(0 = 이서연·족보 작성자), 닉네임(없으면 익명), 내용, 시각, 원댓글 id, @대상 id]
+type SeedComment = [string, string, number, string | null, string, string, string?, string?];
+const COMMENTS: SeedComment[] = [
+  ["cseedcmtgi1", "cseednotegi", 3, "다은", "락툴로오스 질문 받았을 때 '하루 배변 2~3회가 목표'까지 말하니까 좋아하셨어요. 족보 덕분에 살았어요", "2026-10-08T21:12:00+09:00"],
+  ["cseedcmtgi2", "cseednotegi", 0, "서연", "도움 됐다니 다행이에요! 복수 천자 후 관찰 항목도 꼭 챙겨 가세요", "2026-10-08T22:40:00+09:00", "cseedcmtgi1"],
+  ["cseedcmtgi3", "cseednotegi", 5, null, "저도 다음 주에 71병동 가는데 아침 인계 6시 40분 맞나요?", "2026-10-15T20:05:00+09:00"],
+  ["cseedcmtgi4", "cseednotegi", 0, "서연", "네 맞아요. 첫날은 옷 갈아입는 시간까지 생각해서 6시 30분까지 가는 걸 추천해요", "2026-10-15T21:18:00+09:00", "cseedcmtgi3"],
+  ["cseedcmtgi5", "cseednotegi", 5, null, "감사합니다! 일찍 가 볼게요", "2026-10-15T21:30:00+09:00", "cseedcmtgi3", "cseedcmtgi4"],
+  ["cseedcmtmicu1", "cseednotemicu", 1, null, "ABGA 해석은 매일 아침 물어보시나요? 보상 여부까지 말해야 하나요?", "2026-10-06T19:40:00+09:00"],
+  ["cseedcmtmicu2", "cseednotemicu", 0, null, "네 거의 매일요. 보상 여부까지 말하면 확실히 좋아하세요", "2026-10-06T20:55:00+09:00", "cseedcmtmicu1"],
+  ["cseedcmtmicu3", "cseednotemicu", 8, "수빈", "승압제·진정제 약물 카드 만들어 갔더니 진짜 칭찬받았어요. 강추합니다", "2026-10-17T22:10:00+09:00"],
+  ["cseedcmtpsy1", "cseednotepsy", 4, "서윤", "과정기록 양식은 학교 양식 그대로 쓰면 되나요?", "2026-10-27T20:20:00+09:00"],
+  ["cseedcmtpsy2", "cseednotepsy", 6, null, "저희 조는 병동에서 따로 양식을 받았어요. 첫날 지도 선생님께 여쭤보세요", "2026-10-27T21:02:00+09:00", "cseedcmtpsy1"],
+  ["cseedcmter1", "cseednoteer", 9, "소율", "KTAS 기준표 미리 보고 가는 거 진짜 중요해요. 첫날부터 트리아지 따라갔어요", "2026-09-30T21:45:00+09:00"],
+  ["cseedcmter2", "cseednoteer", 2, null, "응급실 실습 때 운동화 꼭 필요한가요?", "2026-10-12T19:30:00+09:00"],
+  ["cseedcmter3", "cseednoteer", 9, "소율", "필수예요... 하루에 2만 보 넘게 걸었어요", "2026-10-12T20:01:00+09:00", "cseedcmter2"],
+  ["cseedcmtpeds1", "cseednotepeds", 7, null, "무료로 올려 주셔서 감사해요! Holliday-Segar 계산 연습하고 갈게요", "2026-10-22T18:50:00+09:00"],
+  ["cseedcmtpeds2", "cseednotepeds", 3, null, "호흡수는 깨기 전에 먼저 재라는 팁이 제일 유용했어요", "2026-10-28T21:15:00+09:00"],
+  ["cseedcmtlnd1", "cseednotelnd", 6, "하은", "NST 판독 질문 정말 나왔어요. 기저 심박수 범위는 꼭 외워 가세요", "2026-10-21T22:30:00+09:00"],
+  ["cseedcmtcardio1", "cseednotecardio", 8, null, "디곡신 투여 전 심첨맥박 60회 미만이면 보류하는 거 그대로 물어보셨어요", "2026-09-18T20:40:00+09:00"],
+  ["cseedcmtsicu1", "cseednotesicu", 1, "유진", "흉관 배액병 위치 이유까지 말하라고 하셨어요. 족보 그대로 나와서 놀랐어요", "2026-10-02T21:20:00+09:00"],
+];
+
+/** 실제 쓰인 것처럼 댓글·답글·좋아요를 넣고, 답글 수·좋아요 수는 행에서 다시 센다 (여러 번 돌려도 같다) */
+async function seedComments(db: PrismaClient, students: string[]) {
+  for (const [id, noteId, who, nickname, body, at, parentId, replyToId] of COMMENTS) {
+    const data = { body, anonymous: nickname === null, nickname, parentId: parentId ?? null, replyToId: replyToId ?? parentId ?? null };
+    await db.noteComment.upsert({ where: { id }, create: { id, noteId, userId: students[who], createdAt: new Date(at), ...data }, update: data });
+    if (nickname) await db.profile.update({ where: { id: students[who] }, data: { nickname }, select: { id: true } });
+  }
+  // 좋아요: 원댓글마다 학생 몇 명이 (작성자 본인 제외)
+  for (const [k, [id, , who]] of COMMENTS.entries()) {
+    const n = (k * 7) % 5;
+    for (let j = 1; j <= n; j++) {
+      const userId = students[(who + j * 3) % students.length];
+      if (userId === students[who]) continue;
+      await db.noteCommentLike.upsert({ where: { userId_commentId: { userId, commentId: id } }, create: { userId, commentId: id }, update: {} });
+    }
+  }
+  const ids = COMMENTS.map((c) => c[0]);
+  const [likes, replies] = await Promise.all([
+    db.noteCommentLike.groupBy({ by: ["commentId"], where: { commentId: { in: ids } }, _count: true }),
+    db.noteComment.groupBy({ by: ["parentId"], where: { parentId: { in: ids } }, _count: true }),
+  ]);
+  for (const id of ids) {
+    await db.noteComment.update({
+      where: { id },
+      data: { likeCount: likes.find((l) => l.commentId === id)?._count ?? 0, replyCount: replies.find((r) => r.parentId === id)?._count ?? 0 },
+      select: { id: true },
+    });
+  }
+  return COMMENTS.length;
 }
