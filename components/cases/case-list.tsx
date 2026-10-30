@@ -38,7 +38,7 @@ export default function CaseList({
     <div className="space-y-3">
       <PageHeader
         title="케이스"
-        description="현장 메모를 SOAPIE 초안으로 정리해요"
+        description="SOAPIE AI 도우미가 현장 메모를 간호기록 초안으로 정리해요"
         action={
           <Link
             href="/submissions"

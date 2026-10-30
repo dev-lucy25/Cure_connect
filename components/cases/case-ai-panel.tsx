@@ -55,7 +55,7 @@ export default function CaseAiPanel({
     <Card aria-busy={pending} aria-labelledby="ai-title">
       <div className="flex items-center justify-between gap-2">
         <h2 id="ai-title" className="text-title font-bold">
-          SOAPIE 초안
+          SOAPIE AI 도우미
         </h2>
         <Chip tone="neutral">
           오늘 {left}/{limit}회 남음

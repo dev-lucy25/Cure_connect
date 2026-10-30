@@ -10,7 +10,7 @@ import { Stagger, StaggerItem } from "@/components/motion/stagger";
 const FEATURES = [
   { Icon: IconClock, title: "실습 시간 기록", body: "누적 시간과 목표까지 남은 시간을 자동으로 계산해요" },
   { Icon: IconCalendar, title: "실습 D-day", body: "다음 실습까지 남은 날을 알려줘요" },
-  { Icon: IconNote, title: "AI 케이스 정리", body: "현장 메모를 SOAPIE 초안으로 정리해요" },
+  { Icon: IconNote, title: "SOAPIE AI 도우미", body: "현장 메모를 SOAPIE 간호기록·간호진단 초안으로 정리해요" },
   { Icon: IconBook, title: "선배 병동 족보", body: "그 병동을 먼저 다녀온 선배의 질문·꿀팁을 미리 봐요" },
   { Icon: IconChart, title: "교수님 현황판", body: "실습 시간 인증과 과제 채점을 한곳에서 해요" },
 ];

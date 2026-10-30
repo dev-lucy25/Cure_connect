@@ -16,7 +16,7 @@ export default function AppFooter() {
           <NurseTurtle stage={2} size={36} decorative still />
           <div>
             <p className="font-brand text-body text-ink">NursePass</p>
-            <p>간호학과 임상실습 1,000시간 기록 · AI 케이스스터디 · 선배 족보</p>
+            <p>간호학과 임상실습 1,000시간 기록 · SOAPIE AI 도우미 · 선배 족보</p>
           </div>
         </div>
         <nav aria-label="바닥 바로가기" className="flex flex-wrap gap-x-4 gap-y-1">
