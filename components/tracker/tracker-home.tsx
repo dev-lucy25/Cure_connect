@@ -44,23 +44,27 @@ export default async function TrackerHome({ user }: { user: CurrentUser }) {
       <StaggerItem className="pt-2">
         <ProfileBanner user={user} totalMinutes={progress.totalMinutes} current={current} professors={professors} />
       </StaggerItem>
+      {/* PC: 왼쪽·오른쪽 기둥이 각자 위로 쌓인다 (한쪽이 길어도 다른 쪽에 빈칸이 생기지 않게).
+          모바일: 왼쪽 기둥을 풀어(contents) 누적 시간 → 실습·준비물 → 과목별 현황 순서 */}
       <div className="flex flex-col gap-4 md:grid md:grid-cols-12 md:items-start">
-        <StaggerItem className="md:col-span-7">
-          <ProgressHero
-            totalMinutes={progress.totalMinutes}
-            approvedMinutes={progress.approvedMinutes}
-            pendingMinutes={progress.pendingMinutes}
-            goalHours={progress.goalHours}
-            dday={<DDayChip next={upcoming} current={current} academic={nextAcademic} today={today} />}
-          />
-        </StaggerItem>
-        <StaggerItem className="space-y-4 md:col-span-5 md:row-span-2">
+        <div className="contents md:col-span-7 md:flex md:flex-col md:gap-4">
+          <StaggerItem className="order-1 md:order-none">
+            <ProgressHero
+              totalMinutes={progress.totalMinutes}
+              approvedMinutes={progress.approvedMinutes}
+              pendingMinutes={progress.pendingMinutes}
+              goalHours={progress.goalHours}
+              dday={<DDayChip next={upcoming} current={current} academic={nextAcademic} today={today} />}
+            />
+          </StaggerItem>
+          <StaggerItem className="order-3 md:order-none">
+            <SubjectBreakdown minutes={subjectMinutes} />
+          </StaggerItem>
+        </div>
+        <StaggerItem className="order-2 space-y-4 md:order-none md:col-span-5">
           {practice[0] && <NextPracticeCard schedule={practice[0]} today={today} />}
           <ChecklistCard items={checklist} />
           <SchedulePanel schedules={schedules} past={pastSchedules} today={today} />
-        </StaggerItem>
-        <StaggerItem className="md:col-span-7">
-          <SubjectBreakdown minutes={subjectMinutes} />
         </StaggerItem>
       </div>
       <StaggerItem className="pt-3">

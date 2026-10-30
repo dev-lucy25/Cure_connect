@@ -173,9 +173,9 @@ html {
 }
 /* 유리 질감 (앱 바·하단 탭 바) */
 @utility glass {
-  background-color: color-mix(in oklab, var(--color-surface) 72%, transparent);
-  backdrop-filter: blur(20px) saturate(1.6);
-  -webkit-backdrop-filter: blur(20px) saturate(1.6);
+  background-color: color-mix(in oklab, var(--color-surface) 90%, transparent);
+  backdrop-filter: blur(24px) saturate(1.6);
+  -webkit-backdrop-filter: blur(24px) saturate(1.6);
 }
 
 body {
