@@ -18,6 +18,7 @@ import Card from "@/components/ui/card";
 import Chip from "@/components/ui/chip";
 import FormStatus from "@/components/ui/form-status";
 import { WalkingTurtle } from "@/components/ui/skeleton";
+import { IconClipboard, IconPencil } from "@/components/ui/icons";
 
 // SOAPIE 정리 카드(빠른 버튼). 기다리는 동안 이 카드 안에서만 거북이가 걷는다 (화면의 다른 곳은 그대로 쓸 수 있다)
 export default function CaseAiPanel({
@@ -41,7 +42,10 @@ export default function CaseAiPanel({
   usedToday: number;
   limit: number;
 }) {
-  const [state, action, pending] = useActionState<FormState<never>, FormData>(organizeCaseAction, {});
+  const [state, action, pending] = useActionState<FormState<never>, FormData>(
+    organizeCaseAction,
+    {},
+  );
   const left = Math.max(0, limit - usedToday);
   // 직접 고치기 (정리 결과가 있고 메모가 그대로일 때만)
   const [editing, setEditing] = useState(false);
@@ -79,13 +83,19 @@ export default function CaseAiPanel({
               <p className="text-body-sm text-ink-soft">최대 25초 걸려요</p>
             </div>
           ) : ai && editing && canTouch ? (
-            <AiEditForm caseId={caseId} ai={ai} onDone={() => setEditing(false)} />
+            <AiEditForm
+              caseId={caseId}
+              ai={ai}
+              onDone={() => setEditing(false)}
+            />
           ) : ai ? (
             <AiResultView ai={ai} />
           ) : (
             <div className="flex flex-col items-center py-6 text-center">
               <NurseTurtle stage={3} mood="empty" size={80} decorative />
-              <p className="mt-2 text-body-sm text-ink-soft">메모를 SOAPIE·간호진단·빠진 사정 항목으로 정리해요</p>
+              <p className="mt-2 text-body-sm text-ink-soft">
+                메모를 SOAPIE·간호진단·빠진 사정 항목으로 정리해요
+              </p>
             </div>
           )}
         </motion.div>
@@ -94,8 +104,14 @@ export default function CaseAiPanel({
       {ai && canTouch && !editing && (
         <>
           <div className="mt-3 flex justify-end">
-            <Button type="button" variant="ghost" onClick={() => setEditing(true)} className="min-h-11 px-3 text-body-sm">
-              ✏️ 직접 고치기
+            <Button
+              type="button"
+              variant="ghost"
+              onClick={() => setEditing(true)}
+              className="min-h-11 px-3 text-body-sm"
+            >
+              <IconPencil size={16} className="mr-1 inline align-[-0.2em]" />
+              직접 고치기
             </Button>
           </div>
           <RevisePanel caseId={caseId} left={left} />
@@ -106,16 +122,27 @@ export default function CaseAiPanel({
         <>
           <CopyDraftButton text={formatCaseDraft(caseTitle, ai)} />
           {/* 메모가 바뀐 뒤(stale)에는 서버가 제출을 막고 안내한다 */}
-          <SubmitPanel caseId={caseId} professors={professors} submission={submission} submittedAgo={submittedAgo} />
+          <SubmitPanel
+            caseId={caseId}
+            professors={professors}
+            submission={submission}
+            submittedAgo={submittedAgo}
+          />
         </>
       )}
 
       <form action={action} className="mt-4 space-y-2">
         <input type="hidden" name="id" value={caseId} />
         <FormStatus message={state.message} />
-        <FormStatus savedAt={state.savedAt} savedText="정리했어요 🐢" />
+        <FormStatus savedAt={state.savedAt} savedText="정리했어요" />
         <Button type="submit" block disabled={pending || left === 0}>
-          {pending ? "정리하는 중..." : left === 0 ? "오늘은 다 썼어요" : ai ? "SOAPIE로 다시 정리" : "SOAPIE로 정리"}
+          {pending
+            ? "정리하는 중..."
+            : left === 0
+              ? "오늘은 다 썼어요"
+              : ai
+                ? "SOAPIE로 다시 정리"
+                : "SOAPIE로 정리"}
         </Button>
       </form>
     </Card>
@@ -152,10 +179,18 @@ function CopyDraftButton({ text }: { text: string }) {
   return (
     <div className="mt-4 space-y-2">
       <Button type="button" variant="secondary" block onClick={copy}>
-        📋 초안 복사
+        <IconClipboard size={16} className="mr-1 inline align-[-0.2em]" />
+        초안 복사
       </Button>
-      <FormStatus message={failed ? "복사하지 못했어요. 글을 길게 눌러 직접 복사해 주세요" : undefined} savedAt={copiedAt} savedText="초안을 복사했어요 📋" />
+      <FormStatus
+        message={
+          failed
+            ? "복사하지 못했어요. 글을 길게 눌러 직접 복사해 주세요"
+            : undefined
+        }
+        savedAt={copiedAt}
+        savedText="초안을 복사했어요"
+      />
     </div>
   );
 }
-

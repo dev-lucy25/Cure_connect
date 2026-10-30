@@ -2,13 +2,19 @@
 
 import { useState } from "react";
 import type { NoteFormState } from "@/server/notes-actions";
-import { NOTE_CATEGORIES, NOTE_PRICES, REWARD_MIN_LINES, UPLOAD_REWARD } from "@/lib/credits";
+import {
+  NOTE_CATEGORIES,
+  NOTE_PRICES,
+  REWARD_MIN_LINES,
+  UPLOAD_REWARD,
+} from "@/lib/credits";
 import Button from "@/components/ui/button";
 import Field from "@/components/ui/field";
 import FormStatus from "@/components/ui/form-status";
 import SelectField from "@/components/ui/select-field";
 import TextareaField from "@/components/ui/textarea-field";
 import Segmented from "@/components/ui/segmented";
+import { IconBulb, IconEye, IconLock } from "@/components/ui/icons";
 
 export type NoteInitial = {
   id: string;
@@ -52,7 +58,10 @@ export default function NoteForm({
       {initial && <input type="hidden" name="id" value={initial.id} />}
       {!initial && (
         <p className="rounded-control bg-brand-soft px-3 py-2.5 text-body-sm text-brand-deep">
-          💡{" "}
+          <IconBulb
+            size={16}
+            className="mr-1 inline align-[-0.2em] text-warn-ink"
+          />
           {rewardAvailable
             ? `등록하면 +${UPLOAD_REWARD} C가 바로 적립되고, 후배가 열람할 때마다 가격의 80%가 적립돼요 (시크릿 ${REWARD_MIN_LINES}줄 이상)`
             : "오늘 등록 보상은 이미 받았어요. 후배가 열람할 때마다 가격의 80%는 계속 적립돼요"}
@@ -85,7 +94,10 @@ export default function NoteForm({
           placeholder="분류 선택"
           defaultValue={v?.category ?? initial?.category ?? ""}
           error={errors.category}
-          options={NOTE_CATEGORIES.map((c) => ({ value: c.key, label: c.label }))}
+          options={NOTE_CATEGORIES.map((c) => ({
+            value: c.key,
+            label: c.label,
+          }))}
         />
         <Segmented
           name="price"
@@ -93,12 +105,18 @@ export default function NoteForm({
           value={price}
           onChange={setPrice}
           error={errors.price}
-          options={NOTE_PRICES.map((n) => ({ value: String(n), label: n === 0 ? "무료" : `${n} C` }))}
+          options={NOTE_PRICES.map((n) => ({
+            value: String(n),
+            label: n === 0 ? "무료" : `${n} C`,
+          }))}
         />
       </div>
 
       <section className="space-y-3 rounded-control border border-line p-3">
-        <h3 className="text-body-sm font-bold text-ink">👀 무료 맛보기 (누구나 보여요)</h3>
+        <h3 className="text-body-sm font-bold text-ink">
+          <IconEye size={16} className="mr-1 inline align-[-0.2em]" />
+          무료 맛보기 (누구나 보여요)
+        </h3>
         <Field
           id={`${p}title`}
           name="title"
@@ -131,14 +149,18 @@ export default function NoteForm({
 
       <section className="space-y-3 rounded-control border border-warn-line bg-warn-bg/40 p-3">
         <h3 className="text-body-sm font-bold text-warn-ink">
-          🔒 시크릿 족보 ({price === "0" ? "무료로 공개" : "크레딧으로 열람 시 공개"})
+          <IconLock size={16} className="mr-1 inline align-[-0.2em]" />
+          시크릿 족보 (
+          {price === "0" ? "무료로 공개" : "크레딧으로 열람 시 공개"})
         </h3>
         <TextareaField
           id={`${p}questions`}
           name="questions"
           label="자주 받은 질문 (한 줄에 하나씩)"
           rows={4}
-          placeholder={"첫날 OT 때 항생제 AST 판독 기준 물어보심\n락툴로오스 관장 이유"}
+          placeholder={
+            "첫날 OT 때 항생제 AST 판독 기준 물어보심\n락툴로오스 관장 이유"
+          }
           defaultValue={v?.questions ?? lines(initial?.questions)}
           error={errors.questions}
         />
@@ -153,7 +175,10 @@ export default function NoteForm({
         />
       </section>
 
-      <p className="text-caption text-ink-soft">환자 이름·등록번호 같은 식별 정보는 쓰지 마세요. 저장할 때 다시 확인해요.</p>
+      <p className="text-caption text-ink-soft">
+        환자 이름·등록번호 같은 식별 정보는 쓰지 마세요. 저장할 때 다시
+        확인해요.
+      </p>
       <FormStatus message={state.message} />
       <div className="flex gap-2">
         <Button type="submit" disabled={pending} className="flex-1">

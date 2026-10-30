@@ -4,7 +4,7 @@ import { TABS } from "@/components/nav/tabs";
 import BottomTabs, { TopTabs } from "@/components/nav/tab-links";
 import NurseTurtle from "@/components/mascot/nurse-turtle";
 import ThemeToggle from "@/components/theme/theme-toggle";
-import { IconUser } from "@/components/ui/icons";
+import AccountMenu from "@/components/nav/account-menu";
 import { getCredits } from "@/server/notes-repo";
 import CreditBadge from "@/components/credits/credit-badge";
 import { unreadCount } from "@/server/notification-repo";
@@ -50,14 +50,7 @@ export async function AppBar() {
       {credits !== null && <CreditBadge credits={credits} />}
       {user && <NotificationBell unread={unread} />}
       {user ? (
-        <Link
-          href="/me"
-          aria-label="내 정보"
-          className="press inline-flex min-h-11 min-w-11 items-center justify-center gap-1.5 rounded-full px-2 text-body-sm font-bold text-ink-soft hover:text-ink md:px-3"
-        >
-          <IconUser size={22} />
-          <span className="hidden max-w-24 truncate md:inline">{user.name}</span>
-        </Link>
+        <AccountMenu name={user.name} email={user.email} avatarUrl={user.avatarUrl} role={user.role === "professor" ? "교수·조교" : "학생"} />
       ) : (
         <Link
           href="/login"

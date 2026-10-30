@@ -20,14 +20,27 @@ export async function reviewLogsAction(
   reason = "",
 ): Promise<{ message?: string; savedAt?: number; notice?: string }> {
   const user = await getCurrentUser();
-  if (user.role !== "professor") return { message: "교수 계정만 인증할 수 있어요" };
+  if (user.role !== "professor")
+    return { message: "교수 계정만 인증할 수 있어요" };
   const parsed = input.safeParse({ ids, decision, reason });
   if (!parsed.success) return { message: "인증할 일지를 다시 골라 주세요" };
   const pii = detectPii(parsed.data.reason);
   if (pii.length > 0) return { message: piiMessage(pii) };
-  const count = await reviewLogs(user, parsed.data.ids, parsed.data.decision, parsed.data.reason).catch(() => null);
-  if (count === null) return { message: "처리하지 못했어요. 잠시 후 다시 시도해 주세요" };
+  const count = await reviewLogs(
+    user,
+    parsed.data.ids,
+    parsed.data.decision,
+    parsed.data.reason,
+  ).catch(() => null);
+  if (count === null)
+    return { message: "처리하지 못했어요. 잠시 후 다시 시도해 주세요" };
   if (count === 0) return { message: "이미 처리됐거나 볼 수 없는 일지예요" };
   refresh();
-  return { savedAt: Date.now(), notice: decision === "approved" ? `${count}건 인증했어요 ✅` : `${count}건 반려했어요` };
+  return {
+    savedAt: Date.now(),
+    notice:
+      decision === "approved"
+        ? `${count}건 인증했어요`
+        : `${count}건 반려했어요`,
+  };
 }

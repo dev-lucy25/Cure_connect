@@ -2,9 +2,17 @@
 
 import { useActionState, useState } from "react";
 import { AnimatePresence, motion } from "motion/react";
-import { evaluateAnswerAction, type PreceptorState } from "@/server/learning-actions";
+import {
+  evaluateAnswerAction,
+  type PreceptorState,
+} from "@/server/learning-actions";
 import type { AttemptItem } from "@/server/learning-repo";
-import { PASS_SCORE, PRECEPTOR_QUESTIONS, PRECEPTOR_WARDS, type PreceptorWard } from "@/lib/preceptor-questions";
+import {
+  PASS_SCORE,
+  PRECEPTOR_QUESTIONS,
+  PRECEPTOR_WARDS,
+  type PreceptorWard,
+} from "@/lib/preceptor-questions";
 import { wardCategoryLabel } from "@/lib/skills";
 import { SPRING_SOFT } from "@/lib/motion";
 import AnimatedNumber from "@/components/motion/animated-number";
@@ -15,9 +23,18 @@ import Chip from "@/components/ui/chip";
 import FormStatus from "@/components/ui/form-status";
 import TextareaField from "@/components/ui/textarea-field";
 import { WalkingTurtle } from "@/components/ui/skeleton";
+import { IconNotebook, IconPencil, IconThumbUp } from "@/components/ui/icons";
 
 // AI 프리셉터 모의 구술질문: 병동 고르기 → 질문 → 답변 → AI 평가(점수·잘한 점·보완점·모범 답안). 80점 미만은 오답노트
-export default function PreceptorQuiz({ missed, left, initialWard }: { missed: AttemptItem[]; left: number; initialWard: PreceptorWard }) {
+export default function PreceptorQuiz({
+  missed,
+  left,
+  initialWard,
+}: {
+  missed: AttemptItem[];
+  left: number;
+  initialWard: PreceptorWard;
+}) {
   const [ward, setWard] = useState<PreceptorWard>(initialWard);
   const [index, setIndex] = useState(0);
   // 같은 질문을 다시 풀거나 질문을 바꾸면 답변 칸·결과를 새로 시작 (key)
@@ -45,7 +62,10 @@ export default function PreceptorQuiz({ missed, left, initialWard }: { missed: A
           key={`ward-${ward}`}
           name="wardPick"
           legend="실습 병동"
-          options={PRECEPTOR_WARDS.map((w) => ({ key: w, label: wardCategoryLabel(w) }))}
+          options={PRECEPTOR_WARDS.map((w) => ({
+            key: w,
+            label: wardCategoryLabel(w),
+          }))}
           defaultValue={ward}
           onChange={(w) => pick(w as PreceptorWard)}
         />
@@ -74,7 +94,10 @@ export default function PreceptorQuiz({ missed, left, initialWard }: { missed: A
         </motion.div>
       </AnimatePresence>
 
-      <MissedNotes missed={missed} onRetry={(a) => pick(a.ward, a.questionKey)} />
+      <MissedNotes
+        missed={missed}
+        onRetry={(a) => pick(a.ward, a.questionKey)}
+      />
     </div>
   );
 }
@@ -96,7 +119,10 @@ function QuestionCard({
   left: number;
   onNext: () => void;
 }) {
-  const [state, action, pending] = useActionState<PreceptorState, FormData>(evaluateAnswerAction, {});
+  const [state, action, pending] = useActionState<PreceptorState, FormData>(
+    evaluateAnswerAction,
+    {},
+  );
   const result = state.result;
   return (
     <Card data-preceptor-question={questionKey}>
@@ -122,13 +148,19 @@ function QuestionCard({
           placeholder="예: 먼저 환자 곁에서 의식과 맥박을 다시 확인하고, 바로 지도간호사 선생님께 보고하겠습니다…"
         />
         <FormStatus message={state.message} />
-        {state.notice && <p className="text-caption text-ink-soft">{state.notice}</p>}
+        {state.notice && (
+          <p className="text-caption text-ink-soft">{state.notice}</p>
+        )}
         {pending ? (
           <WalkingTurtle label="프리셉터가 답변을 듣고 있어요" />
         ) : (
           <div className="flex gap-2">
             <Button type="submit" disabled={left === 0} className="flex-1">
-              {left === 0 ? "오늘은 다 썼어요" : result ? "다시 답하고 평가받기" : "답변 제출하고 평가받기"}
+              {left === 0
+                ? "오늘은 다 썼어요"
+                : result
+                  ? "다시 답하고 평가받기"
+                  : "답변 제출하고 평가받기"}
             </Button>
             <Button type="button" variant="ghost" onClick={onNext}>
               다른 질문 →
@@ -141,7 +173,11 @@ function QuestionCard({
   );
 }
 
-function EvalResult({ result }: { result: NonNullable<PreceptorState["result"]> }) {
+function EvalResult({
+  result,
+}: {
+  result: NonNullable<PreceptorState["result"]>;
+}) {
   const pass = result.score >= PASS_SCORE;
   return (
     <motion.div
@@ -158,46 +194,87 @@ function EvalResult({ result }: { result: NonNullable<PreceptorState["result"]> 
           format={{ maximumFractionDigits: 0 }}
           className={`font-display text-display ${pass ? "text-brand-deep" : "text-warn-ink"}`}
         />
-        <Chip tone={pass ? "brand" : "warn"}>{pass ? "👍 잘 대응했어요" : "📒 오답노트에 담았어요"}</Chip>
+        <Chip tone={pass ? "brand" : "warn"}>
+          {pass ? (
+            <>
+              <IconThumbUp size={15} /> 잘 대응했어요
+            </>
+          ) : (
+            <>
+              <IconNotebook size={15} /> 오답노트에 담았어요
+            </>
+          )}
+        </Chip>
       </div>
       {result.strengths.length > 0 && (
         <ul className="list-disc space-y-1 pl-5 text-body-sm text-ink">
           {result.strengths.map((s, i) => (
-            <li key={i}>👍 {s}</li>
+            <li key={i} className="flex gap-1.5">
+              <IconThumbUp
+                size={15}
+                className="mt-0.5 shrink-0 text-brand-deep"
+              />
+              {s}
+            </li>
           ))}
         </ul>
       )}
       {result.improvements.length > 0 && (
         <ul className="list-disc space-y-1 pl-5 text-body-sm text-ink">
           {result.improvements.map((s, i) => (
-            <li key={i}>✏️ {s}</li>
+            <li key={i} className="flex gap-1.5">
+              <IconPencil size={15} className="mt-0.5 shrink-0 text-warn-ink" />
+              {s}
+            </li>
           ))}
         </ul>
       )}
       <div className="rounded-control bg-subtle px-4 py-3">
         <p className="text-body-sm font-bold text-ink">모범 답안 · 근거</p>
-        <p className="mt-1 text-body-sm break-words whitespace-pre-line text-ink">{result.modelAnswer}</p>
+        <p className="mt-1 text-body-sm break-words whitespace-pre-line text-ink">
+          {result.modelAnswer}
+        </p>
       </div>
-      <p className="text-caption text-ink-soft">학습용 참고예요. 실제 상황에서는 지도간호사 선생님의 지시를 따르세요.</p>
+      <p className="text-caption text-ink-soft">
+        학습용 참고예요. 실제 상황에서는 지도간호사 선생님의 지시를 따르세요.
+      </p>
     </motion.div>
   );
 }
 
-function MissedNotes({ missed, onRetry }: { missed: AttemptItem[]; onRetry: (a: AttemptItem) => void }) {
+function MissedNotes({
+  missed,
+  onRetry,
+}: {
+  missed: AttemptItem[];
+  onRetry: (a: AttemptItem) => void;
+}) {
   const [open, setOpen] = useState<string | null>(null);
   return (
     <section aria-labelledby="missed-title" className="space-y-2">
       <h2 id="missed-title" className="text-title font-bold">
-        📒 오답노트 <span className="text-body-sm font-medium text-ink-soft">({missed.length})</span>
+        <IconNotebook
+          size={22}
+          className="mr-1 inline align-[-0.2em] text-brand-deep"
+        />
+        오답노트{" "}
+        <span className="text-body-sm font-medium text-ink-soft">
+          ({missed.length})
+        </span>
       </h2>
       {missed.length === 0 ? (
         <p className="rounded-card border border-line bg-surface px-4 py-6 text-center text-body-sm text-ink-soft shadow-soft">
-          {PASS_SCORE}점 미만이었던 질문이 여기에 모여요. 다시 풀어 통과하면 빠져요.
+          {PASS_SCORE}점 미만이었던 질문이 여기에 모여요. 다시 풀어 통과하면
+          빠져요.
         </p>
       ) : (
         <ul className="space-y-2">
           {missed.map((a) => (
-            <li key={a.id} className="rounded-card border border-warn-line bg-surface p-4 shadow-soft" data-missed={a.questionKey}>
+            <li
+              key={a.id}
+              className="rounded-card border border-warn-line bg-surface p-4 shadow-soft"
+              data-missed={a.questionKey}
+            >
               <div className="flex items-start justify-between gap-2">
                 <p className="font-bold text-ink">{a.question}</p>
                 <Chip tone="warn" className="shrink-0 text-caption">

@@ -33,6 +33,8 @@ export type NoteCard = {
   public: NotePublic;
   /** 잠긴 족보는 null. 본문은 DB에서 꺼내지도 않는다 */
   secret: NoteSecret | null;
+  /** 지우지 않은 댓글·답글 수 */
+  commentCount: number;
 };
 
 export type NoteSort = "new" | "popular";
@@ -82,6 +84,7 @@ export async function listNotes(viewerId: string | null, filter: NoteFilter = {}
       atmosphere: true,
       authorId: true,
       author: { select: { name: true, grade: true } },
+      _count: { select: { comments: { where: { deletedAt: null } } } },
     },
   });
   const page = rows.slice(0, NOTE_PAGE_SIZE);
@@ -119,6 +122,7 @@ export async function listNotes(viewerId: string | null, filter: NoteFilter = {}
     open: canOpen(r),
     public: { supplies: r.supplies, atmosphere: r.atmosphere },
     secret: secretById.get(r.id) ?? null,
+    commentCount: r._count.comments,
   }));
   return { items, nextCursor: rows.length > NOTE_PAGE_SIZE ? page[page.length - 1].id : null };
 }

@@ -6,6 +6,7 @@ import { logout } from "@/server/auth-actions";
 import { listOrganizations } from "@/server/org-repo";
 import { getActivitySummary } from "@/server/activity-repo";
 import ActivitySummary from "@/components/me/activity-summary";
+import AvatarEditor from "@/components/me/avatar-editor";
 import StatsConsent from "@/components/me/stats-consent";
 import { getStatsOptOut } from "@/server/insights-repo";
 import LoginPrompt from "@/components/home/login-prompt";
@@ -46,6 +47,8 @@ async function MeContent() {
         <StaggerItem>
           <Card>
             <h2 className="mb-4 text-title font-bold text-ink">프로필</h2>
+            <AvatarEditor avatarUrl={user.avatarUrl} name={user.name} />
+            <hr className="my-5 border-line" />
             <ProfileForm user={user} orgs={orgs} />
           </Card>
         </StaggerItem>

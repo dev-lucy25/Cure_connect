@@ -28,7 +28,7 @@ const cases: SeedCase[] = [
     id: "cseedcasedm",
     title: "제2형 당뇨 환자의 새벽 저혈당",
     ward: "내과병동 (내분비내과)",
-    at: "2026-10-06T19:20:00+09:00",
+    at: "2026-09-10T19:20:00+09:00",
     memo: `70대 남성, 제2형 당뇨 15년, 폐렴으로 입원 5일차.
 인슐린 글라진 22단위 취침 전 + 식전 속효성 인슐린 투여 중.
 새벽 6시 혈당 58mg/dL, 식은땀·손떨림 호소 → 50% 포도당 20mL IV 후 15분 뒤 112.
@@ -95,7 +95,7 @@ V/S: BP 138/82, HR 96(저혈당 때) → 78, RR 18, BT 36.8. HbA1c 8.9%.`,
     id: "cseedcasethr",
     title: "고관절 전치환술 후 2일차 낙상 위험",
     ward: "정형외과 병동",
-    at: "2026-10-13T20:05:00+09:00",
+    at: "2026-09-29T20:05:00+09:00",
     memo: `80대 여성, 집에서 넘어져 좌측 대퇴골 경부 골절 → 고관절 전치환술(THA) 후 2일차.
 밤에 혼자 화장실 가려고 침대 난간 잡고 일어나 있는 것 발견 (낙상은 없었음).
 야간에 "여기가 어디냐"며 혼동, 낮에는 지남력 정상.
@@ -163,7 +163,7 @@ Morse 낙상 점수 65, Hb 9.1. 보호자는 낮에만 상주.`,
     id: "cseedcasevent",
     title: "인공호흡기 적용 폐렴 환자의 기도 청결",
     ward: "내과계 중환자실 (MICU)",
-    at: "2026-10-19T18:40:00+09:00",
+    at: "2026-10-14T18:40:00+09:00",
     memo: `60대 남성, 중증 지역사회획득 폐렴. 기관내관 삽관 후 인공호흡기 3일차.
 모드 AC/VC, FiO2 0.5, PEEP 8.
 흡인 시 노란색 진한 객담 다량, 2시간마다 흡인.
@@ -880,15 +880,24 @@ function validate() {
   }
 }
 
-export async function seedDemoContent(db: PrismaClient, ids: { caseOwner: string; noteAuthor: string }) {
+/** 고정 id "cseed…"의 seed 자리를 계정마다 다른 표시(tag)로 바꿔, 같은 예시를 다른 계정에도 따로 넣을 수 있게 한다 */
+export const seedId = (id: string, tag: string) => id.replace(/^cseed/, `c${tag}`);
+
+/** 케이스 5개(only를 주면 그 id만)를 한 계정에 넣는다 (tag가 다르면 다른 행) */
+export async function seedDemoCases(db: PrismaClient, userId: string, tag = "seed", only?: string[]) {
   validate();
-  for (const c of cases) {
+  for (const c of cases.filter((c) => !only || only.includes(c.id))) {
+    const id = seedId(c.id, tag);
     const at = new Date(c.at);
     // AI 정리는 메모 저장 2분 뒤 → "메모가 바뀌었어요" 표시가 뜨지 않는다
     const aiAt = new Date(at.getTime() + 2 * 60_000);
     const fields = { title: c.title, ward: c.ward, memo: c.memo, memoUpdatedAt: at, aiResult: c.ai, aiAt, updatedAt: aiAt };
-    await db.caseNote.upsert({ where: { id: c.id }, create: { id: c.id, userId: ids.caseOwner, createdAt: at, ...fields }, update: fields });
+    await db.caseNote.upsert({ where: { id }, create: { id, userId, createdAt: at, ...fields }, update: fields });
   }
+}
+
+export async function seedDemoContent(db: PrismaClient, ids: { caseOwner: string; noteAuthor: string }) {
+  await seedDemoCases(db, ids.caseOwner);
   // 판매 수·평점은 실제 열람·평점 기록과 맞아야 해서 0으로 두고, 크레딧 보상도 주지 않는다
   for (const { id, at, ...n } of notes) {
     const createdAt = new Date(at);

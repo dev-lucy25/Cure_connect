@@ -4,6 +4,7 @@ import { connection } from "next/server";
 import { cacheLife, cacheTag } from "next/cache";
 import { redirect } from "next/navigation";
 import { db } from "@/lib/db";
+import { avatarUrl } from "@/lib/avatar";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import type { Role } from "@/generated/prisma/client";
 
@@ -20,6 +21,10 @@ export type CurrentUser = {
   staffTitle: string | null;
   /** 실습반 방 코드 (교수: 관리하는 방 / 학생: 들어간 방) */
   roomCode: string | null;
+  /** 프로필 사진 주소. 없으면 null → 기본 거북이 */
+  avatarUrl: string | null;
+  /** 족보 댓글에 마지막으로 쓴 닉네임 */
+  nickname: string | null;
 };
 
 /**
@@ -62,13 +67,15 @@ const PROFILE_SELECT = {
   classGroup: true,
   staffTitle: true,
   roomCode: true,
+  nickname: true,
   org: { select: { name: true } },
+  avatar: { select: { id: true } },
 } as const;
 
-type ProfileRow = Omit<CurrentUser, "orgName"> & { org: { name: string } | null };
+type ProfileRow = Omit<CurrentUser, "orgName" | "avatarUrl"> & { org: { name: string } | null; avatar: { id: string } | null };
 
-function toCurrentUser({ org, ...rest }: ProfileRow): CurrentUser {
-  return { ...rest, orgName: org?.name ?? null };
+function toCurrentUser({ org, avatar, ...rest }: ProfileRow): CurrentUser {
+  return { ...rest, orgName: org?.name ?? null, avatarUrl: avatarUrl(avatar?.id) };
 }
 
 /**

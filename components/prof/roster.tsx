@@ -15,6 +15,7 @@ import Link from "next/link";
 import Chip from "@/components/ui/chip";
 import FormStatus from "@/components/ui/form-status";
 import SearchInput from "@/components/ui/search-input";
+import { IconBell, IconDownload, IconKey } from "@/components/ui/icons";
 
 const FILTERS: { key: RosterFilter; label: string }[] = [
   { key: "ALL", label: "전체" },
@@ -34,16 +35,29 @@ function matches(row: RosterRow, filter: RosterFilter) {
 function found(row: RosterRow, q: string) {
   const norm = (v: string) => v.replace(/s+/g, "").toLowerCase();
   const query = norm(q);
-  return !query || norm(row.name).includes(query) || norm(row.memberNo ?? "").includes(query);
+  return (
+    !query ||
+    norm(row.name).includes(query) ||
+    norm(row.memberNo ?? "").includes(query)
+  );
 }
 
-const subline = (r: RosterRow) => [r.memberNo, r.classLabel, r.orgName].filter(Boolean).join(" · ");
+const subline = (r: RosterRow) =>
+  [r.memberNo, r.classLabel, r.orgName].filter(Boolean).join(" · ");
 
 type NudgeState = { message?: string; sentAt?: number; notice?: string };
 
 // 학생 현황판: 필터(선택 알약이 미끄러짐) + CSV 내려받기 + 독려 알림(학생당 하루 1번).
 // md 이상은 표, 모바일은 카드 목록. 필터를 바꾸면 줄이 부드럽게 빠지고 들어온다.
-export default function Roster({ rows, hasRoom, hasOrg }: { rows: RosterRow[]; hasRoom: boolean; hasOrg: boolean }) {
+export default function Roster({
+  rows,
+  hasRoom,
+  hasOrg,
+}: {
+  rows: RosterRow[];
+  hasRoom: boolean;
+  hasOrg: boolean;
+}) {
   const tap = useTapEffect();
   const [filter, setFilter] = useState<RosterFilter>("ALL");
   const [query, setQuery] = useState("");
@@ -77,14 +91,24 @@ export default function Roster({ rows, hasRoom, hasOrg }: { rows: RosterRow[]; h
       <div className="flex flex-col gap-3 p-5 pb-3 md:flex-row md:items-center md:justify-between">
         <div>
           <h2 className="text-title font-bold text-ink">학생 실습 현황판</h2>
-          <p className="mt-0.5 text-body-sm text-ink-soft">누적은 학생이 기록한 시간, 인증은 교수님이 확인한 시간이에요</p>
+          <p className="mt-0.5 text-body-sm text-ink-soft">
+            누적은 학생이 기록한 시간, 인증은 교수님이 확인한 시간이에요
+          </p>
         </div>
-        <a href="/api/prof/export" download className={`${buttonClass("ghost")} shrink-0`}>
-          📥 인증평가용 CSV 내려받기
+        <a
+          href="/api/prof/export"
+          download
+          className={`${buttonClass("ghost")} shrink-0`}
+        >
+          <IconDownload size={17} /> 인증평가용 CSV 내려받기
         </a>
       </div>
 
-      <div role="tablist" aria-label="학생 필터" className="flex gap-1.5 overflow-x-auto px-5 pb-3">
+      <div
+        role="tablist"
+        aria-label="학생 필터"
+        className="flex gap-1.5 overflow-x-auto px-5 pb-3"
+      >
         {filters.map((f) => {
           const active = filter === f.key;
           const count = rows.filter((r) => matches(r, f.key)).length;
@@ -143,16 +167,24 @@ export default function Roster({ rows, hasRoom, hasOrg }: { rows: RosterRow[]; h
               ? "보내는 중..."
               : notNudged.length === 0
                 ? "✓ 오늘 모두 독려했어요"
-                : `🔔 보이는 학생 ${notNudged.length}명에게 독려 알림`}
+                : `보이는 학생 ${notNudged.length}명에게 독려 알림`}
           </motion.button>
-          <FormStatus message={nudge.message} savedAt={nudge.sentAt} savedText={nudge.notice} />
+          <FormStatus
+            message={nudge.message}
+            savedAt={nudge.sentAt}
+            savedText={nudge.notice}
+          />
         </div>
       )}
 
       {shown.length === 0 ? (
         <div className="flex flex-col items-center px-5 pt-2 pb-8 text-center">
           <NurseTurtle stage={2} size={80} decorative />
-          <p className="mt-2 font-bold text-ink">{rows.length === 0 ? "아직 연결된 학생이 없어요" : "이 조건에 맞는 학생이 없어요"}</p>
+          <p className="mt-2 font-bold text-ink">
+            {rows.length === 0
+              ? "아직 연결된 학생이 없어요"
+              : "이 조건에 맞는 학생이 없어요"}
+          </p>
           {rows.length === 0 && (
             <p className="mt-1 text-body-sm text-ink-soft">
               {hasRoom
@@ -182,19 +214,34 @@ export default function Roster({ rows, hasRoom, hasOrg }: { rows: RosterRow[]; h
                   <div className="flex items-start justify-between gap-2">
                     <div className="min-w-0">
                       <p className="font-bold text-ink">
-                        <Link href={`/prof/students/${r.id}`} className="hover:text-brand-deep hover:underline">
+                        <Link
+                          href={`/prof/students/${r.id}`}
+                          className="hover:text-brand-deep hover:underline"
+                        >
                           {r.name}
                         </Link>
-                        {r.sameRoom && <span className="ml-1.5 text-caption font-medium text-brand-deep">🔑 내 방</span>}
+                        {r.sameRoom && (
+                          <span className="ml-1.5 text-caption font-medium text-brand-deep">
+                            <IconKey
+                              size={13}
+                              className="mr-1 inline align-[-0.2em]"
+                            />
+                            내 방
+                          </span>
+                        )}
                       </p>
                       <p className="text-caption text-ink-soft">{subline(r)}</p>
                     </div>
-                    <Chip tone={STATUS_TEXT[r.status].tone} className="shrink-0 text-caption">
+                    <Chip
+                      tone={STATUS_TEXT[r.status].tone}
+                      className="shrink-0 text-caption"
+                    >
                       {STATUS_TEXT[r.status].label}
                     </Chip>
                   </div>
                   <p className="mt-2 text-body-sm text-ink-soft">
-                    {r.place ?? "실습 기록 없음"} · 인증 <AnimatedNumber value={r.approvedHours} suffix="h" />
+                    {r.place ?? "실습 기록 없음"} · 인증{" "}
+                    <AnimatedNumber value={r.approvedHours} suffix="h" />
                   </p>
                   <Progress row={r} />
                   <div className="mt-3 flex items-center justify-between gap-2">
@@ -216,7 +263,9 @@ export default function Roster({ rows, hasRoom, hasOrg }: { rows: RosterRow[]; h
                   <th className="w-64 px-3 py-2.5 font-bold">누적 / 기준</th>
                   <th className="px-3 py-2.5 font-bold">인증</th>
                   <th className="px-3 py-2.5 font-bold">상태</th>
-                  <th className="px-5 py-2.5 text-right font-bold">독려 알림</th>
+                  <th className="px-5 py-2.5 text-right font-bold">
+                    독려 알림
+                  </th>
                 </tr>
               </thead>
               <tbody>
@@ -234,14 +283,29 @@ export default function Roster({ rows, hasRoom, hasOrg }: { rows: RosterRow[]; h
                     >
                       <td className="px-5 py-3">
                         <p className="font-bold text-ink">
-                          <Link href={`/prof/students/${r.id}`} className="hover:text-brand-deep hover:underline">
+                          <Link
+                            href={`/prof/students/${r.id}`}
+                            className="hover:text-brand-deep hover:underline"
+                          >
                             {r.name}
                           </Link>
-                          {r.sameRoom && <span className="ml-1.5 text-caption font-medium text-brand-deep">🔑 내 방</span>}
+                          {r.sameRoom && (
+                            <span className="ml-1.5 text-caption font-medium text-brand-deep">
+                              <IconKey
+                                size={13}
+                                className="mr-1 inline align-[-0.2em]"
+                              />
+                              내 방
+                            </span>
+                          )}
                         </p>
-                        <p className="text-caption text-ink-soft">{subline(r)}</p>
+                        <p className="text-caption text-ink-soft">
+                          {subline(r)}
+                        </p>
                       </td>
-                      <td className="px-3 py-3 text-ink-soft">{r.place ?? "—"}</td>
+                      <td className="px-3 py-3 text-ink-soft">
+                        {r.place ?? "—"}
+                      </td>
                       <td className="px-3 py-3">
                         <Progress row={r} />
                       </td>
@@ -249,7 +313,10 @@ export default function Roster({ rows, hasRoom, hasOrg }: { rows: RosterRow[]; h
                         <AnimatedNumber value={r.approvedHours} suffix="h" />
                       </td>
                       <td className="px-3 py-3">
-                        <Chip tone={STATUS_TEXT[r.status].tone} className="text-caption whitespace-nowrap">
+                        <Chip
+                          tone={STATUS_TEXT[r.status].tone}
+                          className="text-caption whitespace-nowrap"
+                        >
                           {STATUS_TEXT[r.status].label}
                         </Chip>
                         <Shortfall row={r} />
@@ -271,7 +338,10 @@ export default function Roster({ rows, hasRoom, hasOrg }: { rows: RosterRow[]; h
 function Shortfall({ row }: { row: RosterRow }) {
   if (row.shortfall <= 0) return null;
   return (
-    <span className="mt-1 block text-caption font-bold text-warn-ink" data-shortfall={row.shortfall}>
+    <span
+      className="mt-1 block text-caption font-bold text-warn-ink"
+      data-shortfall={row.shortfall}
+    >
       예정 일정 다 해도 {row.shortfall.toLocaleString("ko-KR")}시간 부족
     </span>
   );
@@ -282,7 +352,8 @@ function Progress({ row }: { row: RosterRow }) {
     <div className="mt-2 md:mt-0">
       <p className="flex items-baseline justify-between gap-2 text-caption text-ink-soft">
         <span className="whitespace-nowrap">
-          <AnimatedNumber value={row.hours} className="font-bold text-ink" /> / {GRADUATION_HOURS.toLocaleString("ko-KR")}h
+          <AnimatedNumber value={row.hours} className="font-bold text-ink" /> /{" "}
+          {GRADUATION_HOURS.toLocaleString("ko-KR")}h
         </span>
         <AnimatedNumber value={row.percent} suffix="%" />
       </p>
@@ -313,7 +384,11 @@ function NudgeButton({
 }) {
   const tap = useTapEffect();
   if (nudged)
-    return <span className="inline-flex min-h-11 items-center text-caption font-bold whitespace-nowrap text-ink-soft">✓ 오늘 보냄</span>;
+    return (
+      <span className="inline-flex min-h-11 items-center text-caption font-bold whitespace-nowrap text-ink-soft">
+        ✓ 오늘 보냄
+      </span>
+    );
   return (
     <motion.button
       type="button"
@@ -323,7 +398,14 @@ function NudgeButton({
       aria-label={`${name} 학생에게 독려 알림 보내기`}
       className="inline-flex min-h-11 items-center rounded-full bg-subtle px-3.5 text-caption font-bold whitespace-nowrap text-ink hover:bg-brand-soft disabled:opacity-55 md:bg-canvas"
     >
-      {pending ? "보내는 중..." : "🔔 독려"}
+      {pending ? (
+        "보내는 중..."
+      ) : (
+        <>
+          <IconBell size={15} className="mr-1 inline align-[-0.2em]" />
+          독려
+        </>
+      )}
     </motion.button>
   );
 }

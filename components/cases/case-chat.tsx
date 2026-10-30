@@ -16,7 +16,11 @@ import FormStatus from "@/components/ui/form-status";
 import { WalkingTurtle } from "@/components/ui/skeleton";
 import { controlClass } from "@/components/ui/field-parts";
 
-const SUGGESTIONS = ["간호진단을 더 추천해 줘", "빠진 사정 항목은 어떻게 확인해?", "중재를 근거와 함께 설명해 줘"];
+const SUGGESTIONS = [
+  "간호진단을 더 추천해 줘",
+  "빠진 사정 항목은 어떻게 확인해?",
+  "중재를 근거와 함께 설명해 줘",
+];
 
 // 케이스별 AI 대화. 답을 기다리는 동안 이 카드 안에서만 거북이가 걷는다 (화면의 다른 곳은 그대로 쓸 수 있다)
 export default function CaseChat({
@@ -30,7 +34,10 @@ export default function CaseChat({
   usedToday: number;
   limit: number;
 }) {
-  const [state, action, pending] = useActionState<FormState<"question">, FormData>(askCaseAction, {});
+  const [state, action, pending] = useActionState<
+    FormState<"question">,
+    FormData
+  >(askCaseAction, {});
   const [question, setQuestion] = useState(state.values?.question ?? "");
   const [sending, setSending] = useState("");
   const [clearedAt, setClearedAt] = useState<number | undefined>(undefined);
@@ -54,7 +61,9 @@ export default function CaseChat({
           오늘 {left}/{limit}회 남음
         </Chip>
       </div>
-      <p className="mt-1 text-body-sm text-ink-soft">이 케이스의 메모를 바탕으로 답해요</p>
+      <p className="mt-1 text-body-sm text-ink-soft">
+        이 케이스의 메모를 바탕으로 답해요
+      </p>
 
       <ol aria-live="polite" className="mt-4 space-y-3">
         {/* 새 말풍선은 보낸 쪽 모서리에서 톡 튀어나온다. 처음 열 때 있던 대화는 그대로 */}
@@ -97,7 +106,12 @@ export default function CaseChat({
         </div>
       )}
 
-      <form action={action} onSubmit={() => setSending(question)} noValidate className="mt-4 space-y-2">
+      <form
+        action={action}
+        onSubmit={() => setSending(question)}
+        noValidate
+        className="mt-4 space-y-2"
+      >
         <input type="hidden" name="id" value={caseId} />
         <label htmlFor="case-question" className="sr-only">
           질문
@@ -116,17 +130,31 @@ export default function CaseChat({
         />
         <div id="case-question-help" className="space-y-1">
           {pii.length > 0 && !state.fieldErrors?.question && (
-            <p className="text-body-sm font-medium text-pink-deep">⚠️ {piiMessage(pii)}</p>
+            <p className="text-body-sm font-medium text-pink-deep">
+              {piiMessage(pii)}
+            </p>
           )}
-          {state.fieldErrors?.question && <p className="text-body-sm font-medium text-danger">{state.fieldErrors.question}</p>}
+          {state.fieldErrors?.question && (
+            <p className="text-body-sm font-medium text-danger">
+              {state.fieldErrors.question}
+            </p>
+          )}
           <p className="text-right text-caption text-ink-soft">
             {question.length} / {QUESTION_MAX}자
           </p>
         </div>
         <FormStatus message={state.message} />
-        <FormStatus savedAt={state.savedAt} savedText="답을 받았어요 🐢" />
-        <Button type="submit" block disabled={pending || left === 0 || question.trim() === ""}>
-          {pending ? "답을 기다리는 중..." : left === 0 ? "오늘은 다 썼어요" : "보내기"}
+        <FormStatus savedAt={state.savedAt} savedText="답을 받았어요" />
+        <Button
+          type="submit"
+          block
+          disabled={pending || left === 0 || question.trim() === ""}
+        >
+          {pending
+            ? "답을 기다리는 중..."
+            : left === 0
+              ? "오늘은 다 썼어요"
+              : "보내기"}
         </Button>
       </form>
     </Card>
@@ -154,8 +182,12 @@ function Bubble({ role, content }: { role: "user" | "ai"; content: string }) {
   }
   return (
     <motion.li {...pop} className="mr-6">
-      <div className="rounded-card rounded-bl-md bg-subtle px-4 py-3 text-body whitespace-pre-line break-words text-ink">{content}</div>
-      <p className="mt-1 pl-1 text-caption text-pink-deep">참고용 — 직접 확인하세요</p>
+      <div className="rounded-card rounded-bl-md bg-subtle px-4 py-3 text-body whitespace-pre-line break-words text-ink">
+        {content}
+      </div>
+      <p className="mt-1 pl-1 text-caption text-pink-deep">
+        참고용 — 직접 확인하세요
+      </p>
     </motion.li>
   );
 }

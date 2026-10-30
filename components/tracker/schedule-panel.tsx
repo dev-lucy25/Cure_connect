@@ -14,15 +14,27 @@ import Field from "@/components/ui/field";
 import SelectField from "@/components/ui/select-field";
 import { SHIFT_OPTIONS, SUBJECT_OPTIONS } from "@/lib/subjects";
 import FormStatus from "@/components/ui/form-status";
-import { IconPlus } from "@/components/ui/icons";
+import { IconBook, IconPlus } from "@/components/ui/icons";
 import RowActions from "@/components/tracker/row-actions";
 import ChoiceChips from "@/components/ui/choice-chips";
 
-export default function SchedulePanel({ schedules, past, today }: { schedules: ScheduleItem[]; past: ScheduleItem[]; today: string }) {
-  const [state, action, pending] = useActionState<FormState<ScheduleField>, FormData>(saveSchedule, {});
+export default function SchedulePanel({
+  schedules,
+  past,
+  today,
+}: {
+  schedules: ScheduleItem[];
+  past: ScheduleItem[];
+  today: string;
+}) {
+  const [state, action, pending] = useActionState<
+    FormState<ScheduleField>,
+    FormData
+  >(saveSchedule, {});
   const [openedAt, setOpenedAt] = useState<number | null>(null);
   const [showPast, setShowPast] = useState(false);
-  const adding = openedAt !== null && !(state.savedAt && state.savedAt > openedAt);
+  const adding =
+    openedAt !== null && !(state.savedAt && state.savedAt > openedAt);
 
   return (
     <section aria-labelledby="schedule-title" className="space-y-3">
@@ -33,14 +45,25 @@ export default function SchedulePanel({ schedules, past, today }: { schedules: S
         <div className="flex items-center gap-2">
           <FormStatus savedAt={state.savedAt} />
           {!adding && (
-            <Button type="button" variant="secondary" onClick={() => setOpenedAt(Date.now())} className="px-4 text-body-sm">
+            <Button
+              type="button"
+              variant="secondary"
+              onClick={() => setOpenedAt(Date.now())}
+              className="px-4 text-body-sm"
+            >
               <IconPlus size={18} /> 일정 추가
             </Button>
           )}
         </div>
       </div>
       <Collapse open={adding}>
-        <ScheduleForm action={action} state={state} pending={pending} today={today} onCancel={() => setOpenedAt(null)} />
+        <ScheduleForm
+          action={action}
+          state={state}
+          pending={pending}
+          today={today}
+          onCancel={() => setOpenedAt(null)}
+        />
       </Collapse>
       {/* 일정이 생기거나 지워지면 줄이 펼쳐지며 들어오고 접히며 빠진다. 비면 테두리도 숨김(empty:) */}
       <ul className="divide-y divide-line/70 overflow-hidden rounded-card border border-line/70 bg-surface shadow-soft empty:hidden">
@@ -79,9 +102,21 @@ export default function SchedulePanel({ schedules, past, today }: { schedules: S
   );
 }
 
-function ScheduleRow({ schedule, today }: { schedule: ScheduleItem; today: string }) {
-  const [state, action, pending] = useActionState<FormState<ScheduleField>, FormData>(saveSchedule, {});
-  const [del, delAction, deleting] = useActionState<FormState<never>, FormData>(removeSchedule, {});
+function ScheduleRow({
+  schedule,
+  today,
+}: {
+  schedule: ScheduleItem;
+  today: string;
+}) {
+  const [state, action, pending] = useActionState<
+    FormState<ScheduleField>,
+    FormData
+  >(saveSchedule, {});
+  const [del, delAction, deleting] = useActionState<FormState<never>, FormData>(
+    removeSchedule,
+    {},
+  );
   const [editAt, setEditAt] = useState<number | null>(null);
   const editing = editAt !== null && !(state.savedAt && state.savedAt > editAt);
 
@@ -96,11 +131,28 @@ function ScheduleRow({ schedule, today }: { schedule: ScheduleItem; today: strin
     >
       {editing ? (
         <div className="p-2">
-          <ScheduleForm action={action} state={state} pending={pending} today={today} initial={schedule} onCancel={() => setEditAt(null)} />
+          <ScheduleForm
+            action={action}
+            state={state}
+            pending={pending}
+            today={today}
+            initial={schedule}
+            onCancel={() => setEditAt(null)}
+          />
         </div>
       ) : (
-        <ScheduleSummary schedule={schedule} today={today} deleteMessage={del.message} savedAt={state.savedAt}>
-          <RowActions id={schedule.id} onEdit={() => setEditAt(Date.now())} deleteAction={delAction} deleting={deleting} />
+        <ScheduleSummary
+          schedule={schedule}
+          today={today}
+          deleteMessage={del.message}
+          savedAt={state.savedAt}
+        >
+          <RowActions
+            id={schedule.id}
+            onEdit={() => setEditAt(Date.now())}
+            deleteAction={delAction}
+            deleting={deleting}
+          />
         </ScheduleSummary>
       )}
     </motion.li>
@@ -122,14 +174,24 @@ function ScheduleSummary({
 }) {
   return (
     <div className="flex flex-wrap items-center gap-3 py-2 pr-2 pl-4">
-      <span className="w-14 shrink-0 font-display text-title text-brand-deep">{scheduleBadge(schedule, today)}</span>
+      <span className="w-14 shrink-0 font-display text-title text-brand-deep">
+        {scheduleBadge(schedule, today)}
+      </span>
       <div className="min-w-0 flex-1">
         <p className="truncate font-bold">
-          {schedule.kind === "academic" && <span className="mr-1 text-caption font-bold text-pink-deep">📚 학사</span>}
+          {schedule.kind === "academic" && (
+            <span className="mr-1 text-caption font-bold text-pink-deep">
+              <IconBook size={13} className="mr-0.5 inline align-[-0.15em]" />
+              학사
+            </span>
+          )}
           {schedule.ward}
         </p>
         <p className="truncate text-body-sm text-ink-soft">
-          {schedule.kind === "academic" ? schedule.prepNotes || "학사 일정" : schedule.hospital} · {shortDate(schedule.startDate)}
+          {schedule.kind === "academic"
+            ? schedule.prepNotes || "학사 일정"
+            : schedule.hospital}{" "}
+          · {shortDate(schedule.startDate)}
           {schedule.endDate && ` ~ ${shortDate(schedule.endDate)}`}
         </p>
       </div>
@@ -160,22 +222,30 @@ function ScheduleForm({
   // 같은 화면에 폼이 여러 개 있을 수 있어 id가 겹치지 않게 접두어를 붙인다
   const p = initial ? `s-${initial.id}-` : "s-new-";
   // 병동 정보는 접어 두고, 이미 적어 둔 값이 있거나 오류가 있으면 펼친다
-  const [moreOpen, setMoreOpen] = useState(initial ? hasDetails(initial) : false);
+  const [moreOpen, setMoreOpen] = useState(
+    initial ? hasDetails(initial) : false,
+  );
   // 실습 / 학사 일정(케이스 발표·술기 시험 등): 학사 일정은 이름·날짜·준비사항만
   const [kind, setKind] = useState<"practice" | "academic">(
-    (v?.kind as "practice" | "academic" | undefined) ?? initial?.kind ?? "practice",
+    (v?.kind as "practice" | "academic" | undefined) ??
+      initial?.kind ??
+      "practice",
   );
   const academic = kind === "academic";
   const showMore = moreOpen || DETAIL_FIELDS.some((f) => errors[f]);
   return (
-    <form action={action} noValidate className="space-y-3 rounded-card border border-line/70 bg-surface p-4 shadow-soft">
+    <form
+      action={action}
+      noValidate
+      className="space-y-3 rounded-card border border-line/70 bg-surface p-4 shadow-soft"
+    >
       {initial && <input type="hidden" name="id" value={initial.id} />}
       <ChoiceChips
         name="kind"
         legend="일정 종류"
         options={[
-          { key: "practice", label: "🏥 실습" },
-          { key: "academic", label: "📚 학사 일정 (발표·시험)" },
+          { key: "practice", label: "실습" },
+          { key: "academic", label: "학사 일정 (발표·시험)" },
         ]}
         defaultValue={kind}
         onChange={(k) => setKind(k as "practice" | "academic")}
@@ -270,7 +340,12 @@ function ScheduleForm({
               className="flex min-h-11 w-full items-center justify-between gap-2 text-left text-body-sm font-bold text-ink"
             >
               병동 정보 더 입력하기 (근무 시간 · 집결 · 수간호사 · 질환 · 조원)
-              <motion.span aria-hidden animate={{ rotate: showMore ? 180 : 0 }} transition={SPRING_SOFT} className="text-ink-soft">
+              <motion.span
+                aria-hidden
+                animate={{ rotate: showMore ? 180 : 0 }}
+                transition={SPRING_SOFT}
+                className="text-ink-soft"
+              >
                 ▾
               </motion.span>
             </button>
@@ -308,7 +383,9 @@ function ScheduleForm({
                     name="meetingPlace"
                     label="집결 장소"
                     placeholder="예: 본관 7층 엘리베이터 앞"
-                    defaultValue={v?.meetingPlace ?? initial?.meetingPlace ?? ""}
+                    defaultValue={
+                      v?.meetingPlace ?? initial?.meetingPlace ?? ""
+                    }
                     error={errors.meetingPlace}
                   />
                   <Field
@@ -333,7 +410,11 @@ function ScheduleForm({
                   name="commonDiseases"
                   label="주요 다빈도 질환 (쉼표로 구분)"
                   placeholder="예: 간경변증, 위장관출혈, 급성췌장염"
-                  defaultValue={v?.commonDiseases ?? initial?.commonDiseases.join(", ") ?? ""}
+                  defaultValue={
+                    v?.commonDiseases ??
+                    initial?.commonDiseases.join(", ") ??
+                    ""
+                  }
                   error={errors.commonDiseases}
                 />
                 <div className="grid grid-cols-[6rem_1fr] gap-3">
@@ -350,7 +431,9 @@ function ScheduleForm({
                     name="teammates"
                     label="조원 (쉼표로 구분)"
                     placeholder="예: 박소연, 정민수"
-                    defaultValue={v?.teammates ?? initial?.teammates.join(", ") ?? ""}
+                    defaultValue={
+                      v?.teammates ?? initial?.teammates.join(", ") ?? ""
+                    }
                     error={errors.teammates}
                   />
                 </div>

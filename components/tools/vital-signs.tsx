@@ -1,13 +1,25 @@
 import { NOTI_CRITERIA, VITAL_COLUMNS, VITAL_ROWS } from "@/lib/vitals";
 import Card from "@/components/ui/card";
+import { IconSiren, IconStethoscope } from "@/components/ui/icons";
 
 // 연령별 활력징후 정상 범위 + 성인 즉시 보고(Noti) 기준. sm 이상은 표, 모바일은 연령별 카드
 export default function VitalSigns() {
   return (
     <Card>
-      <span className="inline-block rounded-md bg-p-bg px-2.5 py-1 text-caption font-bold text-p-ink">바이탈 액팅 벼락치기</span>
-      <h2 className="mt-2 text-title font-bold text-ink">🩺 연령별 활력징후 정상 범위</h2>
-      <p className="mt-1 text-body-sm text-ink-soft">라운딩 중 이상 수치를 보면 바로 담당 간호사 선생님께 보고(Noti)할 기준이에요.</p>
+      <span className="inline-block rounded-md bg-p-bg px-2.5 py-1 text-caption font-bold text-p-ink">
+        바이탈 액팅 벼락치기
+      </span>
+      <h2 className="mt-2 text-title font-bold text-ink">
+        <IconStethoscope
+          size={22}
+          className="mr-1 inline align-[-0.2em] text-brand-deep"
+        />
+        연령별 활력징후 정상 범위
+      </h2>
+      <p className="mt-1 text-body-sm text-ink-soft">
+        라운딩 중 이상 수치를 보면 바로 담당 간호사 선생님께 보고(Noti)할
+        기준이에요.
+      </p>
 
       {/* sm 이상: 표 */}
       <div className="mt-4 hidden overflow-x-auto sm:block">
@@ -18,7 +30,11 @@ export default function VitalSigns() {
                 구분
               </th>
               {VITAL_COLUMNS.map((c, i) => (
-                <th key={c.key} scope="col" className={`p-2.5 ${i === VITAL_COLUMNS.length - 1 ? "rounded-r-control" : ""}`}>
+                <th
+                  key={c.key}
+                  scope="col"
+                  className={`p-2.5 ${i === VITAL_COLUMNS.length - 1 ? "rounded-r-control" : ""}`}
+                >
                   {c.label} <span className="font-normal">({c.unit})</span>
                 </th>
               ))}
@@ -28,7 +44,8 @@ export default function VitalSigns() {
             {VITAL_ROWS.map((r) => (
               <tr key={r.group}>
                 <th scope="row" className="p-2.5 font-bold text-ink">
-                  {r.group} <span className="font-normal text-ink-soft">({r.en})</span>
+                  {r.group}{" "}
+                  <span className="font-normal text-ink-soft">({r.en})</span>
                 </th>
                 {VITAL_COLUMNS.map((c) => (
                   <td key={c.key} className="p-2.5 text-ink">
@@ -46,7 +63,10 @@ export default function VitalSigns() {
         {VITAL_ROWS.map((r) => (
           <li key={r.group} className="rounded-control bg-subtle p-3">
             <p className="font-bold text-ink">
-              {r.group} <span className="text-caption font-normal text-ink-soft">({r.en})</span>
+              {r.group}{" "}
+              <span className="text-caption font-normal text-ink-soft">
+                ({r.en})
+              </span>
             </p>
             <dl className="mt-1.5 grid grid-cols-2 gap-x-3 gap-y-1 text-body-sm">
               {VITAL_COLUMNS.map((c) => (
@@ -62,10 +82,22 @@ export default function VitalSigns() {
         ))}
       </ul>
 
-      <div role="note" className="mt-4 rounded-control border border-danger/30 bg-danger-soft px-3 py-2.5 text-body-sm text-danger">
-        <b>🚨 즉시 보고(Noti) 기준 (성인)</b>: {NOTI_CRITERIA.join(", ")}
+      <div
+        role="note"
+        className="mt-4 rounded-control border border-danger/30 bg-danger-soft px-3 py-2.5 text-body-sm text-danger"
+      >
+        <b>
+          <IconSiren
+            size={16}
+            className="mr-1 inline align-[-0.2em] text-danger"
+          />
+          즉시 보고(Noti) 기준 (성인)
+        </b>
+        : {NOTI_CRITERIA.join(", ")}
       </div>
-      <p className="mt-2 text-caption text-ink-soft">참고용 기준이에요. 실습 병원·교수님이 정한 기준이 우선이에요.</p>
+      <p className="mt-2 text-caption text-ink-soft">
+        참고용 기준이에요. 실습 병원·교수님이 정한 기준이 우선이에요.
+      </p>
     </Card>
   );
 }

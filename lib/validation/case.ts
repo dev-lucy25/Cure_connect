@@ -5,7 +5,8 @@ export const MEMO_MAX = 2000;
 
 const noPii = (value: string, ctx: z.RefinementCtx) => {
   const kinds = detectPii(value);
-  if (kinds.length > 0) ctx.addIssue({ code: "custom", message: piiMessage(kinds) });
+  if (kinds.length > 0)
+    ctx.addIssue({ code: "custom", message: piiMessage(kinds) });
 };
 
 export const caseSchema = z.object({
@@ -15,7 +16,11 @@ export const caseSchema = z.object({
     .min(1, { error: "제목을 입력해 주세요" })
     .max(60, { error: "제목은 60자 이하로 입력해 주세요" })
     .superRefine(noPii),
-  ward: z.string().trim().min(1, { error: "병동을 입력해 주세요" }).max(60, { error: "병동은 60자 이하로 입력해 주세요" }),
+  ward: z
+    .string()
+    .trim()
+    .min(1, { error: "병동을 입력해 주세요" })
+    .max(60, { error: "병동은 60자 이하로 입력해 주세요" }),
   memo: z
     .string()
     .trim()
@@ -35,7 +40,9 @@ export const chatQuestionSchema = z.object({
     .string()
     .trim()
     .min(1, { error: "질문을 입력해 주세요" })
-    .max(QUESTION_MAX, { error: `질문은 ${QUESTION_MAX}자 이하로 입력해 주세요` })
+    .max(QUESTION_MAX, {
+      error: `질문은 ${QUESTION_MAX}자 이하로 입력해 주세요`,
+    })
     .superRefine(noPii),
 });
 
@@ -124,14 +131,21 @@ const caseAiResultV1Schema = z.object({
 /** DB에서 꺼낸 값 읽기: v2는 그대로, v1은 v2 모양으로 바꿔 화면이 한 가지 형식만 다루게 한다 */
 export const storedCaseAiSchema = z.union([
   caseAiResultSchema,
-  caseAiResultV1Schema.transform(({ nursingDiagnoses, ...rest }): CaseAiResult => ({
-    ...rest,
-    title: "",
-    diagnoses: nursingDiagnoses.map((text, i) => {
-      const [name, ...related] = text.split(/\s*r\/t\s*/);
-      return { priority: i + 1, name: name.trim().slice(0, 100) || text.slice(0, 100), relatedTo: related.join(" r/t ").trim().slice(0, 200), domain: "" as const };
+  caseAiResultV1Schema.transform(
+    ({ nursingDiagnoses, ...rest }): CaseAiResult => ({
+      ...rest,
+      title: "",
+      diagnoses: nursingDiagnoses.map((text, i) => {
+        const [name, ...related] = text.split(/\s*r\/t\s*/);
+        return {
+          priority: i + 1,
+          name: name.trim().slice(0, 100) || text.slice(0, 100),
+          relatedTo: related.join(" r/t ").trim().slice(0, 200),
+          domain: "" as const,
+        };
+      }),
     }),
-  })),
+  ),
 ]);
 
 /** AI 결과를 저장 형식으로: 우선순위 순 정렬, 같은 순위가 겹치면 1부터 다시 매김 */
@@ -144,10 +158,24 @@ export function normalizeAiResult(result: CaseAiResult): CaseAiResult {
 
 /** AI 수정 지시 빠른 버튼 (데모 새 버전) */
 export const QUICK_REVISIONS = [
-  { label: "✨ EMR 학술 용어로 다듬기", instruction: "간호사정과 SOAPIE 문장을 대학병원 EMR 학술 용어로 더 전문적으로 다듬어 줘" },
-  { label: "+ '낙상 위험성' 진단 추가", instruction: "낙상 위험성(Risk for Adult Falls) 간호진단과 낙상 예방 중재를 추가해 줘" },
-  { label: "+ 비약물적 중재 추가", instruction: "비약물적 통증 완화 중재와 정서적 지지를 추가해 줘" },
-  { label: "+ 교육적 간호계획 보강", instruction: "환자·보호자 교육 중재와 퇴원 교육 내용을 보강해 줘" },
+  {
+    label: "EMR 학술 용어로 다듬기",
+    instruction:
+      "간호사정과 SOAPIE 문장을 대학병원 EMR 학술 용어로 더 전문적으로 다듬어 줘",
+  },
+  {
+    label: "+ '낙상 위험성' 진단 추가",
+    instruction:
+      "낙상 위험성(Risk for Adult Falls) 간호진단과 낙상 예방 중재를 추가해 줘",
+  },
+  {
+    label: "+ 비약물적 중재 추가",
+    instruction: "비약물적 통증 완화 중재와 정서적 지지를 추가해 줘",
+  },
+  {
+    label: "+ 교육적 간호계획 보강",
+    instruction: "환자·보호자 교육 중재와 퇴원 교육 내용을 보강해 줘",
+  },
 ] as const;
 
 /** 직접 쓰는 수정 지시 (AI에 보내기 전에 환자 식별 정보 차단) */
