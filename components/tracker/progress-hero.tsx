@@ -1,5 +1,6 @@
 import type { ReactNode } from "react";
 import NurseTurtle, { turtleStage } from "@/components/mascot/nurse-turtle";
+import Avatar from "@/components/ui/avatar";
 import Card from "@/components/ui/card";
 import MilestoneConfetti from "@/components/ui/confetti";
 import GoalEditor from "@/components/tracker/goal-editor";
@@ -18,7 +19,10 @@ export default function ProgressHero({
   goalHours,
   dday,
   editable = true,
+  avatarUrl = null,
 }: {
+  /** 프로필 사진이 있으면 거북이 대신 사진 (작은 단계 거북이 배지와 함께) */
+  avatarUrl?: string | null;
   totalMinutes: number;
   /** 지도교수 인증 완료 시간(분). 없으면(예시 화면) 표시하지 않는다 */
   approvedMinutes?: number;
@@ -40,9 +44,19 @@ export default function ProgressHero({
     <Card className="relative overflow-hidden">
       {editable && <MilestoneConfetti earned={earned} />}
       <div className="flex items-center gap-4">
-        <span className="grid size-20 shrink-0 place-items-center rounded-card bg-brand-soft">
-          <NurseTurtle stage={turtleStage(percent)} mood={percent >= 100 ? "saved" : "default"} size={72} />
-        </span>
+        {avatarUrl ? (
+          // 프로필 사진이 있으면 사진 + 오른쪽 아래 작은 단계 거북이(성장 표시는 그대로)
+          <span className="relative shrink-0">
+            <Avatar src={avatarUrl} size={80} alt="내 프로필 사진" />
+            <span className="absolute -right-2 -bottom-2 grid size-9 place-items-center rounded-full border-2 border-surface bg-brand-soft">
+              <NurseTurtle stage={turtleStage(percent)} size={32} still decorative />
+            </span>
+          </span>
+        ) : (
+          <span className="grid size-20 shrink-0 place-items-center rounded-card bg-brand-soft">
+            <NurseTurtle stage={turtleStage(percent)} mood={percent >= 100 ? "saved" : "default"} size={72} />
+          </span>
+        )}
         <div className="min-w-0">
           <p className="text-body-sm font-bold text-ink-soft">
             누적 실습 시간 · <AnimatedNumber value={percent} suffix="%" />

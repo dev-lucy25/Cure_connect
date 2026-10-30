@@ -54,6 +54,7 @@ export default async function TrackerHome({ user }: { user: CurrentUser }) {
               approvedMinutes={progress.approvedMinutes}
               pendingMinutes={progress.pendingMinutes}
               goalHours={progress.goalHours}
+              avatarUrl={user.avatarUrl}
               dday={<DDayChip next={upcoming} current={current} academic={nextAcademic} today={today} />}
             />
           </StaggerItem>
