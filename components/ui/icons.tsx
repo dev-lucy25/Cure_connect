@@ -162,3 +162,34 @@ export const IconZoomOut = (p: IconProps) => (
     <path d="M15 15l4.5 4.5M8 10.5h5" />
   </Icon>
 );
+
+export const IconChat = (p: IconProps) => (
+  <Icon {...p}>
+    <path d="M5 18.5V7.5A2.5 2.5 0 0 1 7.5 5h9A2.5 2.5 0 0 1 19 7.5v6a2.5 2.5 0 0 1-2.5 2.5H9z" />
+    <path d="M9 9.5h6M9 12.5h4" />
+  </Icon>
+);
+
+/** filled: 좋아요를 누른 상태(채운 하트) */
+export const IconHeart = ({ filled = false, ...p }: IconProps & { filled?: boolean }) => (
+  <Icon {...p}>
+    <path
+      d="M12 19.5s-7-4.3-7-9.6A3.9 3.9 0 0 1 8.9 6c1.3 0 2.4.6 3.1 1.6A3.8 3.8 0 0 1 15.1 6 3.9 3.9 0 0 1 19 9.9c0 5.3-7 9.6-7 9.6z"
+      fill={filled ? "currentColor" : "none"}
+    />
+  </Icon>
+);
+
+export const IconSend = (p: IconProps) => (
+  <Icon {...p}>
+    <path d="M4.5 12 19 5l-4.5 14-3-5.5z" />
+    <path d="M11.5 13.5 19 5" />
+  </Icon>
+);
+
+export const IconReply = (p: IconProps) => (
+  <Icon {...p}>
+    <path d="M10 7 5 11.5l5 4.5" />
+    <path d="M5.5 11.5H14a5 5 0 0 1 5 5V18" />
+  </Icon>
+);

@@ -20,6 +20,9 @@ import { NotesMoreSkeleton } from "@/components/ui/skeleton";
 import CreditShop from "@/components/credits/credit-shop";
 import NoteCard from "@/components/notes/note-card";
 import NoteForm from "@/components/notes/note-form";
+import NoteComments, { type CommentsTarget, type Me } from "@/components/notes/note-comments";
+import { loadComments } from "@/server/comment-actions";
+import type { CommentThread } from "@/server/comment-repo";
 import SearchInput from "@/components/ui/search-input";
 
 const MotionLink = motion.create(Link);
@@ -45,6 +48,8 @@ export default function NotesMarket({
   canWrite,
   rewardAvailable,
   startWriting,
+  me,
+  initialComments,
 }: {
   items: NoteCardData[];
   nextCursor: string | null;
@@ -58,6 +63,10 @@ export default function NotesMarket({
   rewardAvailable: boolean;
   /** 주소에 ?write=1 (충전소의 "후기 작성하기"에서 옴) */
   startWriting: boolean;
+  /** 로그인한 사람의 닉네임·프로필 사진 (댓글 쓸 때 미리 보기). 손님은 null */
+  me: Me;
+  /** 주소에 ?comments=족보id (댓글 알림에서 옴) → 그 족보의 댓글 시트를 바로 연다 */
+  initialComments: { noteId: string; title: string; thread: CommentThread | null } | null;
 }) {
   const router = useRouter();
   const loggedIn = viewer === "student" && credits !== null;
@@ -67,6 +76,23 @@ export default function NotesMarket({
   const [writeAt, setWriteAt] = useState<number | null>(startWriting && canWrite ? 0 : null);
   const writing = writeAt !== null && !(state.savedAt && state.savedAt > writeAt);
   const openShop = useCallback(() => setShopOpen(true), []);
+  const [comments, setComments] = useState<CommentsTarget | null>(() =>
+    initialComments
+      ? { noteId: initialComments.noteId, title: initialComments.title, load: me ? Promise.resolve({ thread: initialComments.thread ?? undefined }) : null }
+      : null,
+  );
+  // 댓글을 쓰거나 지우면 카드의 댓글 수도 바로 바꾼다
+  const [commentCounts, setCommentCounts] = useState<Record<string, number>>({});
+  const onCommentCount = useCallback((id: string, n: number) => setCommentCounts((c) => (c[id] === n ? c : { ...c, [id]: n })), []);
+  const openComments = useCallback(
+    (note: { id: string; title: string }) => setComments({ noteId: note.id, title: note.title, load: me ? loadComments(note.id) : null }),
+    [me],
+  );
+
+  function closeComments() {
+    setComments(null);
+    if (initialComments) router.replace(hrefWith(filter, {}), { scroll: false });
+  }
 
   function closeWriting() {
     setWriteAt(null);
@@ -226,8 +252,11 @@ export default function NotesMarket({
           filter={filter}
           viewer={viewer}
           onInsufficient={openShop}
+          commentCounts={commentCounts}
+          onComments={openComments}
         />
       )}
+      <NoteComments target={comments} me={me} onClose={closeComments} onCount={onCommentCount} />
 
       <Modal open={writing} onClose={closeWriting} title="✍️ 선배 병동 꿀팁 & 족보 등록">
         <NoteForm action={action} state={state} pending={pending} rewardAvailable={rewardAvailable} onCancel={closeWriting} />
@@ -251,12 +280,16 @@ function NotePages({
   filter,
   viewer,
   onInsufficient,
+  commentCounts,
+  onComments,
 }: {
   items: NoteCardData[];
   nextCursor: string | null;
   filter: NoteFilter;
   viewer: "guest" | "student" | "professor";
   onInsufficient: () => void;
+  commentCounts: Record<string, number>;
+  onComments: (note: { id: string; title: string }) => void;
 }) {
   const [more, setMore] = useState<NoteCardData[]>([]);
   const [cursor, setCursor] = useState(nextCursor);
@@ -288,7 +321,13 @@ function NotePages({
             animate="show"
             transition={{ ...SPRING_SOFT, delay: Math.min(i < items.length ? i : i - items.length, 8) * STAGGER_STEP }}
           >
-            <NoteCard note={note} viewer={viewer} onInsufficient={onInsufficient} />
+            <NoteCard
+              note={note}
+              viewer={viewer}
+              onInsufficient={onInsufficient}
+              commentCount={commentCounts[note.id] ?? note.commentCount}
+              onComments={onComments}
+            />
           </motion.div>
         ))}
       </div>

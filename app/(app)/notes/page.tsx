@@ -3,6 +3,8 @@ import { Suspense } from "react";
 import { getOptionalUser } from "@/server/auth";
 import { getCredits, listNotes, uploadRewardLeft, type NoteFilter } from "@/server/notes-repo";
 import { NOTE_CATEGORY_KEYS } from "@/lib/credits";
+import { idSchema } from "@/lib/validation/form";
+import { listComments } from "@/server/comment-repo";
 import PageHeader from "@/components/ui/page-header";
 import { NotesSkeleton } from "@/components/ui/skeleton";
 import NotesMarket from "@/components/notes/notes-market";
@@ -32,10 +34,14 @@ async function NotesContent({ searchParams }: Pick<PageProps<"/notes">, "searchP
   };
   const user = await getOptionalUser();
   const student = user?.role === "student";
-  const [page, credits, rewardAvailable] = await Promise.all([
+  // 댓글 알림에서 오면(?comments=족보id) 그 족보의 댓글을 미리 불러와 시트를 바로 연다
+  const commentsFor = one(sp.comments);
+  const openComments = commentsFor && idSchema.safeParse(commentsFor).success ? commentsFor : null;
+  const [page, credits, rewardAvailable, thread] = await Promise.all([
     listNotes(user?.id ?? null, filter),
     student ? getCredits(user.id) : Promise.resolve(null),
     student ? uploadRewardLeft(user.id) : Promise.resolve(false),
+    openComments && user ? listComments(openComments, user.id) : Promise.resolve(null),
   ]);
 
   return (
@@ -53,6 +59,8 @@ async function NotesContent({ searchParams }: Pick<PageProps<"/notes">, "searchP
           canWrite={student}
           rewardAvailable={rewardAvailable}
           startWriting={one(sp.write) === "1"}
+          me={user ? { nickname: user.nickname, avatarUrl: user.avatarUrl } : null}
+          initialComments={openComments && (thread || !user) ? { noteId: openComments, title: thread?.noteTitle ?? "", thread } : null}
         />
       </div>
     </div>

@@ -24,6 +24,7 @@ import FormStatus from "@/components/ui/form-status";
 import Modal from "@/components/ui/modal";
 import RowActions from "@/components/tracker/row-actions";
 import NoteForm from "@/components/notes/note-form";
+import { IconChat } from "@/components/ui/icons";
 
 // 잠긴 시크릿 자리의 흐린 줄. 본문과 무관한 고정 모양이라 블러를 풀어도 내용이 없다 (진짜 내용은 서버가 보내지 않음)
 const FAKE_LINES = ["w-11/12", "w-4/5", "w-3/5", "w-5/6"];
@@ -32,12 +33,17 @@ export default function NoteCard({
   note,
   viewer,
   onInsufficient,
+  commentCount,
+  onComments,
 }: {
   note: NoteCardData;
   /** 손님은 로그인 안내, 교수는 "학생만 열 수 있어요" */
   viewer: "guest" | "student" | "professor";
   /** 크레딧이 모자라 못 열었을 때 (충전소 열기) */
   onInsufficient: () => void;
+  commentCount: number;
+  /** 댓글 시트 열기 */
+  onComments: (note: { id: string; title: string }) => void;
 }) {
   const [unlock, unlockAction, unlocking] = useActionState<UnlockState, FormData>(unlockNoteAction, {});
   const [edit, editAction, editing] = useActionState<NoteFormState, FormData>(updateNoteAction, {});
@@ -144,15 +150,27 @@ export default function NoteCard({
       <FormStatus message={unlock.insufficient ? undefined : unlock.message} />
       <FormStatus savedAt={unlock.savedAt} savedText="잠금을 풀었어요 🔓" />
 
-      {/* 평점(열람한 사람) / 내 족보 고치기·지우기 */}
-      {note.mine ? (
-        <div className="mt-2 flex items-center justify-end">
-          <FormStatus message={del.message} />
-          <RowActions id={note.id} onEdit={() => setEditOpenAt(Date.now())} deleteAction={delAction} deleting={deleting} />
-        </div>
-      ) : (
-        note.open && viewer === "student" && <RatingStars noteId={note.id} myRating={note.myRating} />
-      )}
+      {/* 평점(열람한 사람) */}
+      {!note.mine && note.open && viewer === "student" && <RatingStars noteId={note.id} myRating={note.myRating} />}
+
+      {/* 댓글 / 내 족보 고치기·지우기 */}
+      <div className="mt-3 flex items-center justify-between gap-2 border-t border-line/70 pt-2">
+        <button
+          type="button"
+          onClick={() => onComments({ id: note.id, title: note.title })}
+          aria-label={`댓글 ${commentCount}개 보기`}
+          className="press -ml-2 inline-flex min-h-11 cursor-pointer items-center gap-1.5 rounded-full px-3 text-body-sm font-bold text-ink-soft hover:bg-subtle hover:text-ink"
+        >
+          <IconChat size={19} />
+          댓글 <span className="tabular-nums">{commentCount}</span>
+        </button>
+        {note.mine && (
+          <div className="flex items-center">
+            <FormStatus message={del.message} />
+            <RowActions id={note.id} onEdit={() => setEditOpenAt(Date.now())} deleteAction={delAction} deleting={deleting} />
+          </div>
+        )}
+      </div>
 
       {note.mine && note.secret && (
         <Modal open={editOpen} onClose={() => setEditOpenAt(null)} title="✏️ 족보 고치기">
