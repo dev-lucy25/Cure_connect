@@ -24,7 +24,8 @@ import FormStatus from "@/components/ui/form-status";
 import Modal from "@/components/ui/modal";
 import RowActions from "@/components/tracker/row-actions";
 import NoteForm from "@/components/notes/note-form";
-import { IconChat } from "@/components/ui/icons";
+import { IconBulb, IconChat, IconKey, IconLock } from "@/components/ui/icons";
+import CreditMark from "@/components/ui/credit-mark";
 
 // 잠긴 시크릿 자리의 흐린 줄. 본문과 무관한 고정 모양이라 블러를 풀어도 내용이 없다 (진짜 내용은 서버가 보내지 않음)
 const FAKE_LINES = ["w-11/12", "w-4/5", "w-3/5", "w-5/6"];
@@ -45,11 +46,21 @@ export default function NoteCard({
   /** 댓글 시트 열기 */
   onComments: (note: { id: string; title: string }) => void;
 }) {
-  const [unlock, unlockAction, unlocking] = useActionState<UnlockState, FormData>(unlockNoteAction, {});
-  const [edit, editAction, editing] = useActionState<NoteFormState, FormData>(updateNoteAction, {});
-  const [del, delAction, deleting] = useActionState<FormState<never>, FormData>(deleteNoteAction, {});
+  const [unlock, unlockAction, unlocking] = useActionState<
+    UnlockState,
+    FormData
+  >(unlockNoteAction, {});
+  const [edit, editAction, editing] = useActionState<NoteFormState, FormData>(
+    updateNoteAction,
+    {},
+  );
+  const [del, delAction, deleting] = useActionState<FormState<never>, FormData>(
+    deleteNoteAction,
+    {},
+  );
   const [editOpenAt, setEditOpenAt] = useState<number | null>(null);
-  const editOpen = editOpenAt !== null && !(edit.savedAt && edit.savedAt > editOpenAt);
+  const editOpen =
+    editOpenAt !== null && !(edit.savedAt && edit.savedAt > editOpenAt);
 
   // 크레딧 부족 → 충전소 (응답마다 한 번)
   useEffect(() => {
@@ -57,26 +68,43 @@ export default function NoteCard({
   }, [unlock, onInsufficient]);
 
   return (
-    <article className="flex h-full flex-col rounded-card border border-line bg-surface p-5 shadow-soft" aria-label={note.title}>
+    <article
+      className="flex h-full flex-col rounded-card border border-line bg-surface p-5 shadow-soft"
+      aria-label={note.title}
+    >
       <div className="flex flex-wrap items-center justify-between gap-2">
         <Chip tone="brand" className="max-w-full truncate text-caption">
           {note.hospital} · {note.ward}
         </Chip>
         <span className="text-body-sm font-bold text-warn-ink">
           {note.rating !== null ? `★ ${note.rating.toFixed(1)}` : "☆ 평가 없음"}
-          <span className="ml-1 font-normal text-ink-soft">({note.salesCount.toLocaleString()}명 열람)</span>
+          <span className="ml-1 font-normal text-ink-soft">
+            ({note.salesCount.toLocaleString()}명 열람)
+          </span>
         </span>
       </div>
-      <h3 className="mt-2 text-title font-bold break-words text-ink">{note.title}</h3>
+      <h3 className="mt-2 text-title font-bold break-words text-ink">
+        {note.title}
+      </h3>
       <p className="mt-0.5 text-caption text-ink-soft">
-        {note.mine ? "내 족보" : note.authorLabel} · {categoryLabel(note.category)} · {note.price === 0 ? "무료" : `${note.price} C`}
+        {note.mine ? "내 족보" : note.authorLabel} ·{" "}
+        {categoryLabel(note.category)} ·{" "}
+        {note.price === 0 ? "무료" : `${note.price} C`}
       </p>
 
       {/* 무료 맛보기 */}
       {(note.public.supplies.length > 0 || note.public.atmosphere) && (
         <div className="mt-3 rounded-control bg-subtle px-3 py-2.5 text-body-sm text-ink">
-          <b>💡 분위기 & 준비물: </b>
-          {[note.public.atmosphere, note.public.supplies.join(", ")].filter(Boolean).join(" · ")}
+          <b>
+            <IconBulb
+              size={16}
+              className="mr-1 inline align-[-0.2em] text-warn-ink"
+            />
+            분위기 & 준비물:{" "}
+          </b>
+          {[note.public.atmosphere, note.public.supplies.join(", ")]
+            .filter(Boolean)
+            .join(" · ")}
         </div>
       )}
 
@@ -91,10 +119,15 @@ export default function NoteCard({
               transition={{ ...SPRING_SOFT, filter: { duration: 0.5 } }}
               className="space-y-2 text-body-sm text-ink"
             >
-              <p className="font-bold text-warn-ink">🔑 시크릿 족보</p>
+              <p className="font-bold text-warn-ink">
+                <IconKey size={16} className="mr-1 inline align-[-0.2em]" />
+                시크릿 족보
+              </p>
               {note.secret.questions.length > 0 && (
                 <div>
-                  <p className="text-caption font-bold text-ink-soft">자주 받은 질문</p>
+                  <p className="text-caption font-bold text-ink-soft">
+                    자주 받은 질문
+                  </p>
                   <ul className="mt-1 list-disc space-y-0.5 pl-5">
                     {note.secret.questions.map((q, i) => (
                       <li key={i} className="break-words">
@@ -118,23 +151,44 @@ export default function NoteCard({
               )}
             </motion.div>
           ) : (
-            <motion.div key="locked" exit={{ opacity: 0 }} className="relative min-h-28">
+            <motion.div
+              key="locked"
+              exit={{ opacity: 0 }}
+              className="relative min-h-28"
+            >
               <div aria-hidden className="space-y-2.5 blur-[3px]">
                 {FAKE_LINES.map((w) => (
                   <div key={w} className={`h-3.5 rounded-full bg-line ${w}`} />
                 ))}
               </div>
               <div className="absolute inset-0 flex flex-col items-center justify-center gap-2 bg-surface/40 text-center">
-                <p className="text-body-sm font-bold text-ink">🔒 선배가 남긴 시크릿 질문 & 꿀팁</p>
+                <p className="text-body-sm font-bold text-ink">
+                  <IconLock size={16} className="mr-1 inline align-[-0.2em]" />
+                  선배가 남긴 시크릿 질문 & 꿀팁
+                </p>
                 {viewer === "student" ? (
                   <form action={unlockAction}>
                     <input type="hidden" name="id" value={note.id} />
-                    <Button type="submit" disabled={unlocking} className="min-h-11 px-4 text-body-sm">
-                      {unlocking ? "여는 중..." : `💎 ${note.price} 크레딧으로 잠금 해제`}
+                    <Button
+                      type="submit"
+                      disabled={unlocking}
+                      className="min-h-11 px-4 text-body-sm"
+                    >
+                      {unlocking ? (
+                        "여는 중..."
+                      ) : (
+                        <>
+                          <CreditMark size={18} /> {note.price} 크레딧으로 잠금
+                          해제
+                        </>
+                      )}
                     </Button>
                   </form>
                 ) : viewer === "guest" ? (
-                  <Link href={loginHref("/notes")} className={`${buttonClass("primary")} min-h-11 px-4 text-body-sm`}>
+                  <Link
+                    href={loginHref("/notes")}
+                    className={`${buttonClass("primary")} min-h-11 px-4 text-body-sm`}
+                  >
                     로그인하고 열기
                   </Link>
                 ) : (
@@ -148,10 +202,12 @@ export default function NoteCard({
         </AnimatePresence>
       </div>
       <FormStatus message={unlock.insufficient ? undefined : unlock.message} />
-      <FormStatus savedAt={unlock.savedAt} savedText="잠금을 풀었어요 🔓" />
+      <FormStatus savedAt={unlock.savedAt} savedText="잠금을 풀었어요" />
 
       {/* 평점(열람한 사람) */}
-      {!note.mine && note.open && viewer === "student" && <RatingStars noteId={note.id} myRating={note.myRating} />}
+      {!note.mine && note.open && viewer === "student" && (
+        <RatingStars noteId={note.id} myRating={note.myRating} />
+      )}
 
       {/* 댓글 / 내 족보 고치기·지우기 */}
       <div className="mt-3 flex items-center justify-between gap-2 border-t border-line/70 pt-2">
@@ -167,13 +223,22 @@ export default function NoteCard({
         {note.mine && (
           <div className="flex items-center">
             <FormStatus message={del.message} />
-            <RowActions id={note.id} onEdit={() => setEditOpenAt(Date.now())} deleteAction={delAction} deleting={deleting} />
+            <RowActions
+              id={note.id}
+              onEdit={() => setEditOpenAt(Date.now())}
+              deleteAction={delAction}
+              deleting={deleting}
+            />
           </div>
         )}
       </div>
 
       {note.mine && note.secret && (
-        <Modal open={editOpen} onClose={() => setEditOpenAt(null)} title="✏️ 족보 고치기">
+        <Modal
+          open={editOpen}
+          onClose={() => setEditOpenAt(null)}
+          title="족보 고치기"
+        >
           <NoteForm
             action={editAction}
             state={edit}
@@ -198,13 +263,24 @@ export default function NoteCard({
 }
 
 /** 별 5개. 누르면 바로 저장되고, 고른 별까지 톡 튀며 채워진다 */
-function RatingStars({ noteId, myRating }: { noteId: string; myRating: number | null }) {
-  const [state, action, pending] = useActionState<FormState<never>, FormData>(rateNoteAction, {});
+function RatingStars({
+  noteId,
+  myRating,
+}: {
+  noteId: string;
+  myRating: number | null;
+}) {
+  const [state, action, pending] = useActionState<FormState<never>, FormData>(
+    rateNoteAction,
+    {},
+  );
   const tap = useTapEffect(0.85);
   return (
     <form action={action} className="mt-2 flex flex-wrap items-center gap-1">
       <input type="hidden" name="id" value={noteId} />
-      <span className="mr-1 text-caption text-ink-soft">{myRating ? "내 평점" : "평가하기"}</span>
+      <span className="mr-1 text-caption text-ink-soft">
+        {myRating ? "내 평점" : "평가하기"}
+      </span>
       {[1, 2, 3, 4, 5].map((n) => {
         const filled = myRating !== null && n <= myRating;
         return (

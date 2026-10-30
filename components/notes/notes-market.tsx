@@ -5,10 +5,19 @@ import { loginHref } from "@/lib/safe-next";
 import { useActionState, useCallback, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { motion } from "motion/react";
-import { createNoteAction, loadMoreNotes, type NoteFormState } from "@/server/notes-actions";
+import {
+  createNoteAction,
+  loadMoreNotes,
+  type NoteFormState,
+} from "@/server/notes-actions";
 import type { NoteCard as NoteCardData, NoteFilter } from "@/server/notes-repo";
 import { NOTE_CATEGORIES, UPLOAD_REWARD } from "@/lib/credits";
-import { FADE_UP, SPRING_SNAPPY, SPRING_SOFT, STAGGER_STEP } from "@/lib/motion";
+import {
+  FADE_UP,
+  SPRING_SNAPPY,
+  SPRING_SOFT,
+  STAGGER_STEP,
+} from "@/lib/motion";
 import AnimatedNumber from "@/components/motion/animated-number";
 import { useTapEffect } from "@/components/motion/use-motion-prefs";
 import NurseTurtle from "@/components/mascot/nurse-turtle";
@@ -20,10 +29,15 @@ import { NotesMoreSkeleton } from "@/components/ui/skeleton";
 import CreditShop from "@/components/credits/credit-shop";
 import NoteCard from "@/components/notes/note-card";
 import NoteForm from "@/components/notes/note-form";
-import NoteComments, { type CommentsTarget, type Me } from "@/components/notes/note-comments";
+import NoteComments, {
+  type CommentsTarget,
+  type Me,
+} from "@/components/notes/note-comments";
 import { loadComments } from "@/server/comment-actions";
 import type { CommentThread } from "@/server/comment-repo";
 import SearchInput from "@/components/ui/search-input";
+import { IconPencil, IconUnlock } from "@/components/ui/icons";
+import CreditMark from "@/components/ui/credit-mark";
 
 const MotionLink = motion.create(Link);
 
@@ -66,32 +80,60 @@ export default function NotesMarket({
   /** 로그인한 사람의 닉네임·프로필 사진 (댓글 쓸 때 미리 보기). 손님은 null */
   me: Me;
   /** 주소에 ?comments=족보id (댓글 알림에서 옴) → 그 족보의 댓글 시트를 바로 연다 */
-  initialComments: { noteId: string; title: string; thread: CommentThread | null } | null;
+  initialComments: {
+    noteId: string;
+    title: string;
+    thread: CommentThread | null;
+  } | null;
 }) {
   const router = useRouter();
   const loggedIn = viewer === "student" && credits !== null;
   const tap = useTapEffect();
   const [shopOpen, setShopOpen] = useState(false);
-  const [state, action, pending] = useActionState<NoteFormState, FormData>(createNoteAction, {});
-  const [writeAt, setWriteAt] = useState<number | null>(startWriting && canWrite ? 0 : null);
-  const writing = writeAt !== null && !(state.savedAt && state.savedAt > writeAt);
+  const [state, action, pending] = useActionState<NoteFormState, FormData>(
+    createNoteAction,
+    {},
+  );
+  const [writeAt, setWriteAt] = useState<number | null>(
+    startWriting && canWrite ? 0 : null,
+  );
+  const writing =
+    writeAt !== null && !(state.savedAt && state.savedAt > writeAt);
   const openShop = useCallback(() => setShopOpen(true), []);
   const [comments, setComments] = useState<CommentsTarget | null>(() =>
     initialComments
-      ? { noteId: initialComments.noteId, title: initialComments.title, load: me ? Promise.resolve({ thread: initialComments.thread ?? undefined }) : null }
+      ? {
+          noteId: initialComments.noteId,
+          title: initialComments.title,
+          load: me
+            ? Promise.resolve({ thread: initialComments.thread ?? undefined })
+            : null,
+        }
       : null,
   );
   // 댓글을 쓰거나 지우면 카드의 댓글 수도 바로 바꾼다
-  const [commentCounts, setCommentCounts] = useState<Record<string, number>>({});
-  const onCommentCount = useCallback((id: string, n: number) => setCommentCounts((c) => (c[id] === n ? c : { ...c, [id]: n })), []);
+  const [commentCounts, setCommentCounts] = useState<Record<string, number>>(
+    {},
+  );
+  const onCommentCount = useCallback(
+    (id: string, n: number) =>
+      setCommentCounts((c) => (c[id] === n ? c : { ...c, [id]: n })),
+    [],
+  );
   const openComments = useCallback(
-    (note: { id: string; title: string }) => setComments({ noteId: note.id, title: note.title, load: me ? loadComments(note.id) : null }),
+    (note: { id: string; title: string }) =>
+      setComments({
+        noteId: note.id,
+        title: note.title,
+        load: me ? loadComments(note.id) : null,
+      }),
     [me],
   );
 
   function closeComments() {
     setComments(null);
-    if (initialComments) router.replace(hrefWith(filter, {}), { scroll: false });
+    if (initialComments)
+      router.replace(hrefWith(filter, {}), { scroll: false });
   }
 
   function closeWriting() {
@@ -111,27 +153,44 @@ export default function NotesMarket({
       >
         <div className="min-w-0">
           <div className="flex flex-wrap items-center gap-2">
-            <span className="rounded bg-warn-bg px-2 py-0.5 text-caption font-bold text-warn-ink">C2C 지식 거래 마켓</span>
+            <span className="rounded bg-warn-bg px-2 py-0.5 text-caption font-bold text-warn-ink">
+              C2C 지식 거래 마켓
+            </span>
             {loggedIn && (
               <span className="text-body-sm text-on-inverse/80">
                 내 보유 크레딧{" "}
-                <AnimatedNumber value={credits} format={{ maximumFractionDigits: 0 }} className="font-bold text-on-inverse" /> C
+                <AnimatedNumber
+                  value={credits}
+                  format={{ maximumFractionDigits: 0 }}
+                  className="font-bold text-on-inverse"
+                />{" "}
+                C
               </span>
             )}
           </div>
-          <h2 className="mt-1.5 text-title font-bold">선배들의 병동별 시크릿 족보</h2>
+          <h2 className="mt-1.5 text-title font-bold">
+            선배들의 병동별 시크릿 족보
+          </h2>
           <p className="mt-1 text-body-sm text-on-inverse/75">
-            실습 나가기 전날, 그 병동을 먼저 다녀온 선배의 수간호사님 질문과 핵심 루틴을 크레딧으로 열어 보세요.
+            실습 나가기 전날, 그 병동을 먼저 다녀온 선배의 수간호사님 질문과
+            핵심 루틴을 크레딧으로 열어 보세요.
           </p>
         </div>
         <div className="flex shrink-0 flex-wrap gap-2">
           {canWrite ? (
-            <Button type="button" onClick={() => setWriteAt(Date.now())} className="bg-warn-bg px-4 text-body-sm text-warn-ink">
-              ✍️ 내 실습 족보 팔고 +{UPLOAD_REWARD} C
+            <Button
+              type="button"
+              onClick={() => setWriteAt(Date.now())}
+              className="bg-warn-bg px-4 text-body-sm text-warn-ink"
+            >
+              <IconPencil size={17} /> 내 실습 족보 팔고 +{UPLOAD_REWARD} C
             </Button>
           ) : (
             viewer === "guest" && (
-              <Link href={loginHref("/notes")} className={`${buttonClass("secondary")} px-4 text-body-sm`}>
+              <Link
+                href={loginHref("/notes")}
+                className={`${buttonClass("secondary")} px-4 text-body-sm`}
+              >
                 로그인하고 300 C 받기
               </Link>
             )
@@ -143,7 +202,7 @@ export default function NotesMarket({
               onClick={openShop}
               className="bg-on-inverse/15 px-4 text-body-sm text-on-inverse hover:bg-on-inverse/25"
             >
-              💎 크레딧 충전소
+              <CreditMark size={17} /> 크레딧 충전소
             </Button>
           )}
         </div>
@@ -156,8 +215,12 @@ export default function NotesMarket({
           role="search"
           onSubmit={(e) => {
             e.preventDefault();
-            const q = String(new FormData(e.currentTarget).get("q") ?? "").trim();
-            router.push(hrefWith(filter, { q: q || undefined }), { scroll: false });
+            const q = String(
+              new FormData(e.currentTarget).get("q") ?? "",
+            ).trim();
+            router.push(hrefWith(filter, { q: q || undefined }), {
+              scroll: false,
+            });
           }}
           className="flex gap-2"
         >
@@ -170,7 +233,11 @@ export default function NotesMarket({
             placeholder="병원·병동·제목으로 찾기"
             className="min-w-0 flex-1"
           />
-          <Button type="submit" variant="secondary" className="min-h-11 shrink-0 px-4 text-body-sm">
+          <Button
+            type="submit"
+            variant="secondary"
+            className="min-h-11 shrink-0 px-4 text-body-sm"
+          >
             찾기
           </Button>
         </form>
@@ -185,30 +252,32 @@ export default function NotesMarket({
           </Link>
         )}
         <ul className="-mx-5 flex gap-1.5 overflow-x-auto px-5 pb-1 md:mx-0 md:flex-wrap md:px-0">
-          {[{ key: undefined, label: "전체 병동" }, ...NOTE_CATEGORIES].map((c) => {
-            const active = filter.category === c.key;
-            return (
-              <li key={c.label} className="shrink-0">
-                <MotionLink
-                  href={hrefWith(filter, { category: c.key })}
-                  aria-current={active ? "page" : undefined}
-                  whileTap={tap}
-                  scroll={false}
-                  className={`relative isolate inline-flex min-h-11 items-center rounded-full px-3.5 text-body-sm font-bold transition-colors ${active ? "text-ink" : "text-ink-soft hover:text-ink"}`}
-                >
-                  {active && (
-                    <motion.span
-                      layoutId="note-category-pill"
-                      transition={SPRING_SNAPPY}
-                      aria-hidden
-                      className="absolute inset-0 -z-10 rounded-full bg-brand"
-                    />
-                  )}
-                  {c.label}
-                </MotionLink>
-              </li>
-            );
-          })}
+          {[{ key: undefined, label: "전체 병동" }, ...NOTE_CATEGORIES].map(
+            (c) => {
+              const active = filter.category === c.key;
+              return (
+                <li key={c.label} className="shrink-0">
+                  <MotionLink
+                    href={hrefWith(filter, { category: c.key })}
+                    aria-current={active ? "page" : undefined}
+                    whileTap={tap}
+                    scroll={false}
+                    className={`relative isolate inline-flex min-h-11 items-center rounded-full px-3.5 text-body-sm font-bold transition-colors ${active ? "text-ink" : "text-ink-soft hover:text-ink"}`}
+                  >
+                    {active && (
+                      <motion.span
+                        layoutId="note-category-pill"
+                        transition={SPRING_SNAPPY}
+                        aria-hidden
+                        className="absolute inset-0 -z-10 rounded-full bg-brand"
+                      />
+                    )}
+                    {c.label}
+                  </MotionLink>
+                </li>
+              );
+            },
+          )}
         </ul>
         <div className="flex flex-wrap items-center gap-2 text-body-sm">
           {filter.ward && (
@@ -232,7 +301,10 @@ export default function NotesMarket({
               {s === "new" ? "최신순" : "인기순"}
             </Link>
           ))}
-          <span className="ml-auto text-caption text-ink-soft">🔓 잠금 해제한 족보는 졸업 때까지 무제한 열람</span>
+          <span className="ml-auto text-caption text-ink-soft">
+            <IconUnlock size={15} className="mr-1 inline align-[-0.2em]" />
+            잠금 해제한 족보는 졸업 때까지 무제한 열람
+          </span>
         </div>
       </nav>
 
@@ -240,9 +312,13 @@ export default function NotesMarket({
         <div className="flex flex-col items-center rounded-card border border-dashed border-line px-5 py-10 text-center">
           <NurseTurtle stage={4} mood="empty" size={88} decorative />
           <p className="mt-2 text-title font-bold">
-            {filter.ward || filter.category ? "이 조건의 족보가 아직 없어요" : "아직 올라온 족보가 없어요"}
+            {filter.ward || filter.category
+              ? "이 조건의 족보가 아직 없어요"
+              : "아직 올라온 족보가 없어요"}
           </p>
-          <p className="mt-1 text-body-sm text-ink-soft">지난 실습 병동의 꿀팁을 첫 번째로 남겨 보세요</p>
+          <p className="mt-1 text-body-sm text-ink-soft">
+            지난 실습 병동의 꿀팁을 첫 번째로 남겨 보세요
+          </p>
         </div>
       ) : (
         <NotePages
@@ -256,12 +332,31 @@ export default function NotesMarket({
           onComments={openComments}
         />
       )}
-      <NoteComments target={comments} me={me} onClose={closeComments} onCount={onCommentCount} />
+      <NoteComments
+        target={comments}
+        me={me}
+        onClose={closeComments}
+        onCount={onCommentCount}
+      />
 
-      <Modal open={writing} onClose={closeWriting} title="✍️ 선배 병동 꿀팁 & 족보 등록">
-        <NoteForm action={action} state={state} pending={pending} rewardAvailable={rewardAvailable} onCancel={closeWriting} />
+      <Modal
+        open={writing}
+        onClose={closeWriting}
+        title="선배 병동 꿀팁 & 족보 등록"
+      >
+        <NoteForm
+          action={action}
+          state={state}
+          pending={pending}
+          rewardAvailable={rewardAvailable}
+          onCancel={closeWriting}
+        />
       </Modal>
-      <Modal open={shopOpen} onClose={() => setShopOpen(false)} title="💎 너스패스 크레딧 충전소">
+      <Modal
+        open={shopOpen}
+        onClose={() => setShopOpen(false)}
+        title="너스패스 크레딧 충전소"
+      >
         <CreditShop
           onWrite={() => {
             setShopOpen(false);
@@ -319,7 +414,12 @@ function NotePages({
             variants={FADE_UP}
             initial="hidden"
             animate="show"
-            transition={{ ...SPRING_SOFT, delay: Math.min(i < items.length ? i : i - items.length, 8) * STAGGER_STEP }}
+            transition={{
+              ...SPRING_SOFT,
+              delay:
+                Math.min(i < items.length ? i : i - items.length, 8) *
+                STAGGER_STEP,
+            }}
           >
             <NoteCard
               note={note}
@@ -332,7 +432,9 @@ function NotePages({
         ))}
       </div>
       {loading && <NotesMoreSkeleton />}
-      {failed && <FormStatus message="족보를 더 불러오지 못했어요. 다시 눌러 주세요" />}
+      {failed && (
+        <FormStatus message="족보를 더 불러오지 못했어요. 다시 눌러 주세요" />
+      )}
       {cursor && !loading && (
         <Button type="button" variant="ghost" block onClick={loadMore}>
           더 보기

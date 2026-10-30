@@ -1,15 +1,34 @@
 // 체험 학생(김하늘)의 실습 활동 예시 (seed.ts가 불러 씀): 실습 기록 · 실습 일정 · 실습일지 · 모의 구술질문 · 케이스 대화·과제 제출 · 알림.
 // 3학년 1학기(3~6월)와 2학기(9월~) 실습을 병동을 돌며 해 온 것으로 지어냈다. 고정 id로 upsert해서 여러 번 돌려도 하나씩만 생긴다.
 // id는 앱이 주소로 받을 때 cuid 형식인지 검사하므로(idSchema) c로 시작하는 9자 이상 영문·숫자로 둔다.
-import type { LogStatus, PrismaClient, Shift, Subject, WardCategory } from "../generated/prisma/client";
-import { PRECEPTOR_QUESTIONS, type PreceptorWard } from "../lib/preceptor-questions";
-import { journalSchema, preceptorAnswerSchema, preceptorEvalSchema, type PreceptorEval } from "../lib/validation/learning";
+import type {
+  LogStatus,
+  PrismaClient,
+  Shift,
+  Subject,
+  WardCategory,
+} from "../generated/prisma/client";
+import {
+  PRECEPTOR_QUESTIONS,
+  type PreceptorWard,
+} from "../lib/preceptor-questions";
+import {
+  journalSchema,
+  preceptorAnswerSchema,
+  preceptorEvalSchema,
+  type PreceptorEval,
+} from "../lib/validation/learning";
 import { idSchema } from "../lib/validation/form";
 import { detectPii } from "../lib/validation/pii";
 import { storedCaseAiSchema } from "../lib/validation/case";
 import { seedId } from "./seed-content";
 
-type Ids = { studentId: string; profId: string; profName: string; orgId: string };
+type Ids = {
+  studentId: string;
+  profId: string;
+  profName: string;
+  orgId: string;
+};
 
 // 병동 순환: 평일만, 공휴일(추석 9/24·25, 한글날 10/9) 제외. 마지막 순환은 아직 인증 전
 type Rotation = {
@@ -22,7 +41,14 @@ type Rotation = {
   activities: string[];
   hardSkills: string[][];
 };
-const HOLIDAYS = new Set(["2026-05-05", "2026-05-25", "2026-06-03", "2026-09-24", "2026-09-25", "2026-10-09"]);
+const HOLIDAYS = new Set([
+  "2026-05-05",
+  "2026-05-25",
+  "2026-06-03",
+  "2026-09-24",
+  "2026-09-25",
+  "2026-10-09",
+]);
 const TODAY = "2026-10-30";
 
 const rotations: Rotation[] = [
@@ -73,7 +99,13 @@ const rotations: Rotation[] = [
       "고혈압·당뇨 등록 관리 대상자 상담 참관",
       "보건교육 계획안 작성과 발표 준비",
     ],
-    hardSkills: [["communication"], ["vitals", "glucose"], ["communication"], [], ["communication"]],
+    hardSkills: [
+      ["communication"],
+      ["vitals", "glucose"],
+      ["communication"],
+      [],
+      ["communication"],
+    ],
   },
   {
     subject: "management",
@@ -122,7 +154,12 @@ const rotations: Rotation[] = [
       "수술 전 준비(금식·동의서·장신구 제거) 체크리스트 확인",
       "물리치료 전 진통제 투여 시간 확인, 조기 이상 보조",
     ],
-    hardSkills: [["positioning"], ["aseptic"], ["positioning", "communication"], ["iv"]],
+    hardSkills: [
+      ["positioning"],
+      ["aseptic"],
+      ["positioning", "communication"],
+      ["iv"],
+    ],
   },
   {
     subject: "adult",
@@ -138,7 +175,13 @@ const rotations: Rotation[] = [
       "승압제 주입 펌프 확인 관찰, 동맥관 파형 보기",
       "욕창 예방 체위 변경, 브레이든 점수 사정",
     ],
-    hardSkills: [["suction", "emergency"], ["io"], ["aseptic"], ["iv", "emergency"], ["positioning"]],
+    hardSkills: [
+      ["suction", "emergency"],
+      ["io"],
+      ["aseptic"],
+      ["iv", "emergency"],
+      ["positioning"],
+    ],
   },
   {
     subject: "maternal",
@@ -154,7 +197,13 @@ const rotations: Rotation[] = [
       "분만실 관찰(산모 동의), NST 판독 연습",
       "회음부 간호·좌욕 교육 참관, 퇴원 교육 자료 준비",
     ],
-    hardSkills: [["communication"], ["vitals"], ["communication"], [], ["communication", "charting"]],
+    hardSkills: [
+      ["communication"],
+      ["vitals"],
+      ["communication"],
+      [],
+      ["communication", "charting"],
+    ],
   },
   {
     subject: "child",
@@ -175,9 +224,14 @@ const rotations: Rotation[] = [
 
 function weekdays(from: string, to: string) {
   const days: string[] = [];
-  for (let d = new Date(`${from}T00:00:00Z`); d <= new Date(`${to}T00:00:00Z`); d.setUTCDate(d.getUTCDate() + 1)) {
+  for (
+    let d = new Date(`${from}T00:00:00Z`);
+    d <= new Date(`${to}T00:00:00Z`);
+    d.setUTCDate(d.getUTCDate() + 1)
+  ) {
     const iso = d.toISOString().slice(0, 10);
-    if (d.getUTCDay() !== 0 && d.getUTCDay() !== 6 && !HOLIDAYS.has(iso)) days.push(iso);
+    if (d.getUTCDay() !== 0 && d.getUTCDay() !== 6 && !HOLIDAYS.has(iso))
+      days.push(iso);
   }
   return days;
 }
@@ -210,7 +264,8 @@ function buildLogs(): SeedLog[] {
     const last = ri === rotations.length - 1;
     weekdays(r.from, r.to).forEach((date, i) => {
       // 중환자실 둘째 주는 이브닝, 그 밖에는 데이
-      const shift: Shift = r.wardCategory === "icu" && i >= 5 ? "evening" : "day";
+      const shift: Shift =
+        r.wardCategory === "icu" && i >= 5 ? "evening" : "day";
       // 중환자실 마지막 날은 시간을 12로 잘못 적어 반려된 기록
       const rejected = r.wardCategory === "icu" && date === r.to;
       logs.push({
@@ -223,7 +278,10 @@ function buildLogs(): SeedLog[] {
         wardCategory: r.wardCategory,
         minutes: rejected ? 12 * 60 : 8 * 60,
         activities: r.activities[i % r.activities.length],
-        difficulty: Math.min(5, (r.wardCategory === "icu" ? 4 : 2) + (i % 3 === 2 ? 1 : 0)),
+        difficulty: Math.min(
+          5,
+          (r.wardCategory === "icu" ? 4 : 2) + (i % 3 === 2 ? 1 : 0),
+        ),
         hardSkills: r.hardSkills[i % r.hardSkills.length],
         status: last ? "pending" : rejected ? "rejected" : "approved",
       });
@@ -300,17 +358,30 @@ const journals = [
 ];
 
 // 모의 구술질문: 다녀온 병동의 질문을 풀어 본 기록 (80점 미만은 "다시 볼 질문"에 남는다)
-const attempts: { id: string; ward: PreceptorWard; key: string; answer: string; at: string; eval: PreceptorEval }[] = [
+const attempts: {
+  id: string;
+  ward: PreceptorWard;
+  key: string;
+  answer: string;
+  at: string;
+  eval: PreceptorEval;
+}[] = [
   {
     id: "cseedquizinsulin",
     ward: "internal",
     key: "int-insulin",
     at: "2026-09-10T21:00:00+09:00",
-    answer: "저혈당을 가장 주의해서 봐야 합니다. 식은땀, 손떨림, 어지러움, 빈맥, 의식 변화가 나타나면 바로 혈당을 재고 담당 선생님께 보고하겠습니다.",
+    answer:
+      "저혈당을 가장 주의해서 봐야 합니다. 식은땀, 손떨림, 어지러움, 빈맥, 의식 변화가 나타나면 바로 혈당을 재고 담당 선생님께 보고하겠습니다.",
     eval: {
       score: 88,
-      strengths: ["저혈당을 정확히 짚고 대표 증상을 고르게 말했어요", "혈당 측정 → 보고 순서가 분명해요"],
-      improvements: ["식사 시간과 인슐린 투여 시간을 함께 확인한다는 점을 덧붙이면 더 좋아요"],
+      strengths: [
+        "저혈당을 정확히 짚고 대표 증상을 고르게 말했어요",
+        "혈당 측정 → 보고 순서가 분명해요",
+      ],
+      improvements: [
+        "식사 시간과 인슐린 투여 시간을 함께 확인한다는 점을 덧붙이면 더 좋아요",
+      ],
       modelAnswer:
         "인슐린 투여 후 가장 주의할 부작용은 저혈당입니다. 식은땀, 떨림, 어지러움, 빈맥, 의식 변화를 관찰하고, 증상이 있으면 즉시 혈당을 측정해 지도간호사에게 보고합니다. 또 식사 시간과 투여 시간이 맞는지 확인합니다.",
     },
@@ -338,11 +409,17 @@ const attempts: { id: string; ward: PreceptorWard; key: string; answer: string; 
     ward: "obstetric",
     key: "obs-fundus",
     at: "2026-10-21T20:40:00+09:00",
-    answer: "먼저 방광을 비우게 한 뒤 배꼽을 기준으로 자궁저부 높이를 손가락 수로 재고, 단단한지와 위치를 확인합니다. 오로의 양과 색도 함께 보고 이상하면 보고합니다.",
+    answer:
+      "먼저 방광을 비우게 한 뒤 배꼽을 기준으로 자궁저부 높이를 손가락 수로 재고, 단단한지와 위치를 확인합니다. 오로의 양과 색도 함께 보고 이상하면 보고합니다.",
     eval: {
       score: 94,
-      strengths: ["방광 비우기부터 시작하는 순서가 정확해요", "높이·단단함·위치·오로까지 빠짐없이 말했어요"],
-      improvements: ["자궁이 물렁하면 자궁저부 마사지를 한다는 점을 덧붙여 보세요"],
+      strengths: [
+        "방광 비우기부터 시작하는 순서가 정확해요",
+        "높이·단단함·위치·오로까지 빠짐없이 말했어요",
+      ],
+      improvements: [
+        "자궁이 물렁하면 자궁저부 마사지를 한다는 점을 덧붙여 보세요",
+      ],
       modelAnswer:
         "방광을 먼저 비우게 한 뒤 배꼽 기준 손가락 수로 자궁저부 높이를 재고 단단함과 위치(정중앙 여부)를 확인합니다. 오로의 양·색을 함께 사정하고, 물렁하거나 출혈이 많으면 마사지 후 즉시 보고합니다.",
     },
@@ -356,7 +433,10 @@ const attempts: { id: string; ward: PreceptorWard; key: string; answer: string; 
     eval: {
       score: 70,
       strengths: ["체중 기준(mg/kg) 계산을 먼저 떠올린 점이 좋아요"],
-      improvements: ["다른 간호사와 이중 확인한다는 점을 꼭 넣어 주세요", "최대 용량을 넘는지 확인하고, 의심되면 투여 전 보고한다고 말해 보세요"],
+      improvements: [
+        "다른 간호사와 이중 확인한다는 점을 꼭 넣어 주세요",
+        "최대 용량을 넘는지 확인하고, 의심되면 투여 전 보고한다고 말해 보세요",
+      ],
       modelAnswer:
         "아이의 체중(kg)으로 용량을 계산해 처방 용량과 비교하고, 다른 간호사와 이중 확인합니다. 최대 용량을 넘지 않는지 확인하며, 조금이라도 의심되면 투여 전에 보고합니다.",
     },
@@ -377,7 +457,7 @@ const chats = [
     role: "ai" as const,
     at: "2026-10-27T19:20:20+09:00",
     content:
-      "ABC(기도·호흡·순환) 원칙 때문이에요. 이 영아는 호흡수 56회/분, 늑간 함몰, 실내공기 SpO2 92%로 산소화가 바로 위협받고 있어요. 체액 부족(체중 3.6% 감소)도 중요하지만 수액으로 교정 중이고 진행 속도가 느려서, 지금 당장 생명을 위협하는 호흡 문제를 먼저 둡니다. 발표 때는 \"객관적 자료 + ABC 원칙\"으로 근거를 말하면 좋아요.",
+      'ABC(기도·호흡·순환) 원칙 때문이에요. 이 영아는 호흡수 56회/분, 늑간 함몰, 실내공기 SpO2 92%로 산소화가 바로 위협받고 있어요. 체액 부족(체중 3.6% 감소)도 중요하지만 수액으로 교정 중이고 진행 속도가 느려서, 지금 당장 생명을 위협하는 호흡 문제를 먼저 둡니다. 발표 때는 "객관적 자료 + ABC 원칙"으로 근거를 말하면 좋아요.',
   },
   {
     id: "cseedchatdm1",
@@ -392,28 +472,46 @@ const chats = [
     role: "ai" as const,
     at: "2026-09-10T20:05:18+09:00",
     content:
-      "혈당이 70mg/dL 아래로 떨어지면 당질 15g(주스 반 컵, 사탕 3~4개 등)을 먹고 15분 뒤 다시 재는 방법이에요. 그래도 70 미만이면 한 번 더 반복해요. 교육할 때는 \"어지럽거나 식은땀이 나면 → 혈당 재고 → 주스 반 컵 → 15분 뒤 다시 재기\"처럼 행동 순서로 짧게 말하고, 직접 따라 말해 보게 하면 기억에 오래 남아요.",
+      '혈당이 70mg/dL 아래로 떨어지면 당질 15g(주스 반 컵, 사탕 3~4개 등)을 먹고 15분 뒤 다시 재는 방법이에요. 그래도 70 미만이면 한 번 더 반복해요. 교육할 때는 "어지럽거나 식은땀이 나면 → 혈당 재고 → 주스 반 컵 → 15분 뒤 다시 재기"처럼 행동 순서로 짧게 말하고, 직접 따라 말해 보게 하면 기억에 오래 남아요.',
   },
 ];
 
 /** 앱 입력 규칙으로 검사한다. 하나라도 어긋나면 아무것도 넣지 않고 멈춘다 */
 function validate(logs: SeedLog[]) {
-  for (const { id } of [...logs, ...journals, ...attempts, ...chats]) idSchema.parse(id);
+  for (const { id } of [...logs, ...journals, ...attempts, ...chats])
+    idSchema.parse(id);
   for (const l of logs) {
-    if (detectPii(l.activities).length || l.activities.length > 2000) throw new Error(`실습 기록 내용 확인: ${l.date}`);
+    if (detectPii(l.activities).length || l.activities.length > 2000)
+      throw new Error(`실습 기록 내용 확인: ${l.date}`);
     if (l.date > TODAY) throw new Error(`앞날짜 기록: ${l.date}`);
   }
-  for (const j of journals) journalSchema.parse({ date: j.date, ward: j.ward, memo: j.memo, content: j.content });
+  for (const j of journals)
+    journalSchema.parse({
+      date: j.date,
+      ward: j.ward,
+      memo: j.memo,
+      content: j.content,
+    });
   for (const a of attempts) {
-    preceptorAnswerSchema.parse({ ward: a.ward, questionKey: a.key, answer: a.answer });
+    preceptorAnswerSchema.parse({
+      ward: a.ward,
+      questionKey: a.key,
+      answer: a.answer,
+    });
     preceptorEvalSchema.parse(a.eval);
-    if (!PRECEPTOR_QUESTIONS[a.ward].some((q) => q.key === a.key)) throw new Error(`없는 질문: ${a.key}`);
+    if (!PRECEPTOR_QUESTIONS[a.ward].some((q) => q.key === a.key))
+      throw new Error(`없는 질문: ${a.key}`);
   }
-  for (const c of chats) if (detectPii(c.content).length) throw new Error(`대화 내용 확인: ${c.id}`);
+  for (const c of chats)
+    if (detectPii(c.content).length) throw new Error(`대화 내용 확인: ${c.id}`);
 }
 
 /** tag: 고정 id의 "seed" 자리(seedId). 다른 계정에 같은 예시를 넣을 때 다른 값을 준다 */
-export async function seedStudentActivity(db: PrismaClient, ids: Ids, tag = "seed") {
+export async function seedStudentActivity(
+  db: PrismaClient,
+  ids: Ids,
+  tag = "seed",
+) {
   const T = (id: string) => seedId(id, tag);
   const logs = buildLogs();
   validate(logs);
@@ -428,7 +526,11 @@ export async function seedStudentActivity(db: PrismaClient, ids: Ids, tag = "see
       reviewedAt: reviewed ? fridayAfter(date) : null,
       updatedAt: reviewed ? fridayAfter(date) : createdAt,
     };
-    await db.practiceLog.upsert({ where: { id: T(id) }, create: { id: T(id), userId: ids.studentId, createdAt, ...data }, update: data });
+    await db.practiceLog.upsert({
+      where: { id: T(id) },
+      create: { id: T(id), userId: ids.studentId, createdAt, ...data },
+      update: data,
+    });
   }
 
   // 지금 도는 소아 병동 + 다음 정신과 실습(홈의 D-day)
@@ -469,7 +571,8 @@ export async function seedStudentActivity(db: PrismaClient, ids: Ids, tag = "see
       commonDiseases: ["조현병", "양극성 장애", "알코올 사용장애"],
       groupName: "B-2조",
       teammates: ["이서연"],
-      prepNotes: "끈 없는 실내화, 과정기록 양식 출력, 치료적 의사소통 기법 정리",
+      prepNotes:
+        "끈 없는 실내화, 과정기록 양식 출력, 치료적 의사소통 기법 정리",
     },
     // 학과가 미리 올려 둔 남은 일정 → 교수 현황판에서 "예정 일정을 다 하면 1,000시간"으로 보인다
     {
@@ -512,32 +615,72 @@ export async function seedStudentActivity(db: PrismaClient, ids: Ids, tag = "see
     },
   ];
   for (const { id, ...s } of schedules) {
-    await db.practiceSchedule.upsert({ where: { id: T(id) }, create: { id: T(id), userId: ids.studentId, kind: "practice", ...s }, update: s });
+    await db.practiceSchedule.upsert({
+      where: { id: T(id) },
+      create: { id: T(id), userId: ids.studentId, kind: "practice", ...s },
+      update: s,
+    });
   }
 
   for (const { id, date, ...j } of journals) {
     const at = new Date(`${date}T21:30:00+09:00`);
     const data = { ...j, date: new Date(`${date}T00:00:00Z`), updatedAt: at };
-    await db.dailyJournal.upsert({ where: { id: T(id) }, create: { id: T(id), userId: ids.studentId, createdAt: at, ...data }, update: data });
+    await db.dailyJournal.upsert({
+      where: { id: T(id) },
+      create: { id: T(id), userId: ids.studentId, createdAt: at, ...data },
+      update: data,
+    });
   }
 
   for (const a of attempts) {
-    const data = { wardCategory: a.ward, questionKey: a.key, answer: a.answer, score: a.eval.score, feedback: a.eval };
-    await db.preceptorAttempt.upsert({ where: { id: T(a.id) }, create: { id: T(a.id), userId: ids.studentId, createdAt: new Date(a.at), ...data }, update: data });
+    const data = {
+      wardCategory: a.ward,
+      questionKey: a.key,
+      answer: a.answer,
+      score: a.eval.score,
+      feedback: a.eval,
+    };
+    await db.preceptorAttempt.upsert({
+      where: { id: T(a.id) },
+      create: {
+        id: T(a.id),
+        userId: ids.studentId,
+        createdAt: new Date(a.at),
+        ...data,
+      },
+      update: data,
+    });
   }
 
   for (const { id, at, ...c } of chats) {
     const data = { ...c, caseId: T(c.caseId) };
-    await db.caseChatMessage.upsert({ where: { id: T(id) }, create: { id: T(id), createdAt: new Date(at), ...data }, update: data });
+    await db.caseChatMessage.upsert({
+      where: { id: T(id) },
+      create: { id: T(id), createdAt: new Date(at), ...data },
+      update: data,
+    });
   }
 
   // 과제 제출: 정형외과 케이스는 채점 완료(A), 중환자실 케이스는 채점 대기 → 교수 화면에서 바로 채점해 볼 수 있다
   const submissions = [
-    { id: "cseedsubthr", caseId: "cseedcasethr", at: "2026-10-01T22:00:00+09:00", graded: true },
-    { id: "cseedsubvent", caseId: "cseedcasevent", at: "2026-10-16T21:40:00+09:00", graded: false },
+    {
+      id: "cseedsubthr",
+      caseId: "cseedcasethr",
+      at: "2026-10-01T22:00:00+09:00",
+      graded: true,
+    },
+    {
+      id: "cseedsubvent",
+      caseId: "cseedcasevent",
+      at: "2026-10-16T21:40:00+09:00",
+      graded: false,
+    },
   ];
   for (const s of submissions) {
-    const found = await db.caseNote.findUniqueOrThrow({ where: { id: T(s.caseId) }, select: { title: true, ward: true, memo: true, aiResult: true } });
+    const found = await db.caseNote.findUniqueOrThrow({
+      where: { id: T(s.caseId) },
+      select: { title: true, ward: true, memo: true, aiResult: true },
+    });
     const aiResult = storedCaseAiSchema.parse(found.aiResult);
     const gradedAt = new Date(new Date(s.at).getTime() + 2 * 86_400_000);
     const data = {
@@ -557,29 +700,100 @@ export async function seedStudentActivity(db: PrismaClient, ids: Ids, tag = "see
             gradedBy: ids.profId,
             gradedAt,
           }
-        : { status: "submitted" as const, grade: null, score: null, feedback: null, gradedBy: null, gradedAt: null }),
+        : {
+            status: "submitted" as const,
+            grade: null,
+            score: null,
+            feedback: null,
+            gradedBy: null,
+            gradedAt: null,
+          }),
     };
-    await db.caseSubmission.upsert({ where: { id: T(s.id) }, create: { id: T(s.id), studentId: ids.studentId, caseId: T(s.caseId), ...data }, update: data });
+    await db.caseSubmission.upsert({
+      where: { id: T(s.id) },
+      create: {
+        id: T(s.id),
+        studentId: ids.studentId,
+        caseId: T(s.caseId),
+        ...data,
+      },
+      update: data,
+    });
   }
 
   // 알림: 지난 것은 읽음, 최근 두 개는 안 읽음
   const hours = (status: LogStatus, from: string, to: string) =>
-    logs.filter((l) => l.status === status && l.date >= from && l.date <= to).reduce((sum, l) => sum + l.minutes / 60, 0);
+    logs
+      .filter((l) => l.status === status && l.date >= from && l.date <= to)
+      .reduce((sum, l) => sum + l.minutes / 60, 0);
   const notes = [
-    { id: "cseednotif0918", at: "2026-09-18T17:30:00+09:00", kind: "log_approved", title: "✅ 실습 일지 10건 인증 완료", body: `${ids.profName} 교수님이 ${hours("approved", "2026-09-07", "2026-09-18")}시간을 인증했어요.`, link: "/", read: true },
-    { id: "cseednotif1002", at: "2026-10-02T17:30:00+09:00", kind: "log_approved", title: "✅ 실습 일지 8건 인증 완료", body: `${ids.profName} 교수님이 ${hours("approved", "2026-09-21", "2026-10-02")}시간을 인증했어요.`, link: "/", read: true },
-    { id: "cseednotifgrade", at: "2026-10-03T22:00:00+09:00", kind: "grade", title: "🎓 케이스 채점 결과: A (92점)", body: `${ids.profName} 교수님 · 고관절 전치환술 후 2일차 낙상 위험 — 낙상 위험 요인을 자료로 잘 묶었고 우선순위 근거가 분명해요.`, link: "/submissions", read: true },
-    { id: "cseednotif1016", at: "2026-10-16T17:30:00+09:00", kind: "log_rejected", title: "↩️ 실습 일지 1건 반려", body: `${ids.profName} 교수님: 10월 16일 실습 시간이 12시간으로 되어 있어요. 이브닝 8시간이 맞는지 확인해 다시 올려 주세요.`, link: "/", read: false },
-    { id: "cseednotif1023", at: "2026-10-23T17:30:00+09:00", kind: "log_approved", title: "✅ 실습 일지 13건 인증 완료", body: `${ids.profName} 교수님이 ${hours("approved", "2026-10-05", "2026-10-23")}시간을 인증했어요.`, link: "/", read: false },
+    {
+      id: "cseednotif0918",
+      at: "2026-09-18T17:30:00+09:00",
+      kind: "log_approved",
+      title: "실습 일지 10건 인증 완료",
+      body: `${ids.profName} 교수님이 ${hours("approved", "2026-09-07", "2026-09-18")}시간을 인증했어요.`,
+      link: "/",
+      read: true,
+    },
+    {
+      id: "cseednotif1002",
+      at: "2026-10-02T17:30:00+09:00",
+      kind: "log_approved",
+      title: "실습 일지 8건 인증 완료",
+      body: `${ids.profName} 교수님이 ${hours("approved", "2026-09-21", "2026-10-02")}시간을 인증했어요.`,
+      link: "/",
+      read: true,
+    },
+    {
+      id: "cseednotifgrade",
+      at: "2026-10-03T22:00:00+09:00",
+      kind: "grade",
+      title: "케이스 채점 결과: A (92점)",
+      body: `${ids.profName} 교수님 · 고관절 전치환술 후 2일차 낙상 위험 — 낙상 위험 요인을 자료로 잘 묶었고 우선순위 근거가 분명해요.`,
+      link: "/submissions",
+      read: true,
+    },
+    {
+      id: "cseednotif1016",
+      at: "2026-10-16T17:30:00+09:00",
+      kind: "log_rejected",
+      title: "실습 일지 1건 반려",
+      body: `${ids.profName} 교수님: 10월 16일 실습 시간이 12시간으로 되어 있어요. 이브닝 8시간이 맞는지 확인해 다시 올려 주세요.`,
+      link: "/",
+      read: false,
+    },
+    {
+      id: "cseednotif1023",
+      at: "2026-10-23T17:30:00+09:00",
+      kind: "log_approved",
+      title: "실습 일지 13건 인증 완료",
+      body: `${ids.profName} 교수님이 ${hours("approved", "2026-10-05", "2026-10-23")}시간을 인증했어요.`,
+      link: "/",
+      read: false,
+    },
   ];
   for (const { id, at, read, ...n } of notes) {
     const createdAt = new Date(at);
-    const data = { ...n, readAt: read ? new Date(createdAt.getTime() + 3_600_000) : null };
-    await db.notification.upsert({ where: { id: T(id) }, create: { id: T(id), userId: ids.studentId, createdAt, ...data }, update: data });
+    const data = {
+      ...n,
+      readAt: read ? new Date(createdAt.getTime() + 3_600_000) : null,
+    };
+    await db.notification.upsert({
+      where: { id: T(id) },
+      create: { id: T(id), userId: ids.studentId, createdAt, ...data },
+      update: data,
+    });
   }
 
-  const approved = logs.filter((l) => l.status === "approved").reduce((s, l) => s + l.minutes, 0) / 60;
-  const pending = logs.filter((l) => l.status === "pending").reduce((s, l) => s + l.minutes, 0) / 60;
+  const approved =
+    logs
+      .filter((l) => l.status === "approved")
+      .reduce((s, l) => s + l.minutes, 0) / 60;
+  const pending =
+    logs
+      .filter((l) => l.status === "pending")
+      .reduce((s, l) => s + l.minutes, 0) / 60;
   console.log(
     `학생 활동(${tag}): 실습 기록 ${logs.length}건(인증 ${approved}시간 · 대기 ${pending}시간) · 일정 ${schedules.length} · 일지 ${journals.length} · 모의질문 ${attempts.length} · 대화 ${chats.length} · 과제 ${submissions.length} · 알림 ${notes.length}`,
   );

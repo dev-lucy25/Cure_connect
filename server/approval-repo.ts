@@ -78,7 +78,9 @@ export async function listPendingLogs(prof: Prof): Promise<ReviewLog[]> {
 }
 
 export async function countPendingLogs(prof: Prof) {
-  return db.practiceLog.count({ where: { status: "pending", user: visibleStudents(prof) } });
+  return db.practiceLog.count({
+    where: { status: "pending", user: visibleStudents(prof) },
+  });
 }
 
 /**
@@ -93,7 +95,11 @@ export async function reviewLogs(
 ): Promise<number> {
   return db.$transaction(async (tx) => {
     const targets = await tx.practiceLog.findMany({
-      where: { id: { in: ids }, status: "pending", user: visibleStudents(prof) },
+      where: {
+        id: { in: ids },
+        status: "pending",
+        user: visibleStudents(prof),
+      },
       select: { id: true, userId: true, minutes: true },
     });
     if (targets.length === 0) return 0;
@@ -104,7 +110,10 @@ export async function reviewLogs(
     const byStudent = new Map<string, { count: number; minutes: number }>();
     for (const t of targets) {
       const cur = byStudent.get(t.userId) ?? { count: 0, minutes: 0 };
-      byStudent.set(t.userId, { count: cur.count + 1, minutes: cur.minutes + t.minutes });
+      byStudent.set(t.userId, {
+        count: cur.count + 1,
+        minutes: cur.minutes + t.minutes,
+      });
     }
     await notify(
       [...byStudent].map(([userId, { count, minutes }]) =>
@@ -112,14 +121,14 @@ export async function reviewLogs(
           ? {
               userId,
               kind: "log_approved",
-              title: `✅ 실습 일지 ${count}건 인증 완료`,
+              title: `실습 일지 ${count}건 인증 완료`,
               body: `${prof.name} 교수님이 ${Math.round((minutes / 60) * 10) / 10}시간을 인증했어요.`,
               link: "/",
             }
           : {
               userId,
               kind: "log_rejected",
-              title: `↩️ 실습 일지 ${count}건 반려`,
+              title: `실습 일지 ${count}건 반려`,
               body: `${prof.name} 교수님${reason ? `: ${reason}` : "이 일지를 반려했어요. 내용을 확인해 고쳐 주세요."}`,
               link: "/",
             },
@@ -145,25 +154,65 @@ export type StudentDetail = {
 };
 
 /** 학생 상세 (볼 수 없는 학생이면 null): 시간 요약·과목별·최근 일지 50개 */
-export async function getStudentDetail(prof: Prof, studentId: string): Promise<StudentDetail | null> {
+export async function getStudentDetail(
+  prof: Prof,
+  studentId: string,
+): Promise<StudentDetail | null> {
   const student = await db.profile.findFirst({
     where: { AND: [visibleStudents(prof), { id: studentId }] },
-    select: { id: true, name: true, memberNo: true, grade: true, classGroup: true, roomCode: true, org: { select: { name: true } } },
+    select: {
+      id: true,
+      name: true,
+      memberNo: true,
+      grade: true,
+      classGroup: true,
+      roomCode: true,
+      org: { select: { name: true } },
+    },
   });
   if (!student) return null;
   const [byStatus, bySubject, logs] = await Promise.all([
-    db.practiceLog.groupBy({ by: ["status"], where: { userId: studentId }, _sum: { minutes: true } }),
-    db.practiceLog.groupBy({ by: ["subject"], where: { userId: studentId }, _sum: { minutes: true } }),
-    db.practiceLog.findMany({ where: { userId: studentId }, orderBy: [{ date: "desc" }, { id: "desc" }], take: 50, select: logSelect }),
+    db.practiceLog.groupBy({
+      by: ["status"],
+      where: { userId: studentId },
+      _sum: { minutes: true },
+    }),
+    db.practiceLog.groupBy({
+      by: ["subject"],
+      where: { userId: studentId },
+      _sum: { minutes: true },
+    }),
+    db.practiceLog.findMany({
+      where: { userId: studentId },
+      orderBy: [{ date: "desc" }, { id: "desc" }],
+      take: 50,
+      select: logSelect,
+    }),
   ]);
-  const sum = (s?: LogStatus) => byStatus.filter((r) => !s || r.status === s).reduce((a, r) => a + (r._sum.minutes ?? 0), 0);
-  const subjectMinutes = { adult: 0, maternal: 0, child: 0, community: 0, psych: 0, management: 0 } satisfies Record<Subject, number>;
-  for (const row of bySubject) subjectMinutes[row.subject] = row._sum.minutes ?? 0;
+  const sum = (s?: LogStatus) =>
+    byStatus
+      .filter((r) => !s || r.status === s)
+      .reduce((a, r) => a + (r._sum.minutes ?? 0), 0);
+  const subjectMinutes = {
+    adult: 0,
+    maternal: 0,
+    child: 0,
+    community: 0,
+    psych: 0,
+    management: 0,
+  } satisfies Record<Subject, number>;
+  for (const row of bySubject)
+    subjectMinutes[row.subject] = row._sum.minutes ?? 0;
   return {
     id: student.id,
     name: student.name,
     memberNo: student.memberNo,
-    classLabel: [student.grade && `${student.grade}학년`, student.classGroup && `${student.classGroup}반`].filter(Boolean).join(" "),
+    classLabel: [
+      student.grade && `${student.grade}학년`,
+      student.classGroup && `${student.classGroup}반`,
+    ]
+      .filter(Boolean)
+      .join(" "),
     orgName: student.org?.name ?? null,
     roomCode: student.roomCode,
     totalMinutes: sum(),

@@ -12,6 +12,7 @@ import Button from "@/components/ui/button";
 import Field from "@/components/ui/field";
 import FormStatus from "@/components/ui/form-status";
 import TextareaField from "@/components/ui/textarea-field";
+import { IconBulb } from "@/components/ui/icons";
 
 // 케이스 쓰기·고치기 공용 폼. 저장 처리(useActionState)는 부모가 들고 있다.
 export default function CaseForm({
@@ -44,12 +45,22 @@ export default function CaseForm({
   }
 
   return (
-    <form action={action} noValidate className="space-y-3 rounded-card border border-line/70 bg-surface p-4 shadow-soft">
+    <form
+      action={action}
+      noValidate
+      className="space-y-3 rounded-card border border-line/70 bg-surface p-4 shadow-soft"
+    >
       {initial && <input type="hidden" name="id" value={initial.id} />}
       {/* 새 케이스일 때만: 예시 시나리오를 눌러 채워 보기 */}
       {!initial && (
         <div>
-          <p className="mb-1.5 text-body-sm font-bold text-ink">💡 예시 불러오기</p>
+          <p className="mb-1.5 text-body-sm font-bold text-ink">
+            <IconBulb
+              size={16}
+              className="mr-1 inline align-[-0.2em] text-warn-ink"
+            />
+            예시 불러오기
+          </p>
           <div className="flex flex-wrap gap-1.5">
             {CASE_PRESETS.map((p, i) => (
               <motion.button
@@ -62,7 +73,9 @@ export default function CaseForm({
                 transition={{ ...SPRING_SOFT, delay: i * 0.05 }}
                 whileTap={tap}
                 className={`min-h-11 rounded-full px-3.5 text-body-sm font-bold transition-colors ${
-                  preset?.key === p.key ? "bg-brand text-ink" : "bg-subtle text-ink-soft hover:text-ink"
+                  preset?.key === p.key
+                    ? "bg-brand text-ink"
+                    : "bg-subtle text-ink-soft hover:text-ink"
                 }`}
               >
                 예시{i + 1}: {p.label}
@@ -97,16 +110,19 @@ export default function CaseForm({
         id="case-memo"
         name="memo"
         label="현장 메모"
-        placeholder={"예: 68세 남, 폐렴 입원 3일차. 기침·가래 많음, 밤에 숨참 호소.\nBP 138/86, HR 104, BT 38.2, SpO2 92"}
+        placeholder={
+          "예: 68세 남, 폐렴 입원 3일차. 기침·가래 많음, 밤에 숨참 호소.\nBP 138/86, HR 104, BT 38.2, SpO2 92"
+        }
         rows={8}
         maxLength={MEMO_MAX}
         value={memo}
         onChange={(e) => setMemo(e.target.value)}
-        hint={pii.length > 0 && !errors.memo ? `⚠️ ${piiMessage(pii)}` : undefined}
+        hint={pii.length > 0 && !errors.memo ? piiMessage(pii) : undefined}
         error={errors.memo}
       />
       <p className="-mt-2 text-right text-caption text-ink-soft">
-        {memo.length.toLocaleString("ko-KR")} / {MEMO_MAX.toLocaleString("ko-KR")}자
+        {memo.length.toLocaleString("ko-KR")} /{" "}
+        {MEMO_MAX.toLocaleString("ko-KR")}자
       </p>
       <FormStatus message={state.message} />
       <div className="flex gap-2">

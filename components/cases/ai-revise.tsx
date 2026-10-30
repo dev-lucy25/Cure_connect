@@ -3,7 +3,11 @@
 import { useActionState, useEffect } from "react";
 import { motion } from "motion/react";
 import { editCaseAiAction, reviseCaseAction } from "@/server/case-actions";
-import { AI_SECTIONS, QUICK_REVISIONS, type CaseAiResult } from "@/lib/validation/case";
+import {
+  AI_SECTIONS,
+  QUICK_REVISIONS,
+  type CaseAiResult,
+} from "@/lib/validation/case";
 import type { FormState } from "@/lib/validation/form";
 import { SPRING_SOFT } from "@/lib/motion";
 import Button from "@/components/ui/button";
@@ -11,6 +15,7 @@ import Field from "@/components/ui/field";
 import FormStatus from "@/components/ui/form-status";
 import TextareaField from "@/components/ui/textarea-field";
 import { WalkingTurtle } from "@/components/ui/skeleton";
+import { IconSparkles } from "@/components/ui/icons";
 
 const SECTION_LABEL: Record<(typeof AI_SECTIONS)[number], string> = {
   S: "S 주관적 자료",
@@ -22,13 +27,32 @@ const SECTION_LABEL: Record<(typeof AI_SECTIONS)[number], string> = {
 };
 
 // 🪄 AI에게 수정 지시하기: 빠른 버튼 4개(데모 새 버전) 또는 직접 쓴 지시. 하루 AI 횟수에 포함된다
-export function RevisePanel({ caseId, left }: { caseId: string; left: number }) {
-  const [state, action, pending] = useActionState<FormState<"instruction">, FormData>(reviseCaseAction, {});
+export function RevisePanel({
+  caseId,
+  left,
+}: {
+  caseId: string;
+  left: number;
+}) {
+  const [state, action, pending] = useActionState<
+    FormState<"instruction">,
+    FormData
+  >(reviseCaseAction, {});
   const disabled = pending || left === 0;
   return (
-    <form action={action} className="mt-4 space-y-3 rounded-card border border-brand/60 bg-brand-soft/50 p-4" data-revise-panel>
+    <form
+      action={action}
+      className="mt-4 space-y-3 rounded-card border border-brand/60 bg-brand-soft/50 p-4"
+      data-revise-panel
+    >
       <input type="hidden" name="id" value={caseId} />
-      <p className="text-body-sm font-bold text-ink">🪄 AI에게 수정 지시하기</p>
+      <p className="text-body-sm font-bold text-ink">
+        <IconSparkles
+          size={18}
+          className="mr-1 inline align-[-0.2em] text-brand-deep"
+        />
+        AI에게 수정 지시하기
+      </p>
       <div className="flex flex-wrap gap-1.5">
         {QUICK_REVISIONS.map((q) => (
           <Button
@@ -52,14 +76,21 @@ export function RevisePanel({ caseId, left }: { caseId: string; left: number }) 
             placeholder="예: 1순위 진단을 '고체온'으로 바꾸고 미온수 마사지 중재를 넣어 줘"
             maxLength={200}
             defaultValue={
-              state.values?.instruction && !QUICK_REVISIONS.some((q) => q.instruction === state.values?.instruction)
+              state.values?.instruction &&
+              !QUICK_REVISIONS.some(
+                (q) => q.instruction === state.values?.instruction,
+              )
                 ? state.values.instruction
                 : ""
             }
             error={state.fieldErrors?.instruction}
           />
         </div>
-        <Button type="submit" disabled={disabled} className="mt-7 shrink-0 px-4 text-body-sm">
+        <Button
+          type="submit"
+          disabled={disabled}
+          className="mt-7 shrink-0 px-4 text-body-sm"
+        >
           AI 수정 반영
         </Button>
       </div>
@@ -71,15 +102,35 @@ export function RevisePanel({ caseId, left }: { caseId: string; left: number }) 
 }
 
 // ✏️ 직접 고치기: 항목마다 한 줄씩. 저장하면 정리 결과가 바뀐다(AI 횟수는 쓰지 않음)
-export function AiEditForm({ caseId, ai, onDone }: { caseId: string; ai: CaseAiResult; onDone: () => void }) {
-  const [state, action, pending] = useActionState<FormState<"edit">, FormData>(editCaseAiAction, {});
+export function AiEditForm({
+  caseId,
+  ai,
+  onDone,
+}: {
+  caseId: string;
+  ai: CaseAiResult;
+  onDone: () => void;
+}) {
+  const [state, action, pending] = useActionState<FormState<"edit">, FormData>(
+    editCaseAiAction,
+    {},
+  );
   useEffect(() => {
     if (state.savedAt) onDone();
   }, [state.savedAt, onDone]);
   // 진단은 지금 개수 + 빈 줄 1개 (최대 6)
   const rows = [
     ...ai.diagnoses,
-    ...(ai.diagnoses.length < 6 ? [{ priority: ai.diagnoses.length + 1, name: "", relatedTo: "", domain: "" as const }] : []),
+    ...(ai.diagnoses.length < 6
+      ? [
+          {
+            priority: ai.diagnoses.length + 1,
+            name: "",
+            relatedTo: "",
+            domain: "" as const,
+          },
+        ]
+      : []),
   ];
 
   return (
@@ -92,10 +143,14 @@ export function AiEditForm({ caseId, ai, onDone }: { caseId: string; ai: CaseAiR
       data-ai-edit
     >
       <input type="hidden" name="id" value={caseId} />
-      <p className="rounded-control bg-subtle px-4 py-2.5 text-body-sm text-ink-soft">항목마다 한 줄씩 써 주세요. 빈 줄은 빠져요.</p>
+      <p className="rounded-control bg-subtle px-4 py-2.5 text-body-sm text-ink-soft">
+        항목마다 한 줄씩 써 주세요. 빈 줄은 빠져요.
+      </p>
       <Field name="title" label="제목" maxLength={60} defaultValue={ai.title} />
       <fieldset className="space-y-2">
-        <legend className="mb-1.5 text-body-sm font-bold text-ink">NANDA-I 간호진단 (위에서부터 1순위)</legend>
+        <legend className="mb-1.5 text-body-sm font-bold text-ink">
+          NANDA-I 간호진단 (위에서부터 1순위)
+        </legend>
         {rows.map((d, i) => (
           <div key={i} className="grid gap-2 sm:grid-cols-[1fr_1.4fr]">
             <input type="hidden" name={`dx_domain_${i}`} value={d.domain} />
@@ -107,16 +162,28 @@ export function AiEditForm({ caseId, ai, onDone }: { caseId: string; ai: CaseAiR
               defaultValue={d.name}
               placeholder={i === ai.diagnoses.length ? "추가하려면 입력" : ""}
             />
-            <Field id={`dx-related-${i}`} name={`dx_related_${i}`} label="관련요인" maxLength={200} defaultValue={d.relatedTo} />
+            <Field
+              id={`dx-related-${i}`}
+              name={`dx_related_${i}`}
+              label="관련요인"
+              maxLength={200}
+              defaultValue={d.relatedTo}
+            />
           </div>
         ))}
       </fieldset>
       {AI_SECTIONS.map((k) => (
-        <TextareaField key={k} name={k} label={SECTION_LABEL[k]} rows={Math.max(2, ai[k].length + 1)} defaultValue={ai[k].join("\n")} />
+        <TextareaField
+          key={k}
+          name={k}
+          label={SECTION_LABEL[k]}
+          rows={Math.max(2, ai[k].length + 1)}
+          defaultValue={ai[k].join("\n")}
+        />
       ))}
       <TextareaField
         name="missingInfo"
-        label="⚠️ 빠진 사정 항목"
+        label="빠진 사정 항목"
         rows={Math.max(2, ai.missingInfo.length + 1)}
         defaultValue={ai.missingInfo.join("\n")}
       />

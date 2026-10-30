@@ -41,7 +41,9 @@ export default function LogForm({
   const v = state.values;
   const errors = state.fieldErrors ?? {};
   // 한 일 칸은 입력하는 동안 환자 식별 정보를 바로 안내하려고 직접 상태로 관리한다
-  const [activities, setActivities] = useState(v?.activities ?? initial?.activities ?? "");
+  const [activities, setActivities] = useState(
+    v?.activities ?? initial?.activities ?? "",
+  );
   const pii = detectPii(activities);
   // 시간은 빠른 선택 버튼으로도 채우므로 직접 상태로 관리한다
   const [hours, setHours] = useState(String(v?.hours ?? initial?.hours ?? 8));
@@ -51,12 +53,18 @@ export default function LogForm({
   const [date, setDate] = useState(v?.date ?? initial?.date ?? today);
   const weekDays = week && date ? weekdaysFrom(date, bulk) : [];
   // "오늘 어땠나요?"(선택): 고친 일지에 값이 있으면 펼친 채로
-  const hasReflection = Boolean(initial?.difficulty || initial?.hardSkills.length || initial?.wardCategory);
+  const hasReflection = Boolean(
+    initial?.difficulty || initial?.hardSkills.length || initial?.wardCategory,
+  );
   const [reflect, setReflect] = useState(hasReflection);
   const p = initial ? `l-${initial.id}-` : "l-new-";
 
   return (
-    <form action={action} noValidate className="space-y-3 rounded-card border border-line/70 bg-surface p-4 shadow-soft">
+    <form
+      action={action}
+      noValidate
+      className="space-y-3 rounded-card border border-line/70 bg-surface p-4 shadow-soft"
+    >
       {initial && <input type="hidden" name="id" value={initial.id} />}
       {week && <input type="hidden" name="bulk" value={bulk} />}
       <div className="grid grid-cols-2 gap-3">
@@ -95,10 +103,15 @@ export default function LogForm({
       </div>
       {week && weekDays.length === bulk && (
         <p className="rounded-control bg-brand-soft px-4 py-2.5 text-body-sm text-brand-deep">
-          평일 {bulk}일에 8시간씩 기록돼요: {shortDate(weekDays[0])} ~ {shortDate(weekDays[bulk - 1])} (이미 기록한 날은 건너뛰어요)
+          평일 {bulk}일에 8시간씩 기록돼요: {shortDate(weekDays[0])} ~{" "}
+          {shortDate(weekDays[bulk - 1])} (이미 기록한 날은 건너뛰어요)
         </p>
       )}
-      <div className="flex flex-wrap gap-2" role="group" aria-label="실습 시간 빠른 선택">
+      <div
+        className="flex flex-wrap gap-2"
+        role="group"
+        aria-label="실습 시간 빠른 선택"
+      >
         {HOUR_PRESETS.map((preset) => (
           <button
             key={preset.hours}
@@ -109,7 +122,9 @@ export default function LogForm({
               setHours(preset.hours);
             }}
             className={`press min-h-11 rounded-full px-4 text-body-sm font-bold ${
-              !week && hours === preset.hours ? "bg-brand text-ink" : "bg-subtle text-ink-soft hover:text-ink"
+              !week && hours === preset.hours
+                ? "bg-brand text-ink"
+                : "bg-subtle text-ink-soft hover:text-ink"
             }`}
           >
             {preset.label}
@@ -123,7 +138,9 @@ export default function LogForm({
               aria-pressed={bulk === o.days}
               onClick={() => setBulk(o.days)}
               className={`press min-h-11 rounded-full px-4 text-body-sm font-bold ${
-                bulk === o.days ? "bg-brand text-ink" : "bg-subtle text-ink-soft hover:text-ink"
+                bulk === o.days
+                  ? "bg-brand text-ink"
+                  : "bg-subtle text-ink-soft hover:text-ink"
               }`}
             >
               {o.label}
@@ -175,7 +192,9 @@ export default function LogForm({
         maxLength={2000}
         value={activities}
         onChange={(e) => setActivities(e.target.value)}
-        hint={pii.length > 0 && !errors.activities ? `⚠️ ${piiMessage(pii)}` : undefined}
+        hint={
+          pii.length > 0 && !errors.activities ? piiMessage(pii) : undefined
+        }
         error={errors.activities}
       />
       <div className="rounded-control bg-subtle/60 px-3 py-2">
@@ -186,27 +205,42 @@ export default function LogForm({
           className="flex min-h-11 w-full items-center justify-between text-left text-body-sm font-bold text-ink"
         >
           <span>
-            오늘 어땠나요? <span className="font-medium text-ink-soft">(선택)</span>
+            오늘 어땠나요?{" "}
+            <span className="font-medium text-ink-soft">(선택)</span>
           </span>
-          <span aria-hidden className={`transition-transform ${reflect ? "rotate-180" : ""}`}>
+          <span
+            aria-hidden
+            className={`transition-transform ${reflect ? "rotate-180" : ""}`}
+          >
             ⌄
           </span>
         </button>
         <Expandable open={reflect}>
           <div className="space-y-4 pt-1 pb-2">
-            <p className="text-caption text-ink-soft">교수님께는 이름 없이 학교·실습반 통계로만 보여요. 어디가 어려운지 교육에 반영돼요.</p>
+            <p className="text-caption text-ink-soft">
+              교수님께는 이름 없이 학교·실습반 통계로만 보여요. 어디가 어려운지
+              교육에 반영돼요.
+            </p>
             <ChoiceChips
               name="difficulty"
               legend="오늘 실습 난이도"
-              options={[1, 2, 3, 4, 5].map((n) => ({ key: String(n), label: `${n} · ${DIFFICULTY_LABELS[n]}` }))}
-              defaultValue={v?.difficulty ?? (initial?.difficulty ? String(initial.difficulty) : null)}
+              options={[1, 2, 3, 4, 5].map((n) => ({
+                key: String(n),
+                label: `${n} · ${DIFFICULTY_LABELS[n]}`,
+              }))}
+              defaultValue={
+                v?.difficulty ??
+                (initial?.difficulty ? String(initial.difficulty) : null)
+              }
             />
             <ChoiceChips
               name="hardSkills"
               legend="어려웠던 술기 (여러 개)"
               multiple
               options={SKILLS}
-              defaultValue={v?.hardSkills ? v.hardSkills.split(",") : initial?.hardSkills}
+              defaultValue={
+                v?.hardSkills ? v.hardSkills.split(",") : initial?.hardSkills
+              }
             />
             <ChoiceChips
               name="wardCategory"

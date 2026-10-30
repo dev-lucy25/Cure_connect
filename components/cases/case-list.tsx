@@ -15,12 +15,23 @@ import Button from "@/components/ui/button";
 import Card from "@/components/ui/card";
 import Chip from "@/components/ui/chip";
 import FormStatus from "@/components/ui/form-status";
-import { IconPlus } from "@/components/ui/icons";
+import { IconPlus, IconUpload } from "@/components/ui/icons";
 import PageHeader from "@/components/ui/page-header";
 import CaseForm from "@/components/cases/case-form";
 
-export default function CaseList({ items, nextCursor, notice }: { items: CaseSummary[]; nextCursor: string | null; notice?: React.ReactNode }) {
-  const [state, action, pending] = useActionState<FormState<CaseField>, FormData>(createCaseAction, {});
+export default function CaseList({
+  items,
+  nextCursor,
+  notice,
+}: {
+  items: CaseSummary[];
+  nextCursor: string | null;
+  notice?: React.ReactNode;
+}) {
+  const [state, action, pending] = useActionState<
+    FormState<CaseField>,
+    FormData
+  >(createCaseAction, {});
   const [writing, setWriting] = useState(false);
 
   return (
@@ -29,8 +40,11 @@ export default function CaseList({ items, nextCursor, notice }: { items: CaseSum
         title="케이스"
         description="현장 메모를 SOAPIE 초안으로 정리해요"
         action={
-          <Link href="/submissions" className="inline-flex min-h-11 shrink-0 items-center text-body-sm font-bold text-brand-deep hover:underline">
-            📤 내 제출
+          <Link
+            href="/submissions"
+            className="inline-flex min-h-11 shrink-0 items-center text-body-sm font-bold text-brand-deep hover:underline"
+          >
+            <IconUpload size={16} /> 내 제출
           </Link>
         }
       />
@@ -48,7 +62,13 @@ export default function CaseList({ items, nextCursor, notice }: { items: CaseSum
               exit={{ opacity: 0, y: -6 }}
               transition={SPRING_SOFT}
             >
-              <CaseForm action={action} state={state} pending={pending} onCancel={() => setWriting(false)} submitLabel="저장하고 열기" />
+              <CaseForm
+                action={action}
+                state={state}
+                pending={pending}
+                onCancel={() => setWriting(false)}
+                submitLabel="저장하고 열기"
+              />
             </motion.div>
           ) : (
             <motion.div
@@ -64,9 +84,15 @@ export default function CaseList({ items, nextCursor, notice }: { items: CaseSum
                 </span>
                 <div className="min-w-0 flex-1">
                   <p className="text-title font-bold">새 케이스</p>
-                  <p className="text-body-sm text-ink-soft">메모는 본인만 볼 수 있어요</p>
+                  <p className="text-body-sm text-ink-soft">
+                    메모는 본인만 볼 수 있어요
+                  </p>
                 </div>
-                <Button type="button" onClick={() => setWriting(true)} className="shrink-0 px-4 text-body-sm">
+                <Button
+                  type="button"
+                  onClick={() => setWriting(true)}
+                  className="shrink-0 px-4 text-body-sm"
+                >
                   <IconPlus size={18} /> 케이스 쓰기
                 </Button>
               </Card>
@@ -83,10 +109,16 @@ export default function CaseList({ items, nextCursor, notice }: { items: CaseSum
           <div className="flex flex-col items-center rounded-card border border-dashed border-line px-5 py-8 text-center">
             <NurseTurtle stage={3} mood="empty" size={88} decorative />
             <p className="mt-2 text-title font-bold">아직 케이스가 없어요</p>
-            <p className="mt-1 text-body-sm text-ink-soft">실습 중 적은 메모로 첫 케이스를 만들어 보세요</p>
+            <p className="mt-1 text-body-sm text-ink-soft">
+              실습 중 적은 메모로 첫 케이스를 만들어 보세요
+            </p>
           </div>
         ) : (
-          <Pages key={items.map((i) => i.id + i.updatedAt).join()} items={items} nextCursor={nextCursor} />
+          <Pages
+            key={items.map((i) => i.id + i.updatedAt).join()}
+            items={items}
+            nextCursor={nextCursor}
+          />
         )}
       </section>
     </div>
@@ -94,7 +126,13 @@ export default function CaseList({ items, nextCursor, notice }: { items: CaseSum
 }
 
 // 첫 페이지가 바뀌면(key) 더 불러온 부분을 버리고 다시 시작한다
-function Pages({ items, nextCursor }: { items: CaseSummary[]; nextCursor: string | null }) {
+function Pages({
+  items,
+  nextCursor,
+}: {
+  items: CaseSummary[];
+  nextCursor: string | null;
+}) {
   const [more, setMore] = useState<CaseSummary[]>([]);
   const [cursor, setCursor] = useState(nextCursor);
   const [failed, setFailed] = useState(false);
@@ -125,7 +163,12 @@ function Pages({ items, nextCursor }: { items: CaseSummary[]; nextCursor: string
             variants={FADE_UP}
             initial="hidden"
             animate="show"
-            transition={{ ...SPRING_SOFT, delay: Math.min(i < items.length ? i : i - items.length, 8) * STAGGER_STEP }}
+            transition={{
+              ...SPRING_SOFT,
+              delay:
+                Math.min(i < items.length ? i : i - items.length, 8) *
+                STAGGER_STEP,
+            }}
           >
             <MotionLink
               href={`/cases/${c.id}`}
@@ -135,18 +178,24 @@ function Pages({ items, nextCursor }: { items: CaseSummary[]; nextCursor: string
               <div className="flex items-start justify-between gap-2">
                 <div className="min-w-0">
                   <p className="truncate text-title font-bold">{c.title}</p>
-                  <p className="truncate text-body-sm text-ink-soft">{c.ward}</p>
+                  <p className="truncate text-body-sm text-ink-soft">
+                    {c.ward}
+                  </p>
                 </div>
                 <AiBadge hasAi={c.hasAi} stale={c.stale} />
               </div>
-              <p className="mt-2 line-clamp-2 text-body-sm text-ink-soft">{c.preview}</p>
+              <p className="mt-2 line-clamp-2 text-body-sm text-ink-soft">
+                {c.preview}
+              </p>
             </MotionLink>
           </motion.li>
         ))}
       </ul>
       {/* 더 불러오는 동안 카드 모양 스켈레톤 */}
       {loading && <CasesMoreSkeleton />}
-      {failed && <FormStatus message="케이스를 더 불러오지 못했어요. 다시 눌러 주세요" />}
+      {failed && (
+        <FormStatus message="케이스를 더 불러오지 못했어요. 다시 눌러 주세요" />
+      )}
       {cursor && !loading && (
         <Button type="button" variant="ghost" block onClick={loadMore}>
           더 보기

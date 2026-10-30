@@ -3,12 +3,13 @@
 import { useEffect, useState } from "react";
 import { AnimatePresence, motion } from "motion/react";
 import { SPRING_SNAPPY, SPRING_SOFT, TWEEN_POP } from "@/lib/motion";
+import { IconCheck } from "@/components/ui/icons";
 
-// 폼 상태: 오류는 그 자리에 문구로(살짝 흔들리며 등장), 저장 성공은 화면 아래 토스트("저장했어요 🐢")로 보여준다.
+// 폼 상태: 오류는 그 자리에 문구로(살짝 흔들리며 등장), 저장 성공은 화면 아래 체크 표시 토스트("저장했어요")로 보여준다.
 export default function FormStatus({
   message,
   savedAt,
-  savedText = "저장했어요 🐢",
+  savedText = "저장했어요",
 }: {
   message?: string;
   savedAt?: number;
@@ -53,7 +54,15 @@ function Toast({ text }: { text: string }) {
           transition={SPRING_SNAPPY}
           className="pointer-events-none fixed bottom-[calc(var(--size-tab)+env(safe-area-inset-bottom)+22px)] left-1/2 z-30 rounded-full bg-ink px-5 py-2.5 text-body-sm font-bold whitespace-nowrap text-canvas shadow-pop md:bottom-8"
         >
-          {text}
+          <span className="inline-flex items-center gap-2">
+            <span
+              aria-hidden
+              className="grid size-5 place-items-center rounded-full bg-brand text-ink"
+            >
+              <IconCheck size={13} strokeWidth={2.6} />
+            </span>
+            {text}
+          </span>
         </motion.p>
       )}
     </AnimatePresence>

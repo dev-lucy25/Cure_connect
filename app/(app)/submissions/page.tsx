@@ -12,6 +12,7 @@ import NurseTurtle from "@/components/mascot/nurse-turtle";
 import Card from "@/components/ui/card";
 import PageHeader from "@/components/ui/page-header";
 import { SubmissionsSkeleton } from "@/components/ui/skeleton";
+import { IconChat } from "@/components/ui/icons";
 
 export const metadata: Metadata = { title: "내 제출 · NursePass" };
 
@@ -26,8 +27,20 @@ export default function SubmissionsPage() {
 // 학생: 교수님께 낸 케이스스터디 과제와 채점 결과(학점·피드백)
 async function SubmissionsContent() {
   const user = await getOptionalUser();
-  if (!user) return <LoginPrompt title="로그인하고 제출 현황을 확인해요" body="케이스를 교수님께 제출하면 여기서 채점 결과를 볼 수 있어요" />;
-  if (user.role !== "student") return <RoleNotice title="학생 계정 전용 화면이에요" body="학생들이 낸 과제는 학생 현황의 '채점 대기 과제'에서 볼 수 있어요" />;
+  if (!user)
+    return (
+      <LoginPrompt
+        title="로그인하고 제출 현황을 확인해요"
+        body="케이스를 교수님께 제출하면 여기서 채점 결과를 볼 수 있어요"
+      />
+    );
+  if (user.role !== "student")
+    return (
+      <RoleNotice
+        title="학생 계정 전용 화면이에요"
+        body="학생들이 낸 과제는 학생 현황의 '채점 대기 과제'에서 볼 수 있어요"
+      />
+    );
   const items = await listMySubmissions(user.id);
 
   return (
@@ -36,7 +49,10 @@ async function SubmissionsContent() {
         title="내 제출"
         description="교수님께 낸 케이스스터디와 채점 결과"
         action={
-          <Link href="/cases" className="inline-flex min-h-11 shrink-0 items-center text-body-sm font-bold text-ink-soft hover:text-ink">
+          <Link
+            href="/cases"
+            className="inline-flex min-h-11 shrink-0 items-center text-body-sm font-bold text-ink-soft hover:text-ink"
+          >
             ← 케이스
           </Link>
         }
@@ -45,8 +61,12 @@ async function SubmissionsContent() {
         <StaggerItem className="pt-2">
           <Card className="flex flex-col items-center py-8 text-center">
             <NurseTurtle stage={3} mood="empty" size={88} decorative />
-            <p className="mt-2 text-title font-bold">아직 제출한 과제가 없어요</p>
-            <p className="mt-1 text-body-sm text-ink-soft">케이스를 SOAPIE로 정리한 뒤 “교수님께 과제 제출”을 눌러 보세요</p>
+            <p className="mt-2 text-title font-bold">
+              아직 제출한 과제가 없어요
+            </p>
+            <p className="mt-1 text-body-sm text-ink-soft">
+              케이스를 SOAPIE로 정리한 뒤 “교수님께 과제 제출”을 눌러 보세요
+            </p>
           </Card>
         </StaggerItem>
       ) : (
@@ -64,13 +84,31 @@ async function SubmissionsContent() {
                     </div>
                     <SubmissionStatusChip status={s.status} grade={s.grade} />
                   </div>
-                  {s.score !== null && <p className="text-body-sm font-bold text-brand-deep">점수 {s.score}점</p>}
-                  {s.status === "revision" && (
-                    <p className="text-body-sm text-pink-deep">교수님 피드백대로 케이스를 고치고 다시 정리한 뒤 “다시 제출”해 주세요</p>
+                  {s.score !== null && (
+                    <p className="text-body-sm font-bold text-brand-deep">
+                      점수 {s.score}점
+                    </p>
                   )}
-                  {s.feedback && <p className="rounded-control bg-subtle px-3 py-2 text-body-sm break-words whitespace-pre-line">💬 {s.feedback}</p>}
+                  {s.status === "revision" && (
+                    <p className="text-body-sm text-pink-deep">
+                      교수님 피드백대로 케이스를 고치고 다시 정리한 뒤 “다시
+                      제출”해 주세요
+                    </p>
+                  )}
+                  {s.feedback && (
+                    <p className="rounded-control bg-subtle px-3 py-2 text-body-sm break-words whitespace-pre-line">
+                      <IconChat
+                        size={16}
+                        className="mr-1 inline align-[-0.2em] text-ink-soft"
+                      />
+                      {s.feedback}
+                    </p>
+                  )}
                   {s.caseId && (
-                    <Link href={`/cases/${s.caseId}`} className="inline-flex min-h-11 items-center text-body-sm font-bold text-brand-deep">
+                    <Link
+                      href={`/cases/${s.caseId}`}
+                      className="inline-flex min-h-11 items-center text-body-sm font-bold text-brand-deep"
+                    >
                       케이스 열기 →
                     </Link>
                   )}

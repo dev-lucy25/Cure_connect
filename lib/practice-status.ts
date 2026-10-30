@@ -19,9 +19,12 @@ export function graduationPercent(hours: number) {
   return Math.min(100, Math.round((hours / GRADUATION_HOURS) * 1000) / 10);
 }
 
-export const STATUS_TEXT: Record<PracticeStatus, { label: string; tone: "pink" | "warn" | "brand" | "neutral"; csv: string }> = {
-  DONE: { label: "🎓 1,000시간 달성", tone: "pink", csv: "이수 완료" },
+export const STATUS_TEXT: Record<
+  PracticeStatus,
+  { label: string; tone: "pink" | "warn" | "brand" | "neutral"; csv: string }
+> = {
+  DONE: { label: "1,000시간 달성", tone: "pink", csv: "이수 완료" },
   NORMAL: { label: "정상 이수중", tone: "brand", csv: "정상 이수중" },
-  RISK: { label: "⚠️ 미달 위험", tone: "warn", csv: "미달 위험(500시간 미만)" },
+  RISK: { label: "미달 위험", tone: "warn", csv: "미달 위험(500시간 미만)" },
   START: { label: "실습 시작 전", tone: "neutral", csv: "실습 시작 전(0시간)" },
 };

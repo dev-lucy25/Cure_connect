@@ -8,15 +8,19 @@ import Field from "@/components/ui/field";
 import FormStatus from "@/components/ui/form-status";
 
 export default function GoalEditor({ goalHours }: { goalHours: number }) {
-  const [state, action, pending] = useActionState<FormState<"goalHours">, FormData>(saveGoal, {});
+  const [state, action, pending] = useActionState<
+    FormState<"goalHours">,
+    FormData
+  >(saveGoal, {});
   const [openedAt, setOpenedAt] = useState<number | null>(null);
   // 연 뒤에 저장이 성공하면 닫힌 상태로 본다
-  const open = openedAt !== null && !(state.savedAt && state.savedAt > openedAt);
+  const open =
+    openedAt !== null && !(state.savedAt && state.savedAt > openedAt);
 
   if (!open) {
     return (
       <div className="mt-4 flex items-center justify-between gap-2 border-t border-line/70 pt-2">
-        <FormStatus savedAt={state.savedAt} savedText="기준을 바꿨어요 🐢" />
+        <FormStatus savedAt={state.savedAt} savedText="기준을 바꿨어요" />
         <button
           type="button"
           onClick={() => setOpenedAt(Date.now())}
@@ -29,7 +33,11 @@ export default function GoalEditor({ goalHours }: { goalHours: number }) {
   }
 
   return (
-    <form action={action} noValidate className="mt-4 space-y-3 border-t border-line/70 pt-4">
+    <form
+      action={action}
+      noValidate
+      className="mt-4 space-y-3 border-t border-line/70 pt-4"
+    >
       <Field
         name="goalHours"
         label="졸업 기준 실습 시간 (학교 기준, 100~3000시간)"

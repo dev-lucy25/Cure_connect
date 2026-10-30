@@ -4,7 +4,12 @@ import { Suspense } from "react";
 import { notFound } from "next/navigation";
 import { getCurrentUser } from "@/server/auth";
 import { getStudentDetail } from "@/server/approval-repo";
-import { STATUS_TEXT, GRADUATION_HOURS, graduationPercent, practiceStatus } from "@/lib/practice-status";
+import {
+  STATUS_TEXT,
+  GRADUATION_HOURS,
+  graduationPercent,
+  practiceStatus,
+} from "@/lib/practice-status";
 import RoleNotice from "@/components/home/role-notice";
 import AnimatedNumber from "@/components/motion/animated-number";
 import ProgressBar from "@/components/motion/progress-bar";
@@ -17,10 +22,15 @@ import ApprovalList from "@/components/prof/approval-list";
 
 export const metadata: Metadata = { title: "학생 상세 · NursePass" };
 
-export default function StudentPage({ params }: PageProps<"/prof/students/[id]">) {
+export default function StudentPage({
+  params,
+}: PageProps<"/prof/students/[id]">) {
   return (
     <div className="space-y-3">
-      <Link href="/" className="inline-flex min-h-11 items-center text-body-sm font-bold text-ink-soft hover:text-ink">
+      <Link
+        href="/"
+        className="inline-flex min-h-11 items-center text-body-sm font-bold text-ink-soft hover:text-ink"
+      >
         ← 학생 현황
       </Link>
       <Suspense fallback={<StudentDetailSkeleton />}>
@@ -31,11 +41,20 @@ export default function StudentPage({ params }: PageProps<"/prof/students/[id]">
 }
 
 // 학생 상세: 시간 요약(누적·인증·대기) → 과목별 현황 → 일지(인증·반려). 볼 수 없는 학생이면 404
-async function StudentContent({ params }: Pick<PageProps<"/prof/students/[id]">, "params">) {
+async function StudentContent({
+  params,
+}: Pick<PageProps<"/prof/students/[id]">, "params">) {
   const { id } = await params;
   const user = await getCurrentUser();
   if (user.role !== "professor")
-    return <RoleNotice title="교수 계정 전용 화면이에요" body="내 기록은 실습 홈에서 볼 수 있어요" href="/" action="실습 홈으로" />;
+    return (
+      <RoleNotice
+        title="교수 계정 전용 화면이에요"
+        body="내 기록은 실습 홈에서 볼 수 있어요"
+        href="/"
+        action="실습 홈으로"
+      />
+    );
   if (!/^[0-9a-f-]{36}$/i.test(id)) notFound();
   const s = await getStudentDetail(user, id);
   if (!s) notFound();
@@ -52,12 +71,26 @@ async function StudentContent({ params }: Pick<PageProps<"/prof/students/[id]">,
             <Chip tone={status.tone}>{status.label}</Chip>
           </div>
           <p className="mt-1 text-body-sm text-ink-soft">
-            {[s.memberNo, s.classLabel, s.orgName, s.roomCode && `🔑 ${s.roomCode}`].filter(Boolean).join(" · ")}
+            {[
+              s.memberNo,
+              s.classLabel,
+              s.orgName,
+              s.roomCode && `방 코드 ${s.roomCode}`,
+            ]
+              .filter(Boolean)
+              .join(" · ")}
           </p>
           <p className="mt-4 font-display leading-none">
             <AnimatedNumber value={hours} className="text-display text-ink" />
-            <span className="text-title text-ink-soft"> / {GRADUATION_HOURS.toLocaleString("ko-KR")}시간 · </span>
-            <AnimatedNumber value={percent} suffix="%" className="text-title text-brand-deep" />
+            <span className="text-title text-ink-soft">
+              {" "}
+              / {GRADUATION_HOURS.toLocaleString("ko-KR")}시간 ·{" "}
+            </span>
+            <AnimatedNumber
+              value={percent}
+              suffix="%"
+              className="text-title text-brand-deep"
+            />
           </p>
           <ProgressBar
             percent={percent}
@@ -68,10 +101,12 @@ async function StudentContent({ params }: Pick<PageProps<"/prof/students/[id]">,
           />
           <div className="mt-3 flex flex-wrap gap-2 text-body-sm">
             <Chip tone="brand">
-              인증 완료 <AnimatedNumber value={s.approvedMinutes / 60} suffix="시간" />
+              인증 완료{" "}
+              <AnimatedNumber value={s.approvedMinutes / 60} suffix="시간" />
             </Chip>
             <Chip tone="warn">
-              인증 대기 <AnimatedNumber value={s.pendingMinutes / 60} suffix="시간" />
+              인증 대기{" "}
+              <AnimatedNumber value={s.pendingMinutes / 60} suffix="시간" />
             </Chip>
           </div>
         </Card>

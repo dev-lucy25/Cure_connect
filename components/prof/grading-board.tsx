@@ -3,8 +3,17 @@
 import { useActionState, useEffect, useState, useTransition } from "react";
 import { AnimatePresence, motion } from "motion/react";
 import type { GradingDetail, GradingRow } from "@/server/submission-repo";
-import { gradeAction, gradingAiAction, loadGradingDetail, quickApproveAction } from "@/server/grading-actions";
-import { GRADES, type GradeField, type GradingAi } from "@/lib/validation/grading";
+import {
+  gradeAction,
+  gradingAiAction,
+  loadGradingDetail,
+  quickApproveAction,
+} from "@/server/grading-actions";
+import {
+  GRADES,
+  type GradeField,
+  type GradingAi,
+} from "@/lib/validation/grading";
 import type { FormState } from "@/lib/validation/form";
 import { SPRING_SNAPPY, SPRING_SOFT } from "@/lib/motion";
 import { useTapEffect } from "@/components/motion/use-motion-prefs";
@@ -18,6 +27,12 @@ import FormStatus from "@/components/ui/form-status";
 import Modal from "@/components/ui/modal";
 import TextareaField from "@/components/ui/textarea-field";
 import { Bone, WalkingTurtle } from "@/components/ui/skeleton";
+import {
+  IconChat,
+  IconPencil,
+  IconSparkles,
+  IconThumbUp,
+} from "@/components/ui/icons";
 
 type Row = GradingRow & { ago: string };
 type Tab = "submitted" | "revision" | "graded" | "all";
@@ -35,11 +50,16 @@ export default function GradingBoard({ rows }: { rows: Row[] }) {
   const [tab, setTab] = useState<Tab>("submitted");
   const [openId, setOpenId] = useState<string | null>(null);
   const shown = rows.filter((r) => tab === "all" || r.status === tab);
-  const count = (t: Tab) => rows.filter((r) => t === "all" || r.status === t).length;
+  const count = (t: Tab) =>
+    rows.filter((r) => t === "all" || r.status === t).length;
 
   return (
     <div className="space-y-3">
-      <div role="tablist" aria-label="채점 상태" className="-mx-5 flex gap-1.5 overflow-x-auto px-5 pb-1 md:mx-0 md:px-0">
+      <div
+        role="tablist"
+        aria-label="채점 상태"
+        className="-mx-5 flex gap-1.5 overflow-x-auto px-5 pb-1 md:mx-0 md:px-0"
+      >
         {TABS.map((t) => {
           const active = tab === t.key;
           return (
@@ -60,7 +80,8 @@ export default function GradingBoard({ rows }: { rows: Row[] }) {
                   className="absolute inset-0 -z-10 rounded-full bg-brand"
                 />
               )}
-              {t.label} <span className="font-medium opacity-80">{count(t.key)}</span>
+              {t.label}{" "}
+              <span className="font-medium opacity-80">{count(t.key)}</span>
             </motion.button>
           );
         })}
@@ -69,8 +90,14 @@ export default function GradingBoard({ rows }: { rows: Row[] }) {
       {shown.length === 0 ? (
         <div className="flex flex-col items-center rounded-card border border-line bg-surface px-5 py-10 text-center shadow-soft">
           <NurseTurtle stage={3} mood="empty" size={88} decorative />
-          <p className="mt-2 font-bold text-ink">{tab === "submitted" ? "채점할 과제가 없어요" : "이 상태의 과제가 없어요"}</p>
-          <p className="mt-1 text-body-sm text-ink-soft">같은 학교·같은 방 학생이 케이스를 제출하면 여기에 모여요</p>
+          <p className="mt-2 font-bold text-ink">
+            {tab === "submitted"
+              ? "채점할 과제가 없어요"
+              : "이 상태의 과제가 없어요"}
+          </p>
+          <p className="mt-1 text-body-sm text-ink-soft">
+            같은 학교·같은 방 학생이 케이스를 제출하면 여기에 모여요
+          </p>
         </div>
       ) : (
         <ul className="grid gap-3 md:grid-cols-2">
@@ -92,15 +119,27 @@ export default function GradingBoard({ rows }: { rows: Row[] }) {
         </ul>
       )}
 
-      <Modal open={openId !== null} onClose={() => setOpenId(null)} title="케이스 채점">
-        {openId && <GradingPanel key={openId} id={openId} onDone={() => setOpenId(null)} />}
+      <Modal
+        open={openId !== null}
+        onClose={() => setOpenId(null)}
+        title="케이스 채점"
+      >
+        {openId && (
+          <GradingPanel
+            key={openId}
+            id={openId}
+            onDone={() => setOpenId(null)}
+          />
+        )}
       </Modal>
     </div>
   );
 }
 
 function SubmissionCard({ row, onOpen }: { row: Row; onOpen: () => void }) {
-  const [state, setState] = useState<{ message?: string; savedAt?: number }>({});
+  const [state, setState] = useState<{ message?: string; savedAt?: number }>(
+    {},
+  );
   const [approving, startApprove] = useTransition();
   return (
     <article
@@ -122,14 +161,26 @@ function SubmissionCard({ row, onOpen }: { row: Row; onOpen: () => void }) {
         </div>
         <SubmissionStatusChip status={row.status} grade={row.grade} />
       </div>
-      {row.score !== null && <p className="text-body-sm text-ink-soft">점수 {row.score}점</p>}
+      {row.score !== null && (
+        <p className="text-body-sm text-ink-soft">점수 {row.score}점</p>
+      )}
       {row.feedback && (
-        <p className="line-clamp-2 rounded-control bg-subtle px-3 py-2 text-body-sm break-words text-ink-soft">💬 {row.feedback}</p>
+        <p className="line-clamp-2 rounded-control bg-subtle px-3 py-2 text-body-sm break-words text-ink-soft">
+          <IconChat size={15} className="mr-1 inline align-[-0.2em]" />
+          {row.feedback}
+        </p>
       )}
       <FormStatus message={state.message} />
-      <FormStatus savedAt={state.savedAt} savedText="A+로 승인하고 학생에게 알렸어요 🎓" />
+      <FormStatus
+        savedAt={state.savedAt}
+        savedText="A+로 승인하고 학생에게 알렸어요"
+      />
       <div className="mt-auto flex flex-wrap gap-2 pt-1">
-        <Button type="button" onClick={onOpen} className="min-h-11 flex-1 px-4 text-body-sm">
+        <Button
+          type="button"
+          onClick={onOpen}
+          className="min-h-11 flex-1 px-4 text-body-sm"
+        >
           {row.status === "submitted" ? "채점하기" : "다시 보기·고치기"}
         </Button>
         {row.status === "submitted" && (
@@ -137,7 +188,11 @@ function SubmissionCard({ row, onOpen }: { row: Row; onOpen: () => void }) {
             type="button"
             variant="secondary"
             disabled={approving}
-            onClick={() => startApprove(async () => setState(await quickApproveAction(row.id)))}
+            onClick={() =>
+              startApprove(async () =>
+                setState(await quickApproveAction(row.id)),
+              )
+            }
             className="min-h-11 px-4 text-body-sm"
           >
             {approving ? "승인 중..." : "A+ 바로 승인"}
@@ -150,7 +205,9 @@ function SubmissionCard({ row, onOpen }: { row: Row; onOpen: () => void }) {
 
 /** 채점 창 내용: 열리면 제출 내용을 불러온다 (그동안 모양을 닮은 스켈레톤) */
 function GradingPanel({ id, onDone }: { id: string; onDone: () => void }) {
-  const [detail, setDetail] = useState<GradingDetail | null | undefined>(undefined);
+  const [detail, setDetail] = useState<GradingDetail | null | undefined>(
+    undefined,
+  );
   useEffect(() => {
     let alive = true;
     loadGradingDetail(id).then((d) => alive && setDetail(d));
@@ -161,7 +218,12 @@ function GradingPanel({ id, onDone }: { id: string; onDone: () => void }) {
 
   if (detail === undefined) {
     return (
-      <div role="status" aria-busy aria-label="제출 내용을 불러오는 중" className="space-y-3">
+      <div
+        role="status"
+        aria-busy
+        aria-label="제출 내용을 불러오는 중"
+        className="space-y-3"
+      >
         <Bone className="h-5 w-1/2" />
         <Bone className="h-4 w-1/3" />
         <div aria-hidden className="skeleton h-28 rounded-control" />
@@ -169,13 +231,29 @@ function GradingPanel({ id, onDone }: { id: string; onDone: () => void }) {
       </div>
     );
   }
-  if (detail === null) return <p className="text-body-sm text-ink-soft">이미 지워졌거나 볼 수 없는 제출이에요.</p>;
+  if (detail === null)
+    return (
+      <p className="text-body-sm text-ink-soft">
+        이미 지워졌거나 볼 수 없는 제출이에요.
+      </p>
+    );
   return <GradingForm detail={detail} onDone={onDone} />;
 }
 
-function GradingForm({ detail, onDone }: { detail: GradingDetail; onDone: () => void }) {
-  const [state, action, pending] = useActionState<FormState<GradeField>, FormData>(gradeAction, {});
-  const [ai, setAi] = useState<{ suggestion?: GradingAi; message?: string }>({});
+function GradingForm({
+  detail,
+  onDone,
+}: {
+  detail: GradingDetail;
+  onDone: () => void;
+}) {
+  const [state, action, pending] = useActionState<
+    FormState<GradeField>,
+    FormData
+  >(gradeAction, {});
+  const [ai, setAi] = useState<{ suggestion?: GradingAi; message?: string }>(
+    {},
+  );
   const [asking, startAsk] = useTransition();
   const [memoOpen, setMemoOpen] = useState(false);
   // 참고안을 넣으면 폼을 새 기본값으로 다시 그린다
@@ -215,23 +293,42 @@ function GradingForm({ detail, onDone }: { detail: GradingDetail; onDone: () => 
         >
           학생 원본 메모 <span aria-hidden>{memoOpen ? "⌃" : "⌄"}</span>
         </button>
-        {memoOpen && <p className="pb-2 text-body-sm break-words whitespace-pre-line text-ink">{detail.memo}</p>}
+        {memoOpen && (
+          <p className="pb-2 text-body-sm break-words whitespace-pre-line text-ink">
+            {detail.memo}
+          </p>
+        )}
       </div>
 
-      <AiResultView ai={detail.ai} notice="학생이 제출한 SOAPIE·간호진단 (AI 초안을 학생이 확인해 낸 것)" />
+      <AiResultView
+        ai={detail.ai}
+        notice="학생이 제출한 SOAPIE·간호진단 (AI 초안을 학생이 확인해 낸 것)"
+      />
 
       {/* AI 채점 참고안 */}
       <div className="rounded-card border border-line bg-canvas p-4">
         <div className="flex flex-wrap items-center justify-between gap-2">
-          <p className="text-body-sm font-bold text-ink">🤖 AI 채점 참고안</p>
+          <p className="text-body-sm font-bold text-ink">
+            <IconSparkles
+              size={17}
+              className="mr-1 inline align-[-0.2em] text-brand-deep"
+            />
+            AI 채점 참고안
+          </p>
           <Button
             type="button"
             variant="secondary"
             disabled={asking}
-            onClick={() => startAsk(async () => setAi(await gradingAiAction(detail.id)))}
+            onClick={() =>
+              startAsk(async () => setAi(await gradingAiAction(detail.id)))
+            }
             className="min-h-11 px-4 text-body-sm"
           >
-            {asking ? "분석 중..." : ai.suggestion ? "다시 받기" : "참고안 받기"}
+            {asking
+              ? "분석 중..."
+              : ai.suggestion
+                ? "다시 받기"
+                : "참고안 받기"}
           </Button>
         </div>
         {asking && <WalkingTurtle label="AI가 제출물을 살펴보는 중" />}
@@ -246,23 +343,39 @@ function GradingForm({ detail, onDone }: { detail: GradingDetail; onDone: () => 
           >
             <p className="font-bold text-ink">
               제안: {ai.suggestion.grade} · {ai.suggestion.score}점{" "}
-              <span className="font-medium text-ink-soft">(참고용, 최종 판단은 교수님)</span>
+              <span className="font-medium text-ink-soft">
+                (참고용, 최종 판단은 교수님)
+              </span>
             </p>
             {ai.suggestion.strengths.length > 0 && (
               <ul className="list-disc pl-5 text-ink">
                 {ai.suggestion.strengths.map((s, i) => (
-                  <li key={i}>👍 {s}</li>
+                  <li key={i} className="flex gap-1.5">
+                    <IconThumbUp
+                      size={15}
+                      className="mt-0.5 shrink-0 text-brand-deep"
+                    />
+                    {s}
+                  </li>
                 ))}
               </ul>
             )}
             {ai.suggestion.improvements.length > 0 && (
               <ul className="list-disc pl-5 text-ink">
                 {ai.suggestion.improvements.map((s, i) => (
-                  <li key={i}>✏️ {s}</li>
+                  <li key={i} className="flex gap-1.5">
+                    <IconPencil
+                      size={15}
+                      className="mt-0.5 shrink-0 text-warn-ink"
+                    />
+                    {s}
+                  </li>
                 ))}
               </ul>
             )}
-            <p className="rounded-control bg-subtle px-3 py-2 break-words text-ink-soft">{ai.suggestion.feedback}</p>
+            <p className="rounded-control bg-subtle px-3 py-2 break-words text-ink-soft">
+              {ai.suggestion.feedback}
+            </p>
             <Button
               type="button"
               variant="ghost"
@@ -283,25 +396,34 @@ function GradingForm({ detail, onDone }: { detail: GradingDetail; onDone: () => 
         )}
       </div>
 
-      <form key={defaults.key} action={action} noValidate className="space-y-4 border-t border-line/70 pt-4">
+      <form
+        key={defaults.key}
+        action={action}
+        noValidate
+        className="space-y-4 border-t border-line/70 pt-4"
+      >
         <input type="hidden" name="id" value={detail.id} />
         <ChoiceChips
           name="decision"
           legend="결과"
           options={[
-            { key: "graded", label: "🎓 채점 완료" },
-            { key: "revision", label: "✏️ 보완 요청" },
+            { key: "graded", label: "채점 완료" },
+            { key: "revision", label: "보완 요청" },
           ]}
           defaultValue={v?.decision ?? defaults.decision}
         />
-        {errors.decision && <p className="text-body-sm text-danger">{errors.decision}</p>}
+        {errors.decision && (
+          <p className="text-body-sm text-danger">{errors.decision}</p>
+        )}
         <ChoiceChips
           name="grade"
           legend="학점 (채점 완료일 때)"
           options={GRADES.map((g) => ({ key: g, label: g }))}
           defaultValue={v?.grade ?? defaults.grade}
         />
-        {errors.grade && <p className="text-body-sm text-danger">{errors.grade}</p>}
+        {errors.grade && (
+          <p className="text-body-sm text-danger">{errors.grade}</p>
+        )}
         <Field
           name="score"
           label="점수 (선택, 0~100)"

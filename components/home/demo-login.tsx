@@ -5,6 +5,7 @@ import { demoLogin } from "@/server/demo-actions";
 import { DEMO_ACCOUNTS, type DemoRole } from "@/lib/demo";
 import Button from "@/components/ui/button";
 import FormStatus from "@/components/ui/form-status";
+import { IconBolt, IconPlayCircle } from "@/components/ui/icons";
 
 // 로그인 화면 아래 "1초 체험" (DEMO_LOGIN_ENABLED일 때만 서버가 보여 준다)
 export function DemoLoginCard() {
@@ -21,8 +22,16 @@ export function DemoLoginCard() {
       className="mt-4 rounded-card border border-dashed border-brand-deep/40 bg-brand-soft/40 p-4"
       data-demo-login
     >
-      <p className="text-body-sm font-bold text-ink">⚡ 1초 체험 (심사·시연용)</p>
-      <p className="mt-0.5 text-caption text-ink-soft">가짜 체험 계정으로 바로 들어가요. 학생·교수 화면을 오갈 수 있어요.</p>
+      <p className="text-body-sm font-bold text-ink">
+        <IconBolt
+          size={16}
+          className="mr-1 inline align-[-0.2em] text-warn-ink"
+        />
+        1초 체험 (심사·시연용)
+      </p>
+      <p className="mt-0.5 text-caption text-ink-soft">
+        가짜 체험 계정으로 바로 들어가요. 학생·교수 화면을 오갈 수 있어요.
+      </p>
       <div className="mt-3 grid gap-2 sm:grid-cols-2">
         {(Object.keys(DEMO_ACCOUNTS) as DemoRole[]).map((role) => (
           <Button
@@ -33,8 +42,14 @@ export function DemoLoginCard() {
             onClick={() => go(role)}
             className="min-h-12 flex-col gap-0 px-3 py-1.5"
           >
-            <span className="text-body-sm font-bold">{busy && which === role ? "들어가는 중..." : DEMO_ACCOUNTS[role].label}</span>
-            <span className="text-caption font-medium opacity-80">{DEMO_ACCOUNTS[role].who}</span>
+            <span className="text-body-sm font-bold">
+              {busy && which === role
+                ? "들어가는 중..."
+                : DEMO_ACCOUNTS[role].label}
+            </span>
+            <span className="text-caption font-medium opacity-80">
+              {DEMO_ACCOUNTS[role].who}
+            </span>
           </Button>
         ))}
       </div>
@@ -50,15 +65,25 @@ export function DemoRoleBar({ role }: { role: DemoRole }) {
   const [busy, startBusy] = useTransition();
   const other: DemoRole = role === "student" ? "professor" : "student";
   return (
-    <div className="flex items-center justify-center gap-2 bg-inverse px-4 py-1.5 text-caption text-on-inverse" data-demo-bar>
-      <span>🎬 체험 모드 · {DEMO_ACCOUNTS[role].who}</span>
+    <div
+      className="flex items-center justify-center gap-2 bg-inverse px-4 py-1.5 text-caption text-on-inverse"
+      data-demo-bar
+    >
+      <span className="inline-flex items-center gap-1.5">
+        <IconPlayCircle size={16} />
+        체험 모드 · {DEMO_ACCOUNTS[role].who}
+      </span>
       <button
         type="button"
         disabled={busy}
         onClick={() => startBusy(async () => void (await demoLogin(other)))}
         className="inline-flex min-h-8 items-center rounded-full bg-on-inverse/15 px-3 font-bold hover:bg-on-inverse/25 disabled:opacity-60"
       >
-        {busy ? "바꾸는 중..." : other === "professor" ? "교수 화면으로 →" : "학생 화면으로 →"}
+        {busy
+          ? "바꾸는 중..."
+          : other === "professor"
+            ? "교수 화면으로 →"
+            : "학생 화면으로 →"}
       </button>
     </div>
   );

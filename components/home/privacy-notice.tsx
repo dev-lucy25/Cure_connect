@@ -3,6 +3,7 @@
 import { useSyncExternalStore } from "react";
 import { AnimatePresence, motion } from "motion/react";
 import { SPRING_SOFT } from "@/lib/motion";
+import { IconAlert } from "@/components/ui/icons";
 
 // 환자 개인정보 보호 지침 배너 (케이스 화면). 닫으면 이 기기에서는 다시 안 보인다.
 // 첫 그림은 서버와 같게 "보임", 브라우저에서 닫은 기록을 읽은 뒤 숨긴다 (저장소를 못 쓰면 계속 보임)
@@ -42,12 +43,11 @@ export default function PrivacyNotice() {
           data-privacy-notice
         >
           <div className="flex items-start gap-3 rounded-card border border-warn-line bg-warn-bg p-4 text-body-sm text-warn-ink">
-            <span aria-hidden className="text-title leading-none">
-              ⚠️
-            </span>
+            <IconAlert size={22} className="mt-px shrink-0" />
             <p className="flex-1">
-              <span className="font-bold">환자 개인정보 보호 지침</span> — 환자의 이름·등록번호·생년월일·연락처 같은 식별 정보는 쓰지
-              마세요. 실습 학습용 기록이고, 식별 정보가 보이면 저장·AI 전송 전에 막아요.
+              <span className="font-bold">환자 개인정보 보호 지침</span> —
+              환자의 이름·등록번호·생년월일·연락처 같은 식별 정보는 쓰지 마세요.
+              실습 학습용 기록이고, 식별 정보가 보이면 저장·AI 전송 전에 막아요.
             </p>
             <button
               type="button"
